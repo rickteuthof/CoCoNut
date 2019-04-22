@@ -1,9 +1,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
+#include <stdio.h>
 
 #include "lib/memory.h"
 #include "lib/smap.h"
+#include "lib/array.h"
 
 smap_t *smap_init(int size) {
     smap_t *smap = (smap_t *)malloc(sizeof(smap_t));
@@ -90,4 +93,18 @@ void smap_map(smap_t *t, void *(f)(char *, void *)) {
         for (smap_entry_t *last = t->slots[i]; last; last = last->next) {
             last->value = f(last->key, last->value);
         }
+}
+
+array *smap_values(smap_t *map) {
+    assert(map != NULL);
+    if (map->size < 1) {
+        return NULL;
+    }
+    array *values = array_init(map->size);
+    for (int i = 0; i < map->size; i++) {
+        for (smap_entry_t *elem = map->slots[i]; elem; elem = elem->next) {
+            array_append(values, elem->value);
+        }
+    }
+    return values;
 }

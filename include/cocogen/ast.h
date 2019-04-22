@@ -1,9 +1,17 @@
 #pragma once
 
+/**
+ * @file include/cocogen/ast.h
+ * @brief The definition of all the types in the internal AST.
+ */
+
 #include <stdbool.h>
 #include <stdint.h>
 
 #include "lib/array.h"
+#include "lib/set.h"
+
+typedef struct SetExpr SetExpr;
 
 typedef struct NodeCommonInfo {
     // Needed for Pass, Traversal, Enum, Node, Nodeset,
@@ -50,6 +58,21 @@ enum AttrValueType {
 enum PhaseType { PH_subphases, PH_passes };
 
 enum PhaseLeafType { PL_pass, PL_traversal };
+
+/**
+ * @brief The possible operations to perform on two set expressions. @see SetExpr
+ */
+enum SetOperator {
+     SET_UNION,
+     SET_INTERSECT,
+     SET_DIFFERENCE
+};
+
+enum SetExprType {
+     SET_REFERENCE,
+     SET_NODE_IDS,
+     SET_OPERATION
+};
 
 typedef struct Config {
     array *phases;
@@ -100,7 +123,10 @@ typedef struct Traversal {
     char *info;
     char *func;
 
-    array *nodes;
+    union {
+        array *nodes;
+        SetExpr *expr;
+    };
 
     struct NodeCommonInfo *common_info;
 } Traversal;
@@ -119,8 +145,12 @@ typedef struct Nodeset {
     char *id;
     char *info;
 
-    // Array of strings transformed into array of Nodes.
-    array *nodes;
+    // The set expr of this nodeset, will be transformed
+    // into an array of nodes.
+    union {
+        array *nodes;
+        SetExpr *expr;
+    };
 
     struct NodeCommonInfo *common_info;
 } Nodeset;
@@ -197,3 +227,47 @@ typedef struct AttrValue {
 
     struct NodeCommonInfo *common_info;
 } AttrValue;
+
+/**
+ * @struct SetOperation
+ * @brief The structure to store a set operation on two expressions.
+ *
+ * @details A set operation is an operation, like a UNION or INTERSECT
+ *  on two set expressions.
+ */
+typedef struct SetOperation {
+     enum SetOperator operator;
+     SetExpr *left_child;
+     SetExpr *right_child;
+     struct NodeCommonInfo *common_info;
+} SetOperation;
+
+
+/**
+ * @struct SetExpr
+ * @brief The structure to store an internal set expression.
+ *
+ * @details An internal set expression can be of three possible types:
+ *   -# ref_id:
+ *        Reference to a defined nodeset.
+ *   -# id_set:
+ *        A set of node ids, which is defined inline, so by placing between
+ *        {} brackets.
+ *   -# operation:
+ *        A set operation on two node sets. This node set will be the result
+ *        of that operation.
+ *
+ * All these types will be transformed into an array of nodes,
+ * which can be found in the nodes array.
+ */
+struct SetExpr {
+    enum SetExprType type;
+
+    union {
+        char *ref_id;
+        CCNset_t *id_set;
+        SetOperation *operation;
+    };
+
+    struct NodeCommonInfo *common_info;
+};

@@ -14,7 +14,7 @@ struct array *array_init(long initial_capacity);
 
 /* Free all elements stored in the array 'a' using the 'free_func()'
  * parameter, then free the array itself. If 'free_func' is NULL the
- * standard free() is used. */
+ * no function is used. */
 void array_cleanup(struct array *a, void free_func(void *));
 
 /* Set element at 'index' to 'p'.

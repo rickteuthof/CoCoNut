@@ -28,58 +28,60 @@ enum BinOpEnum {
 traversal Print;
 traversal ByteCode;
 traversal RenameFor {
-    nodes {
+    nodes = {
         For, VarLet, Var
     }
 };
 
 traversal Context {
-    nodes {
-        Root, GlobalDef, GlobalDec, FunDef, Param, For, VarDec, VarLet, Var, FunCall
-    }
+    nodes = Decl | Vars | {Root, Param, For, FunCall, For}
 };
 
 traversal SplitInit {
-    nodes {
+    nodes = {
         Root, GlobalDef, FunBody, VarDec
     }
 };
 
 traversal TypeCheck {
-    nodes {
-        FunDef, FunBody, Return, VarLet, For, DoWhile, While, IfElse, FunCall,
-        BinOp, MonOp, Cast, Var, IntConst, FloatConst, BoolConst
-    }
+    nodes = Stmt | {FunDef, FunBody} | Expr 
 };
 
 traversal Refactor {
-    nodes {
-        Cast, While, StmtList, BinOp, IntConst, FloatConst, BoolConst, Var,
-        FunCall
-    }
+    nodes = {While, StmtList} | Expr - {MonOp, Ternary}
 };
 
 traversal Symbols {
-    nodes {
+    nodes = {
         Root, FunDef, FunSymbol, Symbol
     }
 };
 
-nodeset Decl {
-    nodes {
-        FunDef, GlobalDef, GlobalDec
-    }
+nodeset Const {
+    nodes = {FloatConst, BoolConst, IntConst}
 };
 
+nodeset Operations {
+    nodes = {BinOp, MonOp}
+}
+
+nodeset Decl {
+    nodes = {
+        GlobalDef, GlobalDec, FunDef
+    } 
+};
+
+nodeset Vars {
+    nodes = {VarDec, Var, VarLet}
+}
+
 nodeset Expr {
-    nodes {
-        BinOp, MonOp, Cast, FunCall, Var, Ternary, IntConst, FloatConst, BoolConst
-    }
+    nodes = {Cast, FunCall, Var, Ternary} | Const | Operations
 };
 
 nodeset Stmt {
-    nodes {
-        VarLet, FunCall, IfElse, While, DoWhile, For, Return
+    nodes = {
+        VarLet, FunCall, IfElse, While, DoWhile, For, Return 
     }
 };
 

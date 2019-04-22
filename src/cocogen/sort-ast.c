@@ -1,6 +1,7 @@
 #include "cocogen/ast.h"
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #include "lib/array.h"
 #include "lib/memory.h"
@@ -50,6 +51,7 @@ static void sort_node(Node *n) {
 }
 
 static void sort_nodesets(Nodeset *n) {
+    assert(n->nodes != NULL);
     array_sort(n->nodes, compare_nodesets);
 }
 

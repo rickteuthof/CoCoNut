@@ -233,5 +233,5 @@ void hash_config(Config *c) {
     mhash_deinit(config_td, hash);
     set_hash(c->common_info, true);
 
-    printf("Config hash is : %s\n", c->common_info->hash);
+    //printf("Config hash is | %s\n", c->common_info->hash);
 }

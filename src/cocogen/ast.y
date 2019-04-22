@@ -71,6 +71,8 @@ static void new_location(void *ptr, struct ParserLocation *loc);
     struct Traversal *traversal;
     struct Enum *attr_enum;
     struct Nodeset *nodeset;
+    struct SetExpr *setexpr;
+    struct SetOperation *setoperation;
     struct Node *node;
     struct Child *child;
     struct PhaseRange *phaserange;
@@ -135,7 +137,7 @@ static void new_location(void *ptr, struct ParserLocation *loc);
 
 %type<string> info func
 %type<array> idlist mandatoryarglist mandatory
-             attrlist attrs childlist children enumvalues traversalnodes
+             attrlist attrs childlist children enumvalues
 %type<mandatoryphase> mandatoryarg
 %type<attrval> attrval
 %type<attrtype> attrprimitivetype
@@ -148,6 +150,8 @@ static void new_location(void *ptr, struct ParserLocation *loc);
 %type<attr_enum> enum
 %type<traversal> traversal
 %type<config> root
+%type<setexpr> setexpr traversalnodes
+%type<setoperation> setoperation
 
 %start root
 
@@ -159,7 +163,8 @@ root: entry { parse_result = create_config(config_phases,
                                  config_traversals,
                                  config_enums,
                                  config_nodesets,
-                                 config_nodes); }
+                                 config_nodes);
+            }
     ;
 
 /* For every entry in the config, append to the correct array. */
@@ -309,7 +314,7 @@ func: T_FUNC '=' T_ID
         new_location($3, &@3);
     }
 
-traversalnodes: T_NODES '{' idlist '}'
+traversalnodes: T_NODES '=' setexpr
               {
                   $$ = $3;
               }
@@ -357,20 +362,49 @@ enumvalues: T_VALUES '{'
             yy_lex_keywords = true;
         }
 
-
-nodeset: T_NODESET T_ID '{' T_NODES '{' idlist '}' '}' semicolon
-       {
-           $$ = create_nodeset($2, $6);
-           new_location($$, &@$);
-           new_location($2, &@2);
-       }
-       | T_NODESET T_ID '{' info ',' T_NODES '{' idlist '}' '}' semicolon
+        nodeset : T_NODESET T_ID '{' T_NODES '=' setexpr '}' semicolon
+        {
+            $$ = create_nodeset($2, $6);
+            new_location($$, &@$);
+            new_location($2, &@2);
+        }
+       | T_NODESET T_ID '{' info ',' T_NODES '=' setexpr '}' semicolon
        {
            $$ = create_nodeset($2, $8);
            $$->info = $4;
            new_location($$, &@$);
            new_location($2, &@2);
        }
+       ;
+
+setexpr: setoperation
+       {
+           $$ = create_set_expr(SET_OPERATION, $1);
+       }
+       | '{' idlist '}'
+       {
+           $$ = create_set_expr(SET_NODE_IDS, $2);
+       }
+       | T_ID
+       {
+           $$ = create_set_expr(SET_REFERENCE, $1);
+       }
+       ;
+
+setoperation: setexpr '|' setexpr
+            {
+                $$ = create_set_operation(SET_UNION, $1, $3);
+            }
+            | setexpr '&' setexpr
+            {
+                $$ = create_set_operation(SET_INTERSECT, $1, $3);
+            }
+            | setexpr '-' setexpr
+            {
+                $$ = create_set_operation(SET_DIFFERENCE, $1, $3);
+            }
+            ;
+
 node: T_NODE T_ID '{' nodebody '}' semicolon
     {
         $$ = create_node($2, $4);
@@ -385,6 +419,7 @@ node: T_NODE T_ID '{' nodebody '}' semicolon
         new_location($3, &@3);
     }
     ;
+
 
 /* All possible combinations of children attrs and flags, with allowing empty. */
 nodebody: children ',' attrs
@@ -661,5 +696,5 @@ struct Config* parse(FILE *fp) {
         yy_lines, yy_parser_locations);
     yyparse();
     yylex_destroy();
-    return parse_result;;
+    return parse_result;
 }

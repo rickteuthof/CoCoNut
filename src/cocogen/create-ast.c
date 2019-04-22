@@ -5,6 +5,8 @@
 
 #include "cocogen/ast.h"
 #include "cocogen/create-ast.h"
+#include "cocogen/internal_copy_functions.h"
+#include "cocogen/internal_key_functions.h"
 
 #include "lib/array.h"
 #include "lib/memory.h"
@@ -70,13 +72,13 @@ Pass *create_pass(char *id, char *func) {
     return p;
 }
 
-Traversal *create_traversal(char *id, char *func, array *nodes) {
+Traversal *create_traversal(char *id, char *func, SetExpr *expr) {
 
     Traversal *t = mem_alloc(sizeof(Traversal));
     t->id = id;
     t->func = func;
     t->info = NULL;
-    t->nodes = nodes;
+    t->expr = expr;
 
     t->common_info = create_commoninfo();
     return t;
@@ -95,15 +97,69 @@ Enum *create_enum(char *id, char *prefix, array *values) {
     return e;
 }
 
-Nodeset *create_nodeset(char *id, array *nodes) {
-
+Nodeset *create_nodeset(char *id, SetExpr *expr) {
     Nodeset *n = mem_alloc(sizeof(Nodeset));
     n->id = id;
-    n->nodes = nodes;
+    n->expr = expr;
     n->info = NULL;
 
     n->common_info = create_commoninfo();
     return n;
+}
+
+SetOperation *create_set_operation(enum SetOperator operator, SetExpr *left_child, SetExpr *right_child) {
+    SetOperation *operation = mem_alloc(sizeof(SetOperation));
+    operation->operator = operator;
+    operation->left_child = left_child;
+    operation->right_child = right_child;
+
+    operation->common_info = create_commoninfo();
+    return operation;
+}
+
+/**
+ * @brief Transform an id list to a set of characters.
+ *        The array will be destroyed.
+ */
+CCNset_t *idlist_to_set(array *ids) {
+    CCNset_t *set = ccn_set_create(&id_key, &id_copy);
+
+    for (int i = 0; i < array_size(ids); i++) {
+        void *item = array_get(ids, i);
+        char *id = (char *)item;
+        if(!ccn_set_insert(set, item)) {
+            char *id_def = (char *)ccn_set_get(set, item);
+            print_warning(id, "Set element is already defined, so will be ignored.");
+            print_note(id_def, "Set element already defined here.");
+        }
+    }
+    array_clear(ids);
+    array_cleanup(ids, NULL);
+
+    return set;
+}
+
+SetExpr *create_set_expr(enum SetExprType type, void *value) {
+    SetExpr *expr = mem_alloc(sizeof(SetExpr));
+    expr->type = type;
+
+    switch (type) {
+    case SET_REFERENCE:
+        expr->ref_id = (char*) value;
+        break;
+    case SET_NODE_IDS:
+        expr->id_set = idlist_to_set((array*) value);
+        break;
+    case SET_OPERATION:
+        expr->operation = (SetOperation*) value;
+        break;
+    default:
+        // TODO better exit.
+        printf("No such type for a set expression.");
+        exit(1);
+    }
+
+    return expr;
 }
 
 Node *create_node(char *id, Node *nodebody) {

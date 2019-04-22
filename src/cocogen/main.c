@@ -5,6 +5,8 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include "stdlib.h"
+
 #include "lib/errors.h"
 #include "lib/print.h"
 
@@ -73,6 +75,7 @@ static FILE *open_input_file(char *path) {
         exit(CANNOT_OPEN_FILE);
     }
 
+
     // Test if file a regular file.
     if (S_ISREG(path_stat.st_mode) != 1) {
         print_error_no_loc("%s: cannot open file: "
@@ -91,12 +94,15 @@ static FILE *open_input_file(char *path) {
     return f;
 }
 
+
 void exit_compile_error(void) {
     PRINT_COLOR(MAGENTA);
     fprintf(stderr, "Errors where found, code generation terminated.\n");
     PRINT_COLOR(RESET_COLOR);
     exit(INVALID_CONFIG);
 }
+
+
 
 int main(int argc, char *argv[]) {
     int verbose_flag = 0;
@@ -213,6 +219,7 @@ int main(int argc, char *argv[]) {
     filegen_generate("trav-ast.h", generate_trav_header);
     filegen_generate("trav-core.h", generate_trav_core_header);
     filegen_all_nodes("trav-%s.h", generate_trav_node_header);
+
     // filegen_generate("consistency-ast.h", generate_consistency_header);
     filegen_generate("phase-driver.h", generate_phase_driver_header);
 
@@ -284,7 +291,7 @@ int main(int argc, char *argv[]) {
                      generate_textual_serialization_util);
 
     filegen_cleanup_old_files();
-
+    
     filegen_cleanup();
 
     free_config(parse_result);

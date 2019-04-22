@@ -6,10 +6,12 @@
 #include "cocogen/ast.h"
 #include "cocogen/check-ast.h"
 
+#include "lib/set.h"
 #include "lib/array.h"
 #include "lib/memory.h"
 #include "lib/print.h"
 #include "lib/smap.h"
+
 
 struct Info {
     smap_t *enum_name;
@@ -23,6 +25,7 @@ struct Info {
     Node *root_node;
     Phase *root_phase;
 };
+
 
 static struct Info *create_info(void) {
 
@@ -631,6 +634,106 @@ Phase *build_phase_tree(Phase *phase, struct Info *info) {
     return tree_node;
 }
 
+// TODO: handle cyclic dependencies. IF A depends on B and B on A this will go on
+// forever.... Need to throw an error then.
+static void evaluate_set_expr(SetExpr *expr, struct Info *info, int *error) {
+    CCNset_t *new_set = NULL;
+    if (expr->type == SET_REFERENCE) {
+        Nodeset *target = smap_retrieve(info->nodeset_name, expr->ref_id);
+        evaluate_set_expr(target->expr, info, error);
+
+        assert(target->expr->type == SET_NODE_IDS);
+
+        new_set = ccn_set_copy(target->expr->id_set);
+
+        mem_free(expr->ref_id);
+        expr->type = SET_NODE_IDS;
+        expr->id_set = new_set;
+    } else if (expr->type == SET_OPERATION) {
+        evaluate_set_expr(expr->operation->left_child, info, error);
+        evaluate_set_expr(expr->operation->right_child, info, error);
+        CCNset_t *left = expr->operation->left_child->id_set;
+        CCNset_t *right = expr->operation->right_child->id_set;
+
+        switch (expr->operation->operator) {
+        case SET_UNION:
+            new_set = ccn_set_union(left, right);
+            break;
+        case SET_INTERSECT:
+            new_set = ccn_set_intersect(left, right);
+            break;
+        case SET_DIFFERENCE:
+            new_set = ccn_set_difference(left, right);
+            break;
+        default: // TODO throw unsupported error.
+            break;
+        }
+        mem_free(expr->operation);
+        expr->type = SET_NODE_IDS;
+        expr->id_set = new_set;
+    } else if (expr->type == SET_NODE_IDS) {
+        assert(expr->id_set != NULL);
+    }
+}
+
+static array *set_to_array(CCNset_t *set) {
+    assert(set != NULL);
+    array *values = smap_values(set->hash_map);
+    mem_free(set);
+    return values;
+}
+
+static int evaluate_nodesets_expr(array *nodesets, struct Info *info) {
+    int error = 0;
+
+    for (int i = 0; i < array_size(nodesets); ++i) {
+        Nodeset *nodeset = (Nodeset *)array_get(nodesets, i);
+        evaluate_set_expr(nodeset->expr, info, &error);
+    }
+
+    return error;
+}
+
+static int evaluate_traversals_expr(array *traversals, struct Info *info) {
+    int error = 0;
+    for (int i = 0; i < array_size(traversals); i++) {
+        Traversal *trav = (Traversal *)array_get(traversals, i);
+        if (trav->expr == NULL)
+            continue;
+        evaluate_set_expr(trav->expr, info, &error);
+    }
+
+    return error;
+}
+
+static int nodesets_expr_to_array(array *nodesets, struct Info *info) {
+    int error = 0;
+
+    for (int i = 0; i < array_size(nodesets); ++i) {
+        Nodeset *nodeset = (Nodeset *)array_get(nodesets, i);
+        array *nodes = set_to_array(nodeset->expr->id_set);
+        mem_free(nodeset->expr);
+        nodeset->nodes = nodes;
+    }
+
+    return error;
+}
+
+static int traversals_expr_to_array(array *traversals, struct Info *info) {
+    int error = 0;
+
+    for (int i = 0; i < array_size(traversals); ++i) {
+        Traversal *trav = (Traversal *)array_get(traversals, i);
+        if (trav->expr == NULL)
+            continue;
+        array *nodes = set_to_array(trav->expr->id_set);
+        mem_free(trav->expr);
+        trav->nodes = nodes;
+    }
+
+    return error;
+}
+
 int check_config(Config *config) {
 
     int success = 0;
@@ -647,13 +750,24 @@ int check_config(Config *config) {
     success += check_phases(config->phases, info);
     success += check_passes(config->passes, info);
 
+    // Transform setExpr to array of node ptrs.
+    success += evaluate_nodesets_expr(config->nodesets, info);
+    success += evaluate_traversals_expr(config->traversals, info);
+
+    success += nodesets_expr_to_array(config->nodesets, info);
+    success += traversals_expr_to_array(config->traversals, info);
+
+    // From here all SetExprs for nodes are transformed into arrays.
+
     for (int i = 0; i < array_size(config->nodes); ++i) {
         success += check_node(array_get(config->nodes, i), info);
     }
 
+
     for (int i = 0; i < array_size(config->nodesets); ++i) {
         success += check_nodeset(array_get(config->nodesets, i), info);
     }
+
 
     for (int i = 0; i < array_size(config->enums); ++i) {
         success += check_enum(array_get(config->enums, i), info);
@@ -704,6 +818,5 @@ int check_config(Config *config) {
 
     smap_free(phase_order);
     free_info(info);
-
     return success;
 }
