@@ -41,4 +41,11 @@ void array_clear(struct array *a);
 /* Sort all elements from array 'a' using inplace qsort. */
 void array_sort(struct array *a, int (*compare)(const void *, const void *));
 
+/* Map over array elements. Will call the func for all elements in the array.
+ */
+void array_map(struct array *a, void (*func)(const void *));
+
+/* Returns the last element in the array. */
+void *array_last(struct array *a);
+
 #endif

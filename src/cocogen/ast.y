@@ -73,6 +73,7 @@ static void new_location(void *ptr, struct ParserLocation *loc);
     struct Nodeset *nodeset;
     struct SetExpr *setexpr;
     struct SetOperation *setoperation;
+    struct Action *action;
     struct Node *node;
     struct Child *child;
     struct PhaseRange *phaserange;
@@ -121,10 +122,12 @@ static void new_location(void *ptr, struct ParserLocation *loc);
 %token T_PASSES "passes"
 %token T_PHASE "phase"
 %token T_PHASES "phases"
+%token T_ACTIONS "actions"
 %token T_PREFIX "prefix"
 %token T_INFO "info"
 %token T_FUNC "func"
 %token T_ROOT "root"
+%token T_START "start"
 %token T_SUBPHASES "subphases"
 %token T_TO "to"
 %token T_TRAVERSAL "traversal"
@@ -136,7 +139,7 @@ static void new_location(void *ptr, struct ParserLocation *loc);
 %token END 0 "End-of-file (EOF)"
 
 %type<string> info func
-%type<array> idlist mandatoryarglist mandatory
+%type<array> idlist mandatoryarglist mandatory actionsbody actions
              attrlist attrs childlist children enumvalues
 %type<mandatoryphase> mandatoryarg
 %type<attrval> attrval
@@ -152,50 +155,87 @@ static void new_location(void *ptr, struct ParserLocation *loc);
 %type<config> root
 %type<setexpr> setexpr traversalnodes
 %type<setoperation> setoperation
+%type<action> action
 
 %start root
 
 %%
 
 /* Root of the config, creating the final config */
-root: entry { parse_result = create_config(config_phases,
+root: entries { parse_result = create_config(config_phases,
                                  config_passes,
                                  config_traversals,
                                  config_enums,
                                  config_nodesets,
                                  config_nodes);
-            }
-    ;
+              }
+              ;
+
+entries: entry ';' entries
+       | entry
+       | %empty
+       ;
 
 /* For every entry in the config, append to the correct array. */
-entry: entry phase { array_append(config_phases, $2); }
-     | entry pass { array_append(config_passes, $2); }
-     | entry traversal { array_append(config_traversals, $2); }
-     | entry enum { array_append(config_enums, $2); }
-     | entry nodeset { array_append(config_nodesets, $2); }
-     | entry node { array_append(config_nodes, $2);  }
-     | %empty
+entry: phase { array_append(config_phases, $1); }
+     | pass { array_append(config_passes, $1); }
+     | traversal { array_append(config_traversals, $1); }
+     | enum { array_append(config_enums, $1); }
+     | nodeset { array_append(config_nodesets, $1); }
+     | node { array_append(config_nodes, $1);  }
      ;
 
-phase: phaseheader '{' T_SUBPHASES '{' idlist '}' '}' semicolon
+
+
+phase: phaseheader '{' actionsbody '}'
      {
-         $$ = create_phase($1, $5, NULL);
+         $$ = create_phase($1, NULL, $3);
      }
-     | phaseheader '{' T_PASSES '{' idlist '}' '}' semicolon
+     | phaseheader '{' T_ROOT '=' T_ID ';' actionsbody '}'
      {
-         $$ = create_phase($1, NULL, $5);
-     }
-     | phaseheader '{' info ',' T_SUBPHASES '{' idlist '}' '}' semicolon
-     {
-         $$ = create_phase($1, $7, NULL);
-         $$->info = $3;
-     }
-     | phaseheader '{' info ',' T_PASSES '{' idlist '}' '}' semicolon
-     {
-         $$ = create_phase($1, NULL, $7);
-         $$->info = $3;
+         $$ = create_phase($1, $5, $7);
+         new_location($5, &@5);
      }
      ;
+
+actionsbody: T_ACTIONS '{' actions '}'
+     {
+         $$ = $3;
+     }
+     ;
+
+actions: actions ',' action
+       {
+           array_append($1, $3);
+           $$ = $1;
+       }
+       | action
+       {
+           array *tmp = create_array();
+           array_append(tmp, $1);
+           $$ = tmp;
+       }
+       ;
+
+
+action: traversal
+      {
+          $$ = create_action(ACTION_TRAVERSAL, $1);
+      }
+      | pass
+      {
+          $$ = create_action(ACTION_PASS, $1);
+      }
+      | phase
+      {
+          $$ = create_action(ACTION_PHASE, $1);
+      }
+      | T_ID
+      {
+          $$ = create_action(ACTION_REFERENCE, $1);
+          new_location($1, &@1);
+      }
+      ;
 
 phaseheader: T_PHASE T_ID
            {
@@ -209,13 +249,13 @@ phaseheader: T_PHASE T_ID
                new_location($$, &@$);
                new_location($3, &@3);
            }
-           | T_ROOT T_PHASE T_ID
+           | T_START T_PHASE T_ID
            {
                $$ = create_phase_header($3, true, false);
                new_location($$, &@$);
                new_location($3, &@3);
            }
-           | T_ROOT T_CYCLE T_PHASE T_ID
+           | T_START T_CYCLE T_PHASE T_ID
            {
                $$ = create_phase_header($4, true, true);
                new_location($$, &@$);
@@ -223,14 +263,14 @@ phaseheader: T_PHASE T_ID
            }
            ;
 
-pass: T_PASS T_ID '{' T_FUNC '=' T_ID '}' semicolon
+pass: T_PASS T_ID '{' T_FUNC '=' T_ID '}'
     {
         $$ = create_pass($2, $6);
         new_location($$, &@$);
         new_location($2, &@2);
         new_location($6, &@6);
     }
-    | T_PASS T_ID '{' info ',' T_FUNC '=' T_ID '}' semicolon
+    | T_PASS T_ID '{' info ',' T_FUNC '=' T_ID '}'
     {
         $$ = create_pass($2, $8);
         $$->info = $4;
@@ -238,14 +278,14 @@ pass: T_PASS T_ID '{' T_FUNC '=' T_ID '}' semicolon
         new_location($2, &@2);
         new_location($8, &@8);
     }
-    | T_PASS T_ID '{' info '}' semicolon
+    | T_PASS T_ID '{' info '}'
     {
         $$ = create_pass($2, NULL);
         $$->info = $4;
         new_location($$, &@$);
         new_location($2, &@2);
     }
-    | T_PASS T_ID ';'
+    | T_PASS T_ID
     {
         $$ = create_pass($2, NULL);
         new_location($$, &@$);
@@ -254,52 +294,52 @@ pass: T_PASS T_ID '{' T_FUNC '=' T_ID '}' semicolon
     ;
 
 
-traversal: T_TRAVERSAL T_ID ';'
+traversal: T_TRAVERSAL T_ID
          {
              $$ = create_traversal($2, NULL, NULL);
              new_location($$, &@$);
              new_location($2, &@2);
          }
-         | T_TRAVERSAL T_ID '{' func '}' semicolon
+         | T_TRAVERSAL T_ID '{' func '}'
          {
              $$ = create_traversal($2, $4, NULL);
              new_location($$, &@$);
              new_location($2, &@2);
          }
-         | T_TRAVERSAL T_ID '{' func ',' traversalnodes '}' semicolon
+         | T_TRAVERSAL T_ID '{' func ',' traversalnodes '}'
          {
              $$ = create_traversal($2, $4, $6);
              new_location($$, &@$);
              new_location($2, &@2);
          }
-         | T_TRAVERSAL T_ID '{' traversalnodes '}' semicolon
+         | T_TRAVERSAL T_ID '{' traversalnodes '}'
          {
              $$ = create_traversal($2, NULL, $4);
              new_location($$, &@$);
              new_location($2, &@2);
          }
-         | T_TRAVERSAL T_ID '{' info '}' semicolon
+         | T_TRAVERSAL T_ID '{' info '}'
          {
              $$ = create_traversal($2, NULL, NULL);
              $$->info = $4;
              new_location($$, &@$);
              new_location($2, &@2);
          }
-         | T_TRAVERSAL T_ID '{' info ',' func '}' semicolon
+         | T_TRAVERSAL T_ID '{' info ',' func '}'
          {
              $$ = create_traversal($2, $6, NULL);
              $$->info = $4;
              new_location($$, &@$);
              new_location($2, &@2);
          }
-         | T_TRAVERSAL T_ID '{' info ',' func ',' traversalnodes '}' semicolon
+         | T_TRAVERSAL T_ID '{' info ',' func ',' traversalnodes '}'
          {
              $$ = create_traversal($2, $6, $8);
              $$->info = $4;
              new_location($$, &@$);
              new_location($2, &@2);
          }
-         | T_TRAVERSAL T_ID '{' info ',' traversalnodes '}' semicolon
+         | T_TRAVERSAL T_ID '{' info ',' traversalnodes '}'
          {
              $$ = create_traversal($2, NULL, $6);
              $$->info = $4;
@@ -313,27 +353,29 @@ func: T_FUNC '=' T_ID
         $$ = $3;
         new_location($3, &@3);
     }
+    ;
 
 traversalnodes: T_NODES '=' setexpr
               {
                   $$ = $3;
               }
+              ;
 
-enum: T_ENUM T_ID '{' T_PREFIX '=' T_ID ',' enumvalues '}' semicolon
+enum: T_ENUM T_ID '{' T_PREFIX '=' T_ID ',' enumvalues '}'
     {
         $$ = create_enum($2, $6, $8);
         new_location($$, &@$);
         new_location($2, &@2);
         new_location($6, &@6);
     }
-    | T_ENUM T_ID '{' enumvalues ',' T_PREFIX '=' T_ID '}' semicolon
+    | T_ENUM T_ID '{' enumvalues ',' T_PREFIX '=' T_ID '}'
     {
         $$ = create_enum($2, $8, $4);
         new_location($$, &@$);
         new_location($2, &@2);
         new_location($8, &@6);
     }
-    | T_ENUM T_ID '{' info ',' T_PREFIX '=' T_ID ',' enumvalues '}' semicolon
+    | T_ENUM T_ID '{' info ',' T_PREFIX '=' T_ID ',' enumvalues '}'
     {
         $$ = create_enum($2, $8, $10);
         $$->info = $4;
@@ -341,7 +383,7 @@ enum: T_ENUM T_ID '{' T_PREFIX '=' T_ID ',' enumvalues '}' semicolon
         new_location($2, &@2);
         new_location($8, &@8);
     }
-    | T_ENUM T_ID '{' info ',' enumvalues ',' T_PREFIX '=' T_ID '}' semicolon
+    | T_ENUM T_ID '{' info ',' enumvalues ',' T_PREFIX '=' T_ID '}'
     {
         $$ = create_enum($2, $10, $6);
         $$->info = $4;
@@ -362,13 +404,13 @@ enumvalues: T_VALUES '{'
             yy_lex_keywords = true;
         }
 
-        nodeset : T_NODESET T_ID '{' T_NODES '=' setexpr '}' semicolon
+        nodeset : T_NODESET T_ID '{' T_NODES '=' setexpr '}'
         {
             $$ = create_nodeset($2, $6);
             new_location($$, &@$);
             new_location($2, &@2);
         }
-       | T_NODESET T_ID '{' info ',' T_NODES '=' setexpr '}' semicolon
+       | T_NODESET T_ID '{' info ',' T_NODES '=' setexpr '}'
        {
            $$ = create_nodeset($2, $8);
            $$->info = $4;
@@ -383,7 +425,7 @@ setexpr: setoperation
        }
        | '{' idlist '}'
        {
-           $$ = create_set_expr(SET_NODE_IDS, $2);
+           $$ = create_set_expr(SET_LITERAL, $2);
        }
        | T_ID
        {
@@ -405,13 +447,13 @@ setoperation: setexpr '|' setexpr
             }
             ;
 
-node: T_NODE T_ID '{' nodebody '}' semicolon
+node: T_NODE T_ID '{' nodebody '}'
     {
         $$ = create_node($2, $4);
         new_location($$, &@$);
         new_location($2, &@2);
     }
-    | T_ROOT T_NODE T_ID '{' nodebody '}' semicolon
+    | T_ROOT T_NODE T_ID '{' nodebody '}'
     {
         $$ = create_node($3, $5);
         $$->root = true;
@@ -668,9 +710,6 @@ info: T_INFO '=' T_STRINGVAL
         new_location($3, &@3);
     }
 
-semicolon: ';'
-         | %empty
-         ;
 %%
 
 static void new_location(void *ptr, struct ParserLocation *loc) {

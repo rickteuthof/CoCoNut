@@ -5,13 +5,16 @@
 
 #include "cocogen/ast.h"
 #include "cocogen/check-ast.h"
+#include "cocogen/free-ast.h"
+#include "cocogen/gen-phase-functions.h"
+#include "cocogen/gen-subtree-functions.h"
 
-#include "lib/set.h"
+#include "lib/str.h"
 #include "lib/array.h"
 #include "lib/memory.h"
 #include "lib/print.h"
+#include "lib/set.h"
 #include "lib/smap.h"
-
 
 struct Info {
     smap_t *enum_name;
@@ -22,12 +25,12 @@ struct Info {
     smap_t *phase_name;
     smap_t *pass_name;
 
+    Config *config;
     Node *root_node;
     Phase *root_phase;
 };
 
-
-static struct Info *create_info(void) {
+static struct Info *create_info(Config *config) {
 
     struct Info *info = (struct Info *)mem_alloc(sizeof(struct Info));
 
@@ -39,6 +42,7 @@ static struct Info *create_info(void) {
     info->phase_name = smap_init(32);
     info->pass_name = smap_init(32);
 
+    info->config = config;
     info->root_node = NULL;
     info->root_phase = NULL;
     return info;
@@ -170,7 +174,6 @@ static int check_phases(array *phases, struct Info *info) {
     for (int i = 0; i < array_size(phases); ++i) {
         Phase *cur_phase = (Phase *)array_get(phases, i);
         void *orig_def;
-
         if ((orig_def = check_name_exists(info, cur_phase->id)) != NULL) {
             print_error(cur_phase->id, "Redefinition of name '%s'",
                         cur_phase->id);
@@ -178,6 +181,14 @@ static int check_phases(array *phases, struct Info *info) {
             error = 1;
         } else {
             smap_insert(info->phase_name, cur_phase->id, cur_phase);
+        }
+
+        if (cur_phase->root != NULL) {
+            void *node_def = smap_retrieve(info->node_name, cur_phase->root);
+            if (node_def == NULL) {
+                print_error(cur_phase->root, "Not a valid node.");
+                error = 1;
+            }
         }
     }
     return error;
@@ -497,79 +508,113 @@ static int check_pass(Pass *pass, struct Info *info) {
     return error;
 }
 
-static int check_phase(Phase *phase, struct Info *info, smap_t *phase_order) {
+static int check_action_reference(Action *action, struct Info *info) {
+    char *ref = (char *)action->action;
+    void *item = smap_retrieve(info->phase_name, ref);
+    if (item != NULL) {
+        Phase *p = (Phase *)item;
+        action->type = ACTION_PHASE;
+        action->action = p;
+        mem_free(ref);
+        return 0;
+    }
 
+    item = smap_retrieve(info->traversal_name, ref);
+    if (item != NULL) {
+        action->type = ACTION_TRAVERSAL;
+        action->action = item;
+        mem_free(ref);
+        return 0;
+    }
+
+    item = smap_retrieve(info->pass_name, ref);
+    if (item != NULL) {
+        action->type = ACTION_PASS;
+        action->action = item;
+        mem_free(ref);
+        return 0;
+    }
+
+    print_error(
+        action->action,
+        "ID is not a reference to a defined pass, traversal or phase.");
+    return 1;
+}
+
+static int check_action_phase(Action *action, struct Info *info) {
+    Phase *phase = (Phase *)action->action;
+    Phase *original = smap_retrieve(info->phase_name, phase->id);
+    if (original != NULL) {
+        print_error(phase->id, "Redefinition of name '%s'", phase->id);
+        print_note(original->id, "Previously declared here");
+        return 1;
+    }
+    array_append(info->config->phases, phase);
+    smap_insert(info->phase_name, phase->id, phase);
+    return 0;
+}
+
+static int check_action_pass(Action *action, struct Info *info) {
+    Pass *pass = action->action;
+    Pass *original = smap_retrieve(info->pass_name, pass->id);
+    if (original != NULL) {
+        print_error(pass->id, "Redefinition of name '%s'", pass->id);
+        print_note(original->id, "Previously declared here");
+        return 1;
+    }
+    array_append(info->config->passes, pass);
+    smap_insert(info->pass_name, pass->id, pass);
+    return 0;
+}
+
+static int check_action_traversal(Action *action, struct Info *info) {
+    Traversal *trav = action->action;
+    Traversal *original = smap_retrieve(info->traversal_name, trav->id);
+    if (original != NULL) {
+        print_error(trav->id, "Redefinion of traversal '%s'", trav->id);
+        print_note(original->id, "Previously defined here");
+        return 1;
+    }
+    array_append(info->config->traversals, trav);
+    smap_insert(info->traversal_name, trav->id, trav);
+    return 0;
+}
+
+static int check_action(Action *action, struct Info *info) {
+    switch (action->type) {
+    case ACTION_REFERENCE:
+        return check_action_reference(action, info);
+    case ACTION_PHASE:
+        return check_action_phase(action, info);
+    case ACTION_PASS:
+        return check_action_pass(action, info);
+    case ACTION_TRAVERSAL:
+        return check_action_traversal(action, info);
+    default:
+        return 1;
+    }
+}
+
+static int check_actions(array *actions, struct Info *info) {
+    int error = 0;
+    for (int i = 0; i < array_size(actions); i++) {
+        Action *action = array_get(actions, i);
+        error = check_action(action, info) != 0 ? 1 : error;
+    }
+
+    return error;
+}
+
+static inline void add_required_root_to_phase(Phase *phase, char *root) {
+    ccn_set_insert(phase->roots, ccn_str_cpy(root));
+}
+
+static int check_phase(Phase *phase, struct Info *info, smap_t *phase_order) {
     int error = 0;
 
-    smap_t *pass_name = smap_init(16);
-    smap_t *subphase_name = smap_init(16);
-
-    for (int i = 0; i < array_size(phase->passes); ++i) {
-        char *pass = (char *)array_get(phase->passes, i);
-        char *orig_node;
-
-        // Check if there is no duplicate naming.
-        if ((orig_node = smap_retrieve(pass_name, pass)) != NULL) {
-            print_error(pass, "Duplicate name '%s' in passes of phase '%s'",
-                        pass, phase->id);
-            print_note(orig_node, "Previously declared here");
-            error = 1;
-        } else {
-            smap_insert(pass_name, pass, pass);
-        }
-
-        Pass *phase_pass = (Pass *)smap_retrieve(info->pass_name, pass);
-
-        Traversal *phase_trav =
-            (Traversal *)smap_retrieve(info->traversal_name, pass);
-
-        if (!phase_pass && !phase_trav) {
-            print_error(pass,
-                        "Unknown type of traversal or pass '%s' in phase '%s'",
-                        pass, phase->id);
-            error = 1;
-        }
-    }
-
-    for (int i = 0; i < array_size(phase->subphases); ++i) {
-        char *subphase = (char *)array_get(phase->subphases, i);
-        char *orig_node;
-
-        // Check if there is no duplicate naming.
-        if ((orig_node = smap_retrieve(subphase_name, subphase)) != NULL) {
-            print_error(subphase,
-                        "Duplicate subphase '%s' in subphases of phase '%s'",
-                        subphase, phase->id);
-            print_note(orig_node, "Previously declared here");
-            error = 1;
-        } else {
-            smap_insert(subphase_name, subphase, subphase);
-        }
-
-        Phase *phase_subphase =
-            (Phase *)smap_retrieve(info->phase_name, subphase);
-
-        // Subphase does not exist at all
-        if (!phase_subphase) {
-            print_error(subphase,
-                        "Unknown type of subphase '%s' in phase '%s'",
-                        subphase, phase->id);
-            error = 1;
-        } else {
-
-            // Subphase does exist, but is used before it is declared
-            if (smap_retrieve(phase_order, subphase) == NULL) {
-                print_error(subphase,
-                            "Phase '%s' used as subphase before declaration",
-                            subphase);
-                error = 1;
-            }
-        }
-    }
-
-    if (phase->root) {
+    if (phase->start) {
         if (info->root_phase != NULL) {
-            print_error(phase->id, "Double declaration of root phase");
+            print_error(phase->id, "Double declaration of start phase");
             print_note(info->root_phase->id, "Previously declared here");
             error = 1;
         } else {
@@ -577,77 +622,33 @@ static int check_phase(Phase *phase, struct Info *info, smap_t *phase_order) {
         }
     }
 
-    smap_insert(phase_order, phase->id, phase);
+    for (int i = 0; i < array_size(phase->actions); ++i) {
+        Action *action = array_get(phase->actions, i);
+        error = check_action(action, info) != 0 ? 1 : error;
+        if (action->type == ACTION_PHASE && phase->root != NULL) {
+            add_required_root_to_phase((Phase *)action->action, phase->root);
+        }
 
-    smap_free(pass_name);
-    smap_free(subphase_name);
+    }
+    smap_insert(phase_order, phase->id, phase);
 
     return error;
 }
 
-Phase *build_phase_tree(Phase *phase, struct Info *info) {
-    Phase *tree_node = mem_alloc(sizeof(Phase));
-    tree_node->id = phase->id;
-    if (phase->info)
-        tree_node->info = phase->info;
-    else
-        tree_node->info = NULL;
-    tree_node->cycle = phase->cycle;
-
-    tree_node->type = phase->type;
-
-    if (phase->type == PH_subphases) {
-
-        tree_node->subphases = array_init(32);
-
-        for (int i = 0; i < array_size(phase->subphases); i++) {
-            char *subphase_name = array_get(phase->subphases, i);
-            Phase *subphase = smap_retrieve(info->phase_name, subphase_name);
-
-            Phase *subphase_tree = build_phase_tree(subphase, info);
-
-            array_append(tree_node->subphases, subphase_tree);
-        }
-    } else {
-
-        tree_node->passes = array_init(32);
-
-        for (int i = 0; i < array_size(phase->passes); i++) {
-            PhaseLeaf *leaf = mem_alloc(sizeof(PhaseLeaf));
-
-            char *pass_name = array_get(phase->passes, i);
-            Traversal *trav = smap_retrieve(info->traversal_name, pass_name);
-
-            if (!trav) {
-                Pass *pass = smap_retrieve(info->pass_name, pass_name);
-                leaf->type = PL_pass;
-                leaf->value.pass = pass;
-
-            } else {
-                leaf->type = PL_traversal;
-                leaf->value.traversal = trav;
-            }
-            array_append(tree_node->passes, leaf);
-        }
-    }
-
-    return tree_node;
-}
-
-// TODO: handle cyclic dependencies. IF A depends on B and B on A this will go on
-// forever.... Need to throw an error then.
+// TODO: handle cyclic dependencies. IF A depends on B and B on A this will go
+// on forever.... Need to throw an error then.
 static void evaluate_set_expr(SetExpr *expr, struct Info *info, int *error) {
     CCNset_t *new_set = NULL;
     if (expr->type == SET_REFERENCE) {
         Nodeset *target = smap_retrieve(info->nodeset_name, expr->ref_id);
         evaluate_set_expr(target->expr, info, error);
 
-        assert(target->expr->type == SET_NODE_IDS);
+        assert(target->expr->type == SET_LITERAL);
 
         new_set = ccn_set_copy(target->expr->id_set);
 
         mem_free(expr->ref_id);
-        expr->type = SET_NODE_IDS;
+        expr->type = SET_LITERAL;
         expr->id_set = new_set;
     } else if (expr->type == SET_OPERATION) {
         evaluate_set_expr(expr->operation->left_child, info, error);
@@ -668,10 +669,10 @@ static void evaluate_set_expr(SetExpr *expr, struct Info *info, int *error) {
         default: // TODO throw unsupported error.
             break;
         }
-        mem_free(expr->operation);
-        expr->type = SET_NODE_IDS;
+        free_setOperation(expr->operation);
+        expr->type = SET_LITERAL;
         expr->id_set = new_set;
-    } else if (expr->type == SET_NODE_IDS) {
+    } else if (expr->type == SET_LITERAL) {
         assert(expr->id_set != NULL);
     }
 }
@@ -679,6 +680,7 @@ static void evaluate_set_expr(SetExpr *expr, struct Info *info, int *error) {
 static array *set_to_array(CCNset_t *set) {
     assert(set != NULL);
     array *values = smap_values(set->hash_map);
+    smap_free(set->hash_map);
     mem_free(set);
     return values;
 }
@@ -711,8 +713,11 @@ static int nodesets_expr_to_array(array *nodesets, struct Info *info) {
 
     for (int i = 0; i < array_size(nodesets); ++i) {
         Nodeset *nodeset = (Nodeset *)array_get(nodesets, i);
+        if (nodeset->expr->type != SET_LITERAL)
+            continue;
         array *nodes = set_to_array(nodeset->expr->id_set);
-        mem_free(nodeset->expr);
+        nodeset->expr->id_set = NULL;
+        free_setExpr(nodeset->expr);
         nodeset->nodes = nodes;
     }
 
@@ -727,7 +732,8 @@ static int traversals_expr_to_array(array *traversals, struct Info *info) {
         if (trav->expr == NULL)
             continue;
         array *nodes = set_to_array(trav->expr->id_set);
-        mem_free(trav->expr);
+        trav->expr->id_set = NULL;
+        free_setExpr(trav->expr);
         trav->nodes = nodes;
     }
 
@@ -737,23 +743,35 @@ static int traversals_expr_to_array(array *traversals, struct Info *info) {
 int check_config(Config *config) {
 
     int success = 0;
-    struct Info *info = create_info();
+    struct Info *info = create_info(config);
     smap_t *phase_order = smap_init(16);
     Phase *cur_phase;
-    bool root_phase_seen = false;
+    bool start_phase_seen = false;
     bool phase_errors = false;
 
     success += check_nodes(config->nodes, info);
     success += check_nodesets(config->nodesets, info);
     success += check_enums(config->enums, info);
+
+    if (info->root_node == NULL) {
+        print_error_no_loc("No root node specified.");
+        success++;
+    } else {
+        config->root_node = info->root_node;
+    }
+
+    //generate_sub_root_traversals(config);
     success += check_traversals(config->traversals, info);
-    success += check_phases(config->phases, info);
     success += check_passes(config->passes, info);
+    success += check_phases(config->phases, info);
+
+    subtree_generate_traversals(config);
 
     // Transform setExpr to array of node ptrs.
     success += evaluate_nodesets_expr(config->nodesets, info);
     success += evaluate_traversals_expr(config->traversals, info);
 
+    // Transform all nodeset expressions to arrays.
     success += nodesets_expr_to_array(config->nodesets, info);
     success += traversals_expr_to_array(config->traversals, info);
 
@@ -763,11 +781,9 @@ int check_config(Config *config) {
         success += check_node(array_get(config->nodes, i), info);
     }
 
-
     for (int i = 0; i < array_size(config->nodesets); ++i) {
         success += check_nodeset(array_get(config->nodesets, i), info);
     }
-
 
     for (int i = 0; i < array_size(config->enums); ++i) {
         success += check_enum(array_get(config->enums, i), info);
@@ -783,13 +799,8 @@ int check_config(Config *config) {
     for (int i = 0; i < array_size(config->phases); ++i) {
         cur_phase = array_get(config->phases, i);
 
-        // Don't give the warning when we encounter another phase
-        // which is declared as root, since it gives an error anyway
-        if (root_phase_seen && !cur_phase->root)
-            print_warning(cur_phase->id, "Phase is unreachable");
-
-        if (cur_phase->root)
-            root_phase_seen = true;
+        if (cur_phase->start)
+            start_phase_seen = true;
 
         int res = check_phase(cur_phase, info, phase_order);
         success += res;
@@ -797,26 +808,15 @@ int check_config(Config *config) {
             phase_errors = true;
     }
 
-    if (info->root_node == NULL) {
-        print_error_no_loc("No root node specified.");
-        success++;
-    } else {
-        config->root_node = info->root_node;
-    }
+
 
     if (info->root_phase == NULL) {
-        print_error_no_loc("No root phase specified.");
+        print_error_no_loc("No start phase specified.");
         success++;
-    } else {
-        if (!phase_errors) {
-            Phase *tree = build_phase_tree(info->root_phase, info);
-            config->phase_tree = tree;
-        } else {
-            config->phase_tree = NULL;
-        }
     }
 
     smap_free(phase_order);
     free_info(info);
+
     return success;
 }

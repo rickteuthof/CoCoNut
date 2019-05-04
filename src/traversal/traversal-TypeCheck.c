@@ -26,3 +26,5 @@ void TypeCheck_Var(Var *node, Info *info) {}
 void TypeCheck_IntConst(IntConst *node, Info *info) {}
 void TypeCheck_FloatConst(FloatConst *node, Info *info) {}
 void TypeCheck_BoolConst(BoolConst *node, Info *info) {}
+void TypeCheck_Param(Param *node, Info *info) {}
+void TypeCheck_FunHeader(FunHeader *node, Info *info) {}

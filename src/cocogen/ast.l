@@ -115,6 +115,7 @@ static inline void check_c_keyword(const char *);
 "passes"        { LEX_KEYWORD(T_PASSES);}
 "phase"         { LEX_KEYWORD(T_PHASE);}
 "phases"        { LEX_KEYWORD(T_PHASES);}
+"actions"       { LEX_KEYWORD(T_ACTIONS);}
 "prefix"        { LEX_KEYWORD(T_PREFIX);}
 "subphases"     { LEX_KEYWORD(T_SUBPHASES);}
 "to"            { LEX_KEYWORD(T_TO);}
@@ -123,6 +124,7 @@ static inline void check_c_keyword(const char *);
 "info"          { LEX_KEYWORD(T_INFO) ; }
 "func"          { LEX_KEYWORD(T_FUNC) ; }
 "root"          { LEX_KEYWORD(T_ROOT) ; }
+"start"         { LEX_KEYWORD(T_START); }
 "double"        { LEX_KEYWORD(T_DOUBLE);}
 "float"         { LEX_KEYWORD(T_FLOAT);}
 "int"           { LEX_KEYWORD(T_INT);}

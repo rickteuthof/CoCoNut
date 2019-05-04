@@ -136,16 +136,34 @@ static void hash_phase(Phase *phase) {
 
     hash(phase->id, char);
     hash(phase->cycle ? "y" : "n", char);
-    hash(phase->root ? "y" : "n", char);
+    hash(phase->start ? "y" : "n", char);
+    if (phase->root != NULL) hash(phase->root, char);
 
-    for (int i = 0; i < array_size(phase->passes); ++i) {
-        char *pass = array_get(phase->passes, i);
-        hash(pass, char);
+    for (int i = 0; i < array_size(phase->actions); ++i) {
+        Action *action = array_get(phase->actions, i);
+        switch (action->type) {
+        case ACTION_PASS:
+            hash(((Pass *)action->action)->id, char);
+            break;
+        case ACTION_TRAVERSAL:
+            hash(((Traversal *)action->action)->id, char);
+            break;
+        case ACTION_PHASE:
+            hash(((Phase *)action->action)->id, char);
+            break;
+        case ACTION_REFERENCE:
+            hash(((char *)action->action), char);
+            break;
+        }
     }
-    for (int i = 0; i < array_size(phase->subphases); ++i) {
-        char *subphase = array_get(phase->subphases, i);
-        hash(subphase, char);
+
+    array *values = ccn_set_values(phase->roots);
+    for (int i = 0; i < array_size(values); ++i) {
+        char *root = array_get(values, i);
+        hash(root, char);
     }
+    array_clear(values);
+    array_cleanup(values, mem_free);
 
     mhash_deinit(td, hash);
     set_hash(phase->common_info, false);
@@ -233,5 +251,5 @@ void hash_config(Config *c) {
     mhash_deinit(config_td, hash);
     set_hash(c->common_info, true);
 
-    //printf("Config hash is | %s\n", c->common_info->hash);
+    // printf("Config hash is | %s\n", c->common_info->hash);
 }

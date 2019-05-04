@@ -90,9 +90,9 @@ static void generate_node(Node *node, FILE *fp, bool header) {
                         out("%f;\n", attr->default_value->value.double_value);
                         break;
                     case AV_bool:
-                        out("%s;\n",
-                            attr->default_value->value.bool_value ? "true"
-                                                                  : "false");
+                        out("%s;\n", attr->default_value->value.bool_value
+                                         ? "true"
+                                         : "false");
                         break;
                     case AV_id:
                         out("NULL; // TODO: fix default value id\n");

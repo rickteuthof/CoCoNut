@@ -72,6 +72,7 @@ void *array_pop(struct array *a) {
     return last;
 }
 
+// TODO: make of type size_t;
 int array_size(struct array *a) {
     if (a == NULL)
         return 0;
@@ -84,4 +85,20 @@ void array_clear(struct array *a) {
 
 void array_sort(struct array *a, int (*compare)(const void *, const void *)) {
     qsort(a->data, a->size, sizeof(void *), compare);
+}
+
+void array_map(struct array *a, void (*func)(const void *)) {
+    assert(a != NULL && func != NULL);
+    const int size = array_size(a);
+    for (int i = 0; i < size; ++i) {
+        func(array_get(a, i));
+    }
+}
+
+void *array_last(struct array *a) {
+    const int size = array_size(a);
+    if (size == 0)
+        return NULL;
+
+    return array_get(a, size - 1);
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lib/array.h"
+#include "lib/memory.h"
 
 typedef struct smap_entry_t {
     char *key;
@@ -9,12 +10,13 @@ typedef struct smap_entry_t {
 } smap_entry_t;
 
 typedef struct smap_t {
-    int size;
+    size_t size;
     struct smap_entry_t **slots;
 } smap_t;
 
-smap_t *smap_init(int);
-void smap_free(smap_t *);
+smap_t *smap_init(size_t);
+void smap_free_values(smap_t *map, void (*func)(void *));
+void smap_free(smap_t *map);
 unsigned int smap_hash_fun(char *);
 unsigned int smap_hash(smap_t *, char *);
 smap_entry_t *smap_entry_init(char *, void *);

@@ -25,8 +25,8 @@ static smap_t *generated_files = NULL;
 
 static bool only_list_files = false;
 
-static FILE *get_fp(char *full_path) {
-    FILE *fp = fopen(full_path, "w");
+FILE *get_fp(char *full_path, char *mode) {
+    FILE *fp = fopen(full_path, mode);
     if (!fp) {
         perror("Opening file failed");
         exit(CANNOT_OPEN_FILE);
@@ -34,31 +34,44 @@ static FILE *get_fp(char *full_path) {
     return fp;
 }
 
-static char *get_full_path(char *filename, char *formatter) {
-    size_t out_dir_len = strlen(output_directory);
-    char *full_path = mem_alloc(out_dir_len + strlen(filename) + 1);
-    strcpy(full_path, output_directory);
+bool is_only_list_files() {
+    return only_list_files;
+}
+
+Config *_get_ast_definition() {
+    return ast_definition;
+}
+
+char *get_full_path_with_dir(const char *dir, char *filename, char *formatter) {
+    size_t dir_len = strlen(dir);
+    char *full_path = mem_alloc(dir_len + strlen(filename) + 1);
+    strcpy(full_path, dir);
     strcat(full_path, filename);
 
     if (formatter) {
         char *old_full_path = full_path;
         full_path =
-            mem_alloc(out_dir_len + strlen(formatter) + strlen(filename) + 1);
+            mem_alloc(dir_len + strlen(formatter) + strlen(filename) + 1);
         sprintf(full_path, old_full_path, formatter);
         mem_free(old_full_path);
     }
 
     return full_path;
+
 }
 
-static void print_file_gen(char *full_path) {
+static char *get_full_path(char *filename, char *formatter) {
+    return get_full_path_with_dir(output_directory, filename, formatter);
+}
+
+void print_file_gen(char *full_path) {
     if (only_list_files)
         printf("%s\n", full_path);
     else
         printf(COLOR_GREEN " GEN       " COLOR_RESET "%s\n", full_path);
 }
 
-static void add_filename_to_set(char *filename) {
+void add_filename_to_set(char *filename) {
     char *filename_dup = strdup(filename);
     char *fn = strrchr(filename_dup, '/');
     if (fn) {
@@ -120,6 +133,30 @@ void filegen_cleanup(void) {
     }
 }
 
+bool ensure_dir_exists(char *dirname, __mode_t mode) {
+    if (mkdir(dirname, mode) == 0) {
+        return true;
+    } else {
+        if (errno == EEXIST) {
+            DIR *d = opendir(dirname);
+
+            // out_dir exists but is a file
+            if (!d) {
+                perror("Creation failed");
+                exit(CANNOT_CREATE_DIR);
+            } else {
+                // Directory already exists
+                closedir(d);
+            }
+            return true;
+        } else {
+            perror("Creation failed");
+            exit(CANNOT_CREATE_DIR);
+        }
+    }
+    return false;
+}
+
 void filegen_dir(char *out_dir) {
     filegen_cleanup();
 
@@ -134,25 +171,7 @@ void filegen_dir(char *out_dir) {
         output_directory = strdup(out_dir);
     }
 
-    if (mkdir(output_directory, 0755) == 0) {
-        printf("Created output directory %s\n", output_directory);
-    } else {
-        if (errno == EEXIST) {
-            DIR *d = opendir(output_directory);
-
-            // out_dir exists but is a file
-            if (!d) {
-                perror("Creation failed");
-                exit(CANNOT_CREATE_DIR);
-            } else {
-                // Directory already exists
-                closedir(d);
-            }
-        } else {
-            perror("Creation failed");
-            exit(CANNOT_CREATE_DIR);
-        }
-    }
+    ensure_dir_exists(output_directory, 0755);
 }
 
 void filegen_generate(char *filename, void (*func)(Config *, FILE *)) {
@@ -164,7 +183,7 @@ void filegen_generate(char *filename, void (*func)(Config *, FILE *)) {
     print_file_gen(full_path);
 
     if (!only_list_files) {
-        FILE *fp = get_fp(full_path);
+        FILE *fp = get_fp(full_path, "w");
         func(ast_definition, fp);
         fclose(fp);
     }
@@ -187,7 +206,7 @@ void filegen_all_nodes(char *fileformatter,
         }
 
         if (!only_list_files) {
-            fp = get_fp(full_path);
+            fp = get_fp(full_path, "w");
             out(HASH_HEADER, node->common_info->hash);
             func(ast_definition, fp, node);
             fclose(fp);
@@ -212,7 +231,7 @@ void filegen_all_nodesets(char *fileformatter,
         }
 
         if (!only_list_files) {
-            fp = get_fp(full_path);
+            fp = get_fp(full_path, "w");
             out(HASH_HEADER, nodeset->common_info->hash);
             func(ast_definition, fp, nodeset);
             fclose(fp);
@@ -237,7 +256,7 @@ void filegen_all_traversals(char *fileformatter,
         }
 
         if (!only_list_files) {
-            fp = get_fp(full_path);
+            fp = get_fp(full_path, "w");
             out(HASH_HEADER, traversal->common_info->hash);
             func(ast_definition, fp, traversal);
             fclose(fp);
@@ -262,13 +281,80 @@ void filegen_all_passes(char *fileformatter,
         }
 
         if (!only_list_files) {
-            fp = get_fp(full_path);
+            fp = get_fp(full_path, "w");
             out(HASH_HEADER, pass->common_info->hash);
             func(ast_definition, fp, pass);
             fclose(fp);
         }
 
         mem_free(full_path);
+    }
+}
+
+void filegen_all_phases(char *fileFormatter,
+                        void (*func)(Config *, FILE *, Phase *)) {
+
+    char *full_path;
+    FILE *fp;
+    for (int i = 0; i < array_size(ast_definition->phases); ++i) {
+        Phase *phase = array_get(ast_definition->phases, i);
+        full_path = get_full_path(fileFormatter, phase->id);
+
+        if (hash_match(phase->common_info, full_path)) {
+            phase->common_info->hash_matches = true;
+            mem_free(full_path);
+            continue;
+        }
+
+        if (!only_list_files) {
+            fp = get_fp(full_path, "w");
+            out(HASH_HEADER, phase->common_info->hash);
+            func(ast_definition, fp, phase);
+            fclose(fp);
+        }
+
+        mem_free(full_path);
+    }
+}
+
+void filegen_phase_subtree(void (*func)(array *)) {
+    func(ast_definition->phases);
+}
+
+void filegen_delete_non_generated_filed(CCNset_t*generated_files, array *directories, CCNset_t *blacklist) {
+    DIR *dir;
+    struct dirent *ent;
+
+    for (int i = 0; i < array_size(directories); ++i) {
+        char *dir_name = array_get(directories, i);
+        size_t dir_len = strlen(dir_name);
+
+        if ((dir = opendir(dir_name)) != NULL) {
+            while ((ent = readdir(dir)) != NULL) {
+                if (ent->d_type != DT_REG)
+                    continue;
+
+                char *name = ent->d_name;
+                size_t name_len = strlen(name);
+                if (blacklist != NULL && ccn_set_contains(blacklist, name))
+                    continue;
+
+                // Delete the file if it is not generated
+                if (! ccn_set_contains(generated_files, name)) {
+                    char *full_path = malloc(dir_len + name_len + 2);
+                    sprintf(full_path, "%s%s", dir_name, name);
+                    printf(COLOR_GREEN " RM        " COLOR_RESET "%s\n",
+                        full_path);
+                    if (remove(full_path) != 0)
+                        perror("remove");
+
+                    mem_free(full_path);
+                }
+            }
+            closedir(dir);
+        } else {
+            perror("Could not open directory for file cleanup.\n");
+        }
     }
 }
 

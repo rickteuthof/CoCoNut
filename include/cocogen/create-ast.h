@@ -5,7 +5,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-
 Config *create_config(array *phases, array *passes, array *traversals,
                       array *attr_enums, array *nodesets, array *nodes);
 
@@ -15,13 +14,14 @@ Traversal *create_traversal(char *id, char *func, SetExpr *expr);
 
 Phase *create_phase_header(char *id, bool root, bool cycle);
 
-Phase *create_phase(Phase *phase_header, array *phases, array *passes);
+Phase *create_phase(Phase *phase_header, char *root, array *actions);
 
 Enum *create_enum(char *id, char *prefix, array *values);
 
 Nodeset *create_nodeset(char *id, SetExpr *expr);
 
-SetOperation *create_set_operation(enum SetOperator operator, SetExpr *left_child, SetExpr *right_child);
+SetOperation *create_set_operation(enum SetOperator operator,
+                                   SetExpr *left_child, SetExpr *right_child);
 
 SetExpr *create_set_expr(enum SetExprType type, void *value);
 
@@ -36,6 +36,8 @@ MandatoryPhase *create_mandatory_singlephase(char *phase, int negation);
 
 MandatoryPhase *create_mandatory_phaserange(char *phase_start, char *phase_end,
                                             int negation);
+
+Action *create_action(enum ActionType type, void *action);
 
 Attr *create_attr(Attr *attrhead, AttrValue *default_value, int construct);
 

@@ -33,6 +33,8 @@
 #include "cocogen/gen-trav-core-functions.h"
 #include "cocogen/gen-trav-functions.h"
 #include "cocogen/gen-user-trav-header.h"
+#include "cocogen/gen-phase-functions.h"
+#include "cocogen/gen-subtree-functions.h"
 
 // Defined in parser
 extern Config *parse(FILE *fp);
@@ -75,7 +77,6 @@ static FILE *open_input_file(char *path) {
         exit(CANNOT_OPEN_FILE);
     }
 
-
     // Test if file a regular file.
     if (S_ISREG(path_stat.st_mode) != 1) {
         print_error_no_loc("%s: cannot open file: "
@@ -94,15 +95,12 @@ static FILE *open_input_file(char *path) {
     return f;
 }
 
-
 void exit_compile_error(void) {
     PRINT_COLOR(MAGENTA);
     fprintf(stderr, "Errors where found, code generation terminated.\n");
     PRINT_COLOR(RESET_COLOR);
     exit(INVALID_CONFIG);
 }
-
-
 
 int main(int argc, char *argv[]) {
     int verbose_flag = 0;
@@ -178,6 +176,7 @@ int main(int argc, char *argv[]) {
         exit_compile_error();
     }
 
+
     // Sort to prevent changes in order of attributes trigger regeneration of
     // code.
     sort_config(parse_result);
@@ -216,6 +215,7 @@ int main(int argc, char *argv[]) {
     filegen_all_nodes("copy-%s.h", generate_copy_node_header);
     filegen_all_nodesets("copy-%s.h", generate_copy_nodeset_header);
 
+
     filegen_generate("trav-ast.h", generate_trav_header);
     filegen_generate("trav-core.h", generate_trav_core_header);
     filegen_all_nodes("trav-%s.h", generate_trav_node_header);
@@ -225,6 +225,7 @@ int main(int argc, char *argv[]) {
 
     filegen_all_traversals("traversal-%s.h", generate_user_trav_header);
     filegen_all_passes("pass-%s.h", generate_pass_header);
+    filegen_all_phases("phase-%s.h", generate_phase_function_declarations);
 
     filegen_generate("binary-serialization-util.h",
                      generate_binary_serialization_util_header);
@@ -260,6 +261,8 @@ int main(int argc, char *argv[]) {
     filegen_all_nodes("trav-%s.c", generate_trav_node_definitions);
     // filegen_generate("consistency-ast.c", generate_consistency_definitions);
     filegen_generate("phase-driver.c", generate_phase_driver_definitions);
+    filegen_all_phases("phase-%s.c", generate_phase_function_definitions);
+    filegen_phase_subtree(subtree_generate_phase_functions);
 
     filegen_generate("binary-serialization-util.c",
                      generate_binary_serialization_util);
@@ -291,7 +294,7 @@ int main(int argc, char *argv[]) {
                      generate_textual_serialization_util);
 
     filegen_cleanup_old_files();
-    
+
     filegen_cleanup();
 
     free_config(parse_result);

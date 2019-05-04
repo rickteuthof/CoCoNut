@@ -82,33 +82,61 @@ typedef struct {
     uint32_t node_index;
 } Child;
 
-typedef struct { int64_t value; } Attribute_int_data;
+typedef struct {
+    int64_t value;
+} Attribute_int_data;
 
-typedef struct { uint64_t value; } Attribute_uint_data;
+typedef struct {
+    uint64_t value;
+} Attribute_uint_data;
 
-typedef struct { int8_t value; } Attribute_int8_data;
+typedef struct {
+    int8_t value;
+} Attribute_int8_data;
 
-typedef struct { int16_t value; } Attribute_int16_data;
+typedef struct {
+    int16_t value;
+} Attribute_int16_data;
 
-typedef struct { int32_t value; } Attribute_int32_data;
+typedef struct {
+    int32_t value;
+} Attribute_int32_data;
 
-typedef struct { int64_t value; } Attribute_int64_data;
+typedef struct {
+    int64_t value;
+} Attribute_int64_data;
 
-typedef struct { uint8_t value; } Attribute_uint8_data;
+typedef struct {
+    uint8_t value;
+} Attribute_uint8_data;
 
-typedef struct { uint16_t value; } Attribute_uint16_data;
+typedef struct {
+    uint16_t value;
+} Attribute_uint16_data;
 
-typedef struct { uint32_t value; } Attribute_uint32_data;
+typedef struct {
+    uint32_t value;
+} Attribute_uint32_data;
 
-typedef struct { uint64_t value; } Attribute_uint64_data;
+typedef struct {
+    uint64_t value;
+} Attribute_uint64_data;
 
-typedef struct { float value; } Attribute_float_data;
+typedef struct {
+    float value;
+} Attribute_float_data;
 
-typedef struct { double value; } Attribute_double_data;
+typedef struct {
+    double value;
+} Attribute_double_data;
 
-typedef struct { bool value; } Attribute_bool_data;
+typedef struct {
+    bool value;
+} Attribute_bool_data;
 
-typedef struct { uint32_t value_index; } Attribute_string_data;
+typedef struct {
+    uint32_t value_index;
+} Attribute_string_data;
 
 typedef struct {
     // Index in enum pool
@@ -118,7 +146,9 @@ typedef struct {
     uint16_t value_index;
 } Attribute_enum_data;
 
-typedef struct { uint32_t node_index; } Attribute_link_data;
+typedef struct {
+    uint32_t node_index;
+} Attribute_link_data;
 
 typedef struct {
     uint32_t name_index;

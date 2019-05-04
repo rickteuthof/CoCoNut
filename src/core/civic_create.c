@@ -4,6 +4,8 @@
 #include "generated/free-ast.h"
 #include "generated/phase-driver.h"
 #include "generated/trav-ast.h"
+#include "generated/traversal-FindFundefFromRoot.h"
+#include "generated/enum.h"
 
 #include "generated/serialization-Root.h"
 
@@ -44,9 +46,12 @@ int main() {
         create_BinOp(create_Expr_Var(create_Var(strdup("a1"))),
                      create_Expr_Var(create_Var(strdup("a2"))), BO_add);
 
+    BinOp *plus2 = 
+        create_BinOp(create_Expr_Var(create_Var(strdup("a3"))), create_Expr_Var(create_Var(strdup("a4"))), BO_add);    
     VarLet *a1 = create_VarLet(create_Expr_FunCall(scanint), strdup("a1"));
     VarLet *a2 = create_VarLet(create_Expr_FunCall(scanint2), strdup("a2"));
     VarLet *a3 = create_VarLet(create_Expr_BinOp(plus), strdup("a3"));
+    VarLet *a5 = create_VarLet(create_Expr_BinOp(plus2), strdup("a5"));
     VarLet *a4 =
         create_VarLet(create_Expr_Var(create_Var(strdup("a3"))), strdup("a4"));
     Return *returna4 =
@@ -56,11 +61,13 @@ int main() {
     StmtList *stmtla2 = create_StmtList(NULL, create_Stmt_VarLet(a2));
     StmtList *stmtla3 = create_StmtList(NULL, create_Stmt_VarLet(a3));
     StmtList *stmtla4 = create_StmtList(NULL, create_Stmt_VarLet(a4));
+    StmtList *stmtla5 = create_StmtList(NULL, create_Stmt_VarLet(a5));
     StmtList *stmtreturn = create_StmtList(NULL, create_Stmt_Return(returna4));
     stmtla1->next = stmtla2;
     stmtla2->next = stmtla3;
     stmtla3->next = stmtla4;
-    stmtla4->next = stmtreturn;
+    stmtla4->next = stmtla5;
+    stmtla5->next = stmtreturn;
 
     FunDef *mainfun =
         create_FunDef(create_FunBody(NULL, stmtla1, vda1),
@@ -69,14 +76,14 @@ int main() {
 
     Root *program = create_Root(
         create_Decls(create_Decl_FunDef(mainfun), NULL), NULL, NULL);
+    
+    phasedriver_run(program);
+    trav_start_Root(program, TRAV_FindFundefFromRoot);
+    // FILE *fp;
 
-    // phasedriver_run(program);
-    FILE *fp;
+    //serialization_write_binfile_Root(program, "test-serialization.bin");
+    //Root *root_ser = serialization_read_binfile_Root("test-serialization.bin");
 
-    serialization_write_binfile_Root(program, "test-serialization.bin");
-    Root *root_ser = serialization_read_binfile_Root("test-serialization.bin");
-
-    trav_start_Root(root_ser, TRAV_Print);
-
+    //trav_start_Root(program, TRAV_Print);
     return 0;
 }

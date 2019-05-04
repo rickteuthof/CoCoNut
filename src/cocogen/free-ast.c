@@ -11,20 +11,45 @@ static void free_commoninfo(NodeCommonInfo *info) {
     mem_free(info);
 }
 
+void free_setOperation(SetOperation *operation);
+
+void free_setExpr(SetExpr *expr) {
+    switch (expr->type) {
+    case SET_REFERENCE:
+        mem_free(expr->ref_id);
+        break;
+    case SET_LITERAL:
+        ccn_set_free(expr->id_set);
+        break;
+    case SET_OPERATION:
+        free_setOperation(expr->operation);
+    }
+    free_commoninfo(expr->common_info);
+    mem_free(expr);
+}
+
+void free_setOperation(SetOperation *operation) {
+    free_commoninfo(operation->common_info);
+    free_setExpr(operation->left_child);
+    free_setExpr(operation->right_child);
+    mem_free(operation);
+}
+
+static void free_action(void *a) {
+    Action *action = a;
+    mem_free(action);
+}
+
 static void free_phase(void *p) {
     Phase *phase = p;
 
-    switch (phase->type) {
-    case PH_subphases:
-        array_cleanup(phase->subphases, mem_free);
-        break;
-    case PH_passes:
-        array_cleanup(phase->passes, mem_free);
-        break;
-    }
-
     mem_free(phase->id);
     free_commoninfo(phase->common_info);
+    if (phase->root != NULL) {
+        mem_free(phase->root);
+    }
+    ccn_set_free(phase->roots);
+    array_cleanup(phase->actions, mem_free);
     mem_free(phase);
 }
 
@@ -131,16 +156,6 @@ static void free_node(void *p) {
 static void free_phase_tree(Phase *tree) {
     if (tree == NULL)
         return;
-
-    if (tree->type == PH_subphases) {
-        for (int i = 0; i < array_size(tree->subphases); i++) {
-            free_phase_tree(array_get(tree->subphases, i));
-        }
-
-        array_cleanup(tree->subphases, NULL);
-    } else {
-        array_cleanup(tree->passes, mem_free);
-    }
 
     mem_free(tree);
 }

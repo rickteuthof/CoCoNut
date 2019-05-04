@@ -5,8 +5,7 @@
 
 #include "cocogen/ast.h"
 #include "cocogen/create-ast.h"
-#include "cocogen/internal_copy_functions.h"
-#include "cocogen/internal_key_functions.h"
+#include "lib/set_implementations.h"
 
 #include "lib/array.h"
 #include "lib/memory.h"
@@ -17,6 +16,7 @@ extern ParserLocation yy_parser_location;
 static NodeCommonInfo *create_commoninfo() {
     NodeCommonInfo *info = (NodeCommonInfo *)mem_alloc(sizeof(NodeCommonInfo));
     info->hash = NULL;
+    info->hash_matches = false;
     return info;
 }
 
@@ -35,29 +35,24 @@ Config *create_config(array *phases, array *passes, array *traversals,
     return c;
 }
 
-Phase *create_phase_header(char *id, bool root, bool cycle) {
+Phase *create_phase_header(char *id, bool start, bool cycle) {
     Phase *p = mem_alloc(sizeof(Phase));
     p->id = id;
     p->info = NULL;
-    p->root = root;
+    p->root = NULL;
+    p->roots = ccn_set_string_create(2);
+    p->start = start;
     p->cycle = cycle;
 
     p->common_info = create_commoninfo();
     return p;
 }
 
-Phase *create_phase(Phase *phase_header, array *phases, array *passes) {
+Phase *create_phase(Phase *phase_header, char *root, array *actions) {
 
     Phase *p = phase_header;
-    if (phases == NULL) {
-        p->type = PH_passes;
-    } else {
-        p->type = PH_subphases;
-    }
-
-    p->subphases = phases;
-    p->passes = passes;
-
+    p->root = root;
+    p->actions = actions;
     return p;
 }
 
@@ -107,9 +102,10 @@ Nodeset *create_nodeset(char *id, SetExpr *expr) {
     return n;
 }
 
-SetOperation *create_set_operation(enum SetOperator operator, SetExpr *left_child, SetExpr *right_child) {
+SetOperation *create_set_operation(enum SetOperator operator,
+                                   SetExpr *left_child, SetExpr *right_child) {
     SetOperation *operation = mem_alloc(sizeof(SetOperation));
-    operation->operator = operator;
+    operation->operator= operator;
     operation->left_child = left_child;
     operation->right_child = right_child;
 
@@ -122,14 +118,15 @@ SetOperation *create_set_operation(enum SetOperator operator, SetExpr *left_chil
  *        The array will be destroyed.
  */
 CCNset_t *idlist_to_set(array *ids) {
-    CCNset_t *set = ccn_set_create(&id_key, &id_copy);
+    CCNset_t *set = ccn_set_string_create(20);
 
     for (int i = 0; i < array_size(ids); i++) {
         void *item = array_get(ids, i);
         char *id = (char *)item;
-        if(!ccn_set_insert(set, item)) {
+        if (!ccn_set_insert(set, item)) {
             char *id_def = (char *)ccn_set_get(set, item);
-            print_warning(id, "Set element is already defined, so will be ignored.");
+            print_warning(
+                id, "Set element is already defined, so will be ignored.");
             print_note(id_def, "Set element already defined here.");
         }
     }
@@ -145,20 +142,20 @@ SetExpr *create_set_expr(enum SetExprType type, void *value) {
 
     switch (type) {
     case SET_REFERENCE:
-        expr->ref_id = (char*) value;
+        expr->ref_id = (char *)value;
         break;
-    case SET_NODE_IDS:
-        expr->id_set = idlist_to_set((array*) value);
+    case SET_LITERAL:
+        expr->id_set = idlist_to_set((array *)value);
         break;
     case SET_OPERATION:
-        expr->operation = (SetOperation*) value;
+        expr->operation = (SetOperation *)value;
         break;
     default:
         // TODO better exit.
         printf("No such type for a set expression.");
         exit(1);
     }
-
+    expr->common_info = create_commoninfo();
     return expr;
 }
 
@@ -220,6 +217,13 @@ MandatoryPhase *create_mandatory_phaserange(char *phase_start, char *phase_end,
 
     p->common_info = create_commoninfo();
     return p;
+}
+
+Action *create_action(enum ActionType type, void *action) {
+    Action *_action = mem_alloc(sizeof(Action));
+    _action->type = type;
+    _action->action = action;
+    return _action;
 }
 
 Attr *create_attr(Attr *a, AttrValue *default_value, int construct) {

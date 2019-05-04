@@ -13,33 +13,12 @@
 #define IND5 IND IND IND IND IND
 
 static void print_phase(Phase *phase) {
-    if (phase->root)
-        printf("root ");
+    if (phase->start)
+        printf("start ");
     if (phase->cycle)
         printf("cycle ");
 
     printf("phase %s {\n", phase->id);
-
-    if (phase->info)
-        printf(IND "info = %s,\n", phase->info);
-
-    array *elems;
-    if (phase->type == PH_subphases) {
-        printf(IND "subphases {\n");
-        elems = phase->subphases;
-    } else {
-        printf(IND "passes {\n");
-        elems = phase->passes;
-    }
-
-    int num_elems = array_size(elems);
-    for (int i = 0; i < num_elems; i++) {
-        printf(IND2 "%s", (char *)array_get(elems, i));
-        if (i < num_elems - 1)
-            printf(",\n");
-        else
-            printf("\n");
-    }
 
     printf(IND "}\n};\n\n");
 }

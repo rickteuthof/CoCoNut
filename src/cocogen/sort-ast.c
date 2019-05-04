@@ -1,7 +1,7 @@
 #include "cocogen/ast.h"
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 
 #include "lib/array.h"
 #include "lib/memory.h"

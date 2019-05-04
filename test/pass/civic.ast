@@ -1,7 +1,30 @@
-root phase RootPhase {
-    passes {
+start phase RootPhase {
+    actions {
+        LoadProgram,
+        SemanticAnalysis,
+        CodeGen, 
         Print
+        
     }
+};
+
+phase LoadProgram {
+    actions {
+        CodeGen,
+        pass ScanAndParse
+    }
+};
+
+phase SemanticAnalysis {
+    actions {
+        CodeGen
+    }
+};
+
+cycle phase CodeGen {
+    actions {
+        Print
+    }  
 };
 
 enum BasicType {
@@ -25,26 +48,28 @@ enum BinOpEnum {
     }
 };
 
+pass Test;
+
 traversal Print;
 traversal ByteCode;
+traversal FindFundefFromRoot {
+    nodes = {FunDef}
+};
+
 traversal RenameFor {
-    nodes = {
-        For, VarLet, Var
-    }
+    nodes = {For, VarLet, Var}
 };
 
 traversal Context {
-    nodes = Decl | Vars | {Root, Param, For, FunCall, For}
+    nodes = Decl | Vars | {Root, Param, For, FunCall}
 };
 
 traversal SplitInit {
-    nodes = {
-        Root, GlobalDef, FunBody, VarDec
-    }
+    nodes = {Root, GlobalDef, FunBody, VarDec}
 };
 
 traversal TypeCheck {
-    nodes = Stmt | {FunDef, FunBody} | Expr 
+    nodes = Stmt | FunctionParts | Expr - {Ternary}
 };
 
 traversal Refactor {
@@ -52,37 +77,35 @@ traversal Refactor {
 };
 
 traversal Symbols {
-    nodes = {
-        Root, FunDef, FunSymbol, Symbol
-    }
+    nodes = {Root, FunDef, FunSymbol, Symbol}
 };
 
-nodeset Const {
+nodeset Constants {
     nodes = {FloatConst, BoolConst, IntConst}
 };
 
 nodeset Operations {
     nodes = {BinOp, MonOp}
-}
+};
 
 nodeset Decl {
-    nodes = {
-        GlobalDef, GlobalDec, FunDef
-    } 
+    nodes = {GlobalDef, GlobalDec, FunDef} 
 };
 
 nodeset Vars {
     nodes = {VarDec, Var, VarLet}
-}
+};
+
+nodeset FunctionParts {
+    nodes = {FunDef, FunHeader, Param, FunBody}
+};
 
 nodeset Expr {
-    nodes = {Cast, FunCall, Var, Ternary} | Const | Operations
+    nodes = {Cast, FunCall, Var, Ternary} | Constants | Operations
 };
 
 nodeset Stmt {
-    nodes = {
-        VarLet, FunCall, IfElse, While, DoWhile, For, Return 
-    }
+    nodes = {VarLet, FunCall, IfElse, While, DoWhile, For, Return}
 };
 
 root node Root {
@@ -262,6 +285,12 @@ node BinOp {
     attributes {
         BinOpEnum op { constructor }
     }
+
+/*    lifetime {
+        for_each(op.eq, op.neq) {
+            disallowed after 
+        }
+    }*/
 };
 
 node MonOp {

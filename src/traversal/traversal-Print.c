@@ -1,4 +1,6 @@
 #include "generated/traversal-Print.h"
+#include "core/cycle.h"
+#include "core/error.h"
 #include "lib/errors.h"
 #include "lib/memory.h"
 #include <stdio.h>
@@ -44,8 +46,13 @@ static void print_basictype(BasicType type) {
         break;
     }
 }
-
+static int cycles = 2;
 void Print_Root(Root *node, Info *info) {
+    // ccn_notify_error(CCN_ACTION_FATAL);
+    if (cycles > 0)
+        ccn_notify_cycle();
+
+    cycles--;
     trav_Root_symbol(node, info);
     trav_Root_funsymbol(node, info);
     trav_Root_decls(node, info);

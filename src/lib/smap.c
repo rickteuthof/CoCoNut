@@ -1,14 +1,17 @@
+#include <assert.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
-#include <stdio.h>
 
+#include "lib/array.h"
 #include "lib/memory.h"
 #include "lib/smap.h"
-#include "lib/array.h"
 
-smap_t *smap_init(int size) {
+
+// TODO: improve cleanup of hash map.
+
+smap_t *smap_init(size_t size) {
     smap_t *smap = (smap_t *)malloc(sizeof(smap_t));
 
     smap->size = size;
@@ -27,10 +30,23 @@ void smap_entry_free(smap_entry_t *entry) {
 }
 
 void smap_free(smap_t *t) {
+    if (t == NULL)
+        return;
     for (int i = 0; i < t->size; i++)
         smap_entry_free(t->slots[i]);
     mem_free(t->slots);
     mem_free(t);
+}
+
+void smap_free_values(smap_t *map, void (*func)(void *)) {
+    assert(map != NULL);
+
+    for (int i = 0; i < map->size; i++) {
+        for (smap_entry_t *elem = map->slots[i]; elem; elem = elem->next) {
+            func(elem->value);
+        }
+    }
+
 }
 
 unsigned int smap_hash_fun(char *key) {

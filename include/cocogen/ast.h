@@ -17,6 +17,7 @@ typedef struct NodeCommonInfo {
     // Needed for Pass, Traversal, Enum, Node, Nodeset,
     // contains the unique identifier for all data needed in codegen.
     char *hash;
+    bool hash_matches;
 } NodeCommonInfo;
 
 enum NodeType { NT_node, NT_nodeset };
@@ -55,23 +56,19 @@ enum AttrValueType {
     AV_id
 };
 
-enum PhaseType { PH_subphases, PH_passes };
-
-enum PhaseLeafType { PL_pass, PL_traversal };
-
 /**
- * @brief The possible operations to perform on two set expressions. @see SetExpr
+ * @brief The possible operations to perform on two set expressions. @see
+ * SetExpr
  */
-enum SetOperator {
-     SET_UNION,
-     SET_INTERSECT,
-     SET_DIFFERENCE
-};
+enum SetOperator { SET_UNION, SET_INTERSECT, SET_DIFFERENCE };
 
-enum SetExprType {
-     SET_REFERENCE,
-     SET_NODE_IDS,
-     SET_OPERATION
+enum SetExprType { SET_REFERENCE, SET_LITERAL, SET_OPERATION };
+
+enum ActionType {
+    ACTION_PASS,
+    ACTION_TRAVERSAL,
+    ACTION_PHASE,
+    ACTION_REFERENCE
 };
 
 typedef struct Config {
@@ -91,19 +88,19 @@ typedef struct Config {
 typedef struct Phase {
     char *id;
     char *info;
+    char *root;
 
-    enum PhaseType type;
     bool cycle;
-    bool root;
+    bool start;
 
-    array *passes;
-    array *subphases;
+    array *actions;
+    CCNset_t *roots;
 
     struct NodeCommonInfo *common_info;
 } Phase;
 
 typedef struct PhaseLeaf {
-    enum PhaseLeafType type;
+    // enum PhaseLeafType type;
     union {
         struct Pass *pass;
         struct Traversal *traversal;
@@ -130,6 +127,11 @@ typedef struct Traversal {
 
     struct NodeCommonInfo *common_info;
 } Traversal;
+
+typedef struct Action {
+    enum ActionType type;
+    void *action;
+} Action;
 
 typedef struct Enum {
     char *id;
@@ -236,12 +238,11 @@ typedef struct AttrValue {
  *  on two set expressions.
  */
 typedef struct SetOperation {
-     enum SetOperator operator;
-     SetExpr *left_child;
-     SetExpr *right_child;
-     struct NodeCommonInfo *common_info;
+    enum SetOperator operator;
+    SetExpr *left_child;
+    SetExpr *right_child;
+    struct NodeCommonInfo *common_info;
 } SetOperation;
-
 
 /**
  * @struct SetExpr
