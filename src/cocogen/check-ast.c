@@ -184,9 +184,21 @@ static int check_phases(array *phases, struct Info *info) {
         }
 
         if (cur_phase->root != NULL) {
-            void *node_def = smap_retrieve(info->node_name, cur_phase->root);
+            Node *node_def = smap_retrieve(info->node_name, cur_phase->root);
             if (node_def == NULL) {
                 print_error(cur_phase->root, "Not a valid node.");
+                error = 1;
+            }
+            bool has_child_next = false;
+            for (int j = 0; j < array_size(node_def->children); ++j) {
+                Child *child = array_get(node_def->children, j);
+                if (strcmp(child->id, "next") == 0) {
+                    has_child_next = true;
+                    break;
+                }
+            }
+            if (! has_child_next) {
+                print_error(cur_phase->root, "Specified root has no child named next.");
                 error = 1;
             }
         }
@@ -613,7 +625,7 @@ static int check_phase(Phase *phase, struct Info *info, smap_t *phase_order) {
     int error = 0;
 
     if (phase->start) {
-        if (info->root_phase != NULL) {
+        if (info->root_phase != NULL) { // TODO: renamte root_phase to start_phase in info struct.
             print_error(phase->id, "Double declaration of start phase");
             print_note(info->root_phase->id, "Previously declared here");
             error = 1;
@@ -621,6 +633,8 @@ static int check_phase(Phase *phase, struct Info *info, smap_t *phase_order) {
             info->root_phase = phase;
         }
     }
+
+
 
     for (int i = 0; i < array_size(phase->actions); ++i) {
         Action *action = array_get(phase->actions, i);

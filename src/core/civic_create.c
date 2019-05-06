@@ -72,8 +72,15 @@ int main() {
     FunDef *mainfun =
         create_FunDef(create_FunBody(NULL, stmtla1, vda1),
                       create_FunHeader(NULL, strdup("main"), BT_int), NULL,
-                      NULL, true, false);
-
+                      NULL, NULL, true, false);
+    
+    FunDef *secondfun =
+        create_FunDef(create_FunBody(NULL, stmtla1, vda1),
+                      create_FunHeader(NULL, strdup("secondFun"), BT_int), NULL,
+                      NULL, NULL, true, false);
+    
+    mainfun->next = secondfun; 
+ 
     Root *program = create_Root(
         create_Decls(create_Decl_FunDef(mainfun), NULL), NULL, NULL);
     

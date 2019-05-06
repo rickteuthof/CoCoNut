@@ -39,12 +39,11 @@ static inline void generate_include(char *filename, FILE *fp) {
 /* TODO we only take one root. Not really the root idea. */
 void subtree_generate_call_find_sub_root(char *root, char *to_find, FILE *fp) {
     out("trav_start_%s(temp_root, TRAV__CCN_PhaseDriver_Find%sFrom%s);\n", root, to_find, root);
-    out("phase_driver_t *pd = _get_phase_driver();\n");
     out("root = _ccn_subroot_get_%s();\n", to_find);
     out("if (root == NULL) {\n");
     out("printf(\"O NO ITS NULL\\n\");\n");
     out("return;\n");
-    out("}");
+    out("}\n\n");
 }
 
 /* Generates the function to set the sub-root for a defined nodetype/
@@ -72,7 +71,6 @@ void subtree_generate_set_handler(char *root, CCNset_t *funcs) {
     out("phase_driver_t *pd = _get_phase_driver();\n");
     out("if (pd->curr_sub_root->nodetype != NT_%s) {\n", root);
     out("return NULL; \n }\n");
-    out("printf(\"We found it: %s\\n\");\n", root);
     out("return pd->curr_sub_root->value;\n");
     out("}\n\n");
     fclose(fp);
@@ -98,7 +96,6 @@ void subtree_generate_find_traversal_body(char *trav_name, char *target, filegen
     out("void %s_freeinfo(Info *info) {}\n", trav_name);
     out("void %s_%s(%s *node, Info *info) {\n", trav_name, target, target);
     out("_ccn_subroot_set_%s(node);\n", target);
-    out("printf(\"We found it: %s\\n\");\n", target);
     out("}\n\n");
     fclose(fp);
     print_file_gen(full_file);

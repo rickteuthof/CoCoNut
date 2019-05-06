@@ -22,6 +22,7 @@ phase SemanticAnalysis {
 };
 
 cycle phase CodeGen {
+    root = FunDef;
     actions {
         Print
     }  
@@ -89,7 +90,7 @@ nodeset Operations {
 };
 
 nodeset Decl {
-    nodes = {GlobalDef, GlobalDec, FunDef} 
+    nodes = {GlobalDef, GlobalDec, FunDef}
 };
 
 nodeset Vars {
@@ -135,6 +136,7 @@ node FunDef {
         FunHeader funheader { constructor, mandatory },
         FunBody funbody { constructor },
         FunSymbol funsymbol { constructor },
+        FunDef next { constructor },
         Symbol symbol { constructor }
     },
     attributes {

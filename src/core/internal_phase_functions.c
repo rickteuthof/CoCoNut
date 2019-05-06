@@ -42,6 +42,8 @@ phase_frame_t *_top_frame() {
 void _push_frame() {
     phase_frame_t *frame = mem_alloc(sizeof(phase_frame_t));
     frame->cycle_notified = false;
+    frame->curr_mark = NULL;
+    frame->marks = NULL;
     array_append(phase_driver.phase_stack, frame);
 }
 
@@ -56,6 +58,18 @@ void _initialize_phase_driver() {
     phase_driver.curr_sub_root = NULL;
 }
 
+cycle_mark_t *_ccn_new_mark(void *item) {
+    cycle_mark_t *mark = mem_alloc(sizeof(cycle_mark_t));
+    mark->notified = true;
+    mark->node = item;
+    return mark;
+}
+
+void _ccn_set_curr_mark(cycle_mark_t *mark) {
+    assert(mark != NULL);
+    phase_frame_t *frame = _top_frame();
+    frame->curr_mark = mark;
+}
 
 void _ccn_start_phase(char *id) {
     printf("Starting phase: %s\n", id);

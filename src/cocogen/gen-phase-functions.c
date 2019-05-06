@@ -60,7 +60,18 @@ static void generate_action(Action *action, FILE *fp, char *root, bool is_top_ro
     }
 }
 
+void generate_action_list(array *actions, FILE *fp, char *new_root, bool is_top_root) {
+     for (int i = 0; i < array_size(actions); i++) {
+        Action *action = array_get(actions, i);
+        generate_action(action, fp, new_root, is_top_root);
+        out("_exit_on_action_error();\n");
+    }
+}
+
 void generate_phase_body(Phase *phase, FILE *fp, char *root, bool is_top_root) {
+    char *new_root = phase->root == NULL ? root : phase->root;
+    bool new_is_top_root = phase->root == NULL ? is_top_root : false;
+
     if (is_top_root) {
         out("void %s(%s *temp_root) {\n", phase->id, root);
     } else {
@@ -69,27 +80,43 @@ void generate_phase_body(Phase *phase, FILE *fp, char *root, bool is_top_root) {
     generate_start_phase(phase, fp);
 
     if (phase->root != NULL && is_top_root) {
-        out("%s *root = temp_root;\n", phase->root);
+        out("%s *root = NULL;\n", phase->root);
         subtree_generate_call_find_sub_root(root, phase->root, fp);
+
     } else {
         out("%s *root = temp_root;\n", root);
     }
 
-    if (phase->cycle) {
+    if (phase->cycle && phase->root != NULL) {
+        out("bool all_notified = false;\n");
+        out("array *marks = array_init(10);\n");
+        out("phase_frame_t *curr_frame = _top_frame();\n");
+        out("curr_frame->marks = marks;");
+        out("%s *temp = root;\n", phase->root);
+        out("while (temp != NULL) {\n");
+        out("array_append(marks, _ccn_new_mark(temp));\n");
+        out("temp = temp->next;\n");
+        out("}\n\n");
+        out("cycle_mark_t *mark = NULL;\n");
+        out("while(!all_notified) {\n");
+        out("all_notified = true;\n");
+        out("for (int i = 0; i < array_size(marks); ++i) {\n");
+        out("mark = array_get(marks, i);\n");
+        out("if (!mark->notified){ continue;}\n");
+        out("mark->notified = false;\n");
+        out("_ccn_set_curr_mark(mark);\n");
+        out("all_notified = false;\n");
+        out("%s *root = mark->node;\n", new_root);
+        generate_action_list(phase->actions, fp, new_root, new_is_top_root);
+        out("}\n");
+        out("}\n\n");
+    } else if (phase->cycle && phase->root == NULL) {
         out("do {\n");
         out("_reset_cycle();\n");
-    }
-    char *new_root = phase->root == NULL ? root : phase->root;
-    bool new_is_top_root = phase->root == NULL ? is_top_root : false;
-
-    for (int i = 0; i < array_size(phase->actions); i++) {
-        Action *action = array_get(phase->actions, i);
-        generate_action(action, fp, new_root, new_is_top_root);
-        out("_exit_on_action_error();\n");
-    }
-
-    if (phase->cycle) {
-        out("} while (_is_cycle_notified()); \n");
+        generate_action_list(phase->actions, fp, new_root, new_is_top_root);
+        out("} while(_ic_cycle_notified());\n\n");
+    } else {
+        generate_action_list(phase->actions, fp, new_root, new_is_top_root);
     }
 
     generate_end_phase(phase, fp);

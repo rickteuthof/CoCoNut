@@ -4,6 +4,7 @@
 #include "lib/errors.h"
 #include "lib/memory.h"
 #include <stdio.h>
+#include <string.h>
 
 #define INDENT print_indent(info->indent)
 
@@ -69,6 +70,10 @@ void Print_LocalFunDef(LocalFunDef *node, Info *info) {
 }
 
 void Print_FunDef(FunDef *node, Info *info) {
+    if (cycles > 0 && strcmp(node->funheader->id, "main") == 0) {
+        cycles--;
+        ccn_notify_cycle();
+    }
     if (node->external) {
         printf("extern ");
         trav_FunDef_funheader(node, info);
