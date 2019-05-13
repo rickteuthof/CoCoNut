@@ -53,6 +53,7 @@ Phase *create_phase(Phase *phase_header, char *root, array *actions) {
     Phase *p = phase_header;
     p->root = root;
     p->actions = actions;
+    p->lifetimes = array_init(1);
     return p;
 }
 
@@ -117,8 +118,8 @@ SetOperation *create_set_operation(enum SetOperator operator,
  * @brief Transform an id list to a set of characters.
  *        The array will be destroyed.
  */
-CCNset_t *idlist_to_set(array *ids) {
-    CCNset_t *set = ccn_set_string_create(20);
+ccn_set_t *idlist_to_set(array *ids) {
+    ccn_set_t *set = ccn_set_string_create(20);
 
     for (int i = 0; i < array_size(ids); i++) {
         void *item = array_get(ids, i);
@@ -171,10 +172,29 @@ Node *create_nodebody(array *children, array *attrs) {
     n->children = children;
     n->attrs = attrs;
     n->info = NULL;
+    n->lifetimes = NULL;
 
     n->common_info = create_commoninfo();
     return n;
 }
+
+Range_spec_t *create_range_spec(bool inclusive, char *id) {
+    Range_spec_t *spec = mem_alloc(sizeof(Range_spec_t));
+    spec->inclusive = inclusive;
+    spec->id = id;
+    return spec;
+}
+
+Lifetime_t *create_lifetime(Range_spec_t *start, Range_spec_t *end,
+                            enum LifetimeType type) {
+    Lifetime_t *lifetime = mem_alloc(sizeof(Lifetime_t));
+    lifetime->start = start;
+    lifetime->end = end;
+    lifetime->type = type;
+    return lifetime;
+}
+
+
 
 Child *create_child(int construct, int mandatory, array *mandatory_phases,
                     char *id, char *type) {
@@ -219,10 +239,13 @@ MandatoryPhase *create_mandatory_phaserange(char *phase_start, char *phase_end,
     return p;
 }
 
-Action *create_action(enum ActionType type, void *action) {
+Action *create_action(enum ActionType type, void *action, char *id) {
     Action *_action = mem_alloc(sizeof(Action));
     _action->type = type;
     _action->action = action;
+    _action->checked = false;
+    _action->id = strdup(id);
+    _action->lifetimes = array_init(1);
     return _action;
 }
 

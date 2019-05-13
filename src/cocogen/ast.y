@@ -74,6 +74,8 @@ static void new_location(void *ptr, struct ParserLocation *loc);
     struct SetExpr *setexpr;
     struct SetOperation *setoperation;
     struct Action *action;
+    struct Lifetime *lifetime;
+    struct Range_spec *range_spec;
     struct Node *node;
     struct Child *child;
     struct PhaseRange *phaserange;
@@ -136,11 +138,14 @@ static void new_location(void *ptr, struct ParserLocation *loc);
 %token T_STRING "string"
 %token T_VALUES "values"
 %token T_NULL "NULL"
+%token T_LIFETIME "lifetime"
+%token T_DISALLOWED "disallowed"
+%token T_ARROW "->"
 %token END 0 "End-of-file (EOF)"
 
 %type<string> info func
 %type<array> idlist mandatoryarglist mandatory actionsbody actions
-             attrlist attrs childlist children enumvalues
+             attrlist attrs childlist children enumvalues lifetimelist
 %type<mandatoryphase> mandatoryarg
 %type<attrval> attrval
 %type<attrtype> attrprimitivetype
@@ -156,7 +161,8 @@ static void new_location(void *ptr, struct ParserLocation *loc);
 %type<setexpr> setexpr traversalnodes
 %type<setoperation> setoperation
 %type<action> action
-
+%type<lifetime> lifetime
+%type<range_spec> rangespec_start rangespec_end
 %start root
 
 %%
@@ -220,19 +226,19 @@ actions: actions ',' action
 
 action: traversal
       {
-          $$ = create_action(ACTION_TRAVERSAL, $1);
+          $$ = create_action(ACTION_TRAVERSAL, $1, $1->id);
       }
       | pass
       {
-          $$ = create_action(ACTION_PASS, $1);
+          $$ = create_action(ACTION_PASS, $1, $1->id);
       }
       | phase
       {
-          $$ = create_action(ACTION_PHASE, $1);
+          $$ = create_action(ACTION_PHASE, $1, $1->id);
       }
       | T_ID
       {
-          $$ = create_action(ACTION_REFERENCE, $1);
+          $$ = create_action(ACTION_REFERENCE, $1, $1);
           new_location($1, &@1);
       }
       ;
@@ -243,11 +249,11 @@ phaseheader: T_PHASE T_ID
                new_location($$, &@$);
                new_location($2, &@2);
            }
-           | T_CYCLE T_PHASE T_ID
+           | T_CYCLE T_ID
            {
-               $$ = create_phase_header($3, false, true);
+               $$ = create_phase_header($2, false, true);
                new_location($$, &@$);
-               new_location($3, &@3);
+               new_location($2, &@2);
            }
            | T_START T_PHASE T_ID
            {
@@ -255,11 +261,11 @@ phaseheader: T_PHASE T_ID
                new_location($$, &@$);
                new_location($3, &@3);
            }
-           | T_START T_CYCLE T_PHASE T_ID
+           | T_START T_CYCLE T_ID
            {
-               $$ = create_phase_header($4, true, true);
+               $$ = create_phase_header($3, true, true);
                new_location($$, &@$);
-               new_location($4, &@4);
+               new_location($3, &@3);
            }
            ;
 
@@ -394,17 +400,18 @@ enum: T_ENUM T_ID '{' T_PREFIX '=' T_ID ',' enumvalues '}'
     ;
 
 
-enumvalues: T_VALUES '{'
+enumvalues: T_VALUES '=' '{'
         {
             yy_lex_keywords = false;
         }
         idlist  '}'
         {
-            $$ = $4;
+            $$ = $5;
             yy_lex_keywords = true;
         }
+        ;
 
-        nodeset : T_NODESET T_ID '{' T_NODES '=' setexpr '}'
+nodeset: T_NODESET T_ID '{' T_NODES '=' setexpr '}'
         {
             $$ = create_nodeset($2, $6);
             new_location($$, &@$);
@@ -460,6 +467,13 @@ node: T_NODE T_ID '{' nodebody '}'
         new_location($$, &@$);
         new_location($3, &@3);
     }
+    | T_NODE T_ID '{' nodebody T_LIFETIME '{' lifetimelist '}' '}'
+    {
+        $$ = create_node($2, $4);
+        $$->lifetimes = $7;
+        new_location($$, &@$);
+        new_location($2, &@2);
+    }
     ;
 
 
@@ -498,6 +512,58 @@ nodebody: children ',' attrs
             new_location($$, &@$);
         }
         ;
+
+lifetimelist: lifetimelist lifetime
+            {
+                array_append($$, $2);
+            }
+            | lifetime
+            {
+                $$ = array_init(2);
+                array_append($$, $1);
+            }
+
+lifetime: T_DISALLOWED rangespec_start T_ARROW rangespec_end ';'
+        {
+            $$ = create_lifetime($2, $4, LIFETIME_DISALLOWED);
+        }
+        | T_DISALLOWED ';'
+        {
+            $$ = create_lifetime(NULL, NULL, LIFETIME_DISALLOWED);
+        }
+        ;
+
+rangespec_start: '(' T_ID
+          {
+              $$ = create_range_spec(false, $2);
+              new_location($$, &@$);
+          }
+          | '('
+          {
+              $$ = NULL;
+          }
+          | '[' T_ID
+          {
+              $$ = create_range_spec(true, $2);
+              new_location($$, &@$);
+          }
+          ;
+
+rangespec_end: T_ID ')'
+          {
+              $$ = create_range_spec(false, $1);
+              new_location($$, &@$);
+          }
+          | ')'
+          {
+              $$ = NULL;
+          }
+          | T_ID ']'
+          {
+              $$ = create_range_spec(true, $1);
+              new_location($$, &@$);
+          }
+          ;
 
 children: T_CHILDREN '{' childlist '}'
         {

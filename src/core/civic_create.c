@@ -4,7 +4,6 @@
 #include "generated/free-ast.h"
 #include "generated/phase-driver.h"
 #include "generated/trav-ast.h"
-#include "generated/traversal-FindFundefFromRoot.h"
 #include "generated/enum.h"
 
 #include "generated/serialization-Root.h"
@@ -85,7 +84,6 @@ int main() {
         create_Decls(create_Decl_FunDef(mainfun), NULL), NULL, NULL);
     
     phasedriver_run(program);
-    trav_start_Root(program, TRAV_FindFundefFromRoot);
     // FILE *fp;
 
     //serialization_write_binfile_Root(program, "test-serialization.bin");

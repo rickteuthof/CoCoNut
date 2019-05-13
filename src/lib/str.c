@@ -2,6 +2,7 @@
 #include <string.h>
 #include <assert.h>
 
+#include "lib/str.h"
 #include "lib/memory.h"
 
 char *ccn_str_cpy(const char *source) {
@@ -21,4 +22,8 @@ char *ccn_str_cat(const char *first, const char *second) {
     strcpy(result, first);
     strcat(result, second);
     return result;
+}
+
+extern bool ccn_str_equal(const char *first, const char *second) {
+    return strcmp(first, second) == 0;
 }

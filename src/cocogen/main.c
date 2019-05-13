@@ -176,7 +176,8 @@ int main(int argc, char *argv[]) {
         exit_compile_error();
     }
 
-
+    Traversal *consistency_check = create_traversal(strdup("_CCN_CHK"), NULL, NULL);
+    array_append(parse_result->traversals, consistency_check);
     // Sort to prevent changes in order of attributes trigger regeneration of
     // code.
     sort_config(parse_result);
@@ -220,7 +221,7 @@ int main(int argc, char *argv[]) {
     filegen_generate("trav-core.h", generate_trav_core_header);
     filegen_all_nodes("trav-%s.h", generate_trav_node_header);
 
-    // filegen_generate("consistency-ast.h", generate_consistency_header);
+    filegen_generate("ccn_consistency_check.h", generate_consistency_headers);
     filegen_generate("phase-driver.h", generate_phase_driver_header);
 
     filegen_all_traversals("traversal-%s.h", generate_user_trav_header);

@@ -60,10 +60,38 @@ static void generate_action(Action *action, FILE *fp, char *root, bool is_top_ro
     }
 }
 
+static char *get_action_id(Action *action) {
+    switch (action->type) {
+    case ACTION_TRAVERSAL:
+        return ((Traversal *)action->action)->id;
+    case ACTION_PASS:
+        return ((Pass *)action->action)->id;
+    case ACTION_PHASE:
+        return ((Phase *)action->action)->id;
+    case ACTION_REFERENCE:
+        return (char *)action;
+    default:
+        return NULL;
+    }
+}
+
 void generate_action_list(array *actions, FILE *fp, char *new_root, bool is_top_root) {
      for (int i = 0; i < array_size(actions); i++) {
         Action *action = array_get(actions, i);
+        out("start = clock();\n");
         generate_action(action, fp, new_root, is_top_root);
+        out("end = clock();\n");
+        if (action->type != ACTION_PHASE) {
+            char *id = get_action_id(action);
+            if (id == NULL)
+                break;
+            out("_ccn_new_passes_time_frame(\"%s\", (end-start)/CLOCKS_PER_SEC);\n", id); // TODO handle error in time frame.(clock() can return -1 and so on).
+        } else {
+            Phase *phase = action->action;
+            if (phase->cycle) {
+                out("_ccn_new_cycle_time_frame(\"%s\", (end-start)/CLOCKS_PER_SEC);\n", phase->id); // TODO handle error in time frame.
+            }
+        }
         out("_exit_on_action_error();\n");
     }
 }
@@ -72,25 +100,32 @@ void generate_phase_body(Phase *phase, FILE *fp, char *root, bool is_top_root) {
     char *new_root = phase->root == NULL ? root : phase->root;
     bool new_is_top_root = phase->root == NULL ? is_top_root : false;
 
+/*    if (phase->root != NULL) {
+        out("#include \"generated/traversal-_CCN_PhaseDriver_Find%sFrom%s.h\"\n", phase->root, root);
+    }*/
+
     if (is_top_root) {
         out("void %s(%s *temp_root) {\n", phase->id, root);
     } else {
         out("void %s_%s(%s *temp_root) {\n", phase->id, root, root);
     }
+    out("double start;\n");
+    out("double end;\n");
     generate_start_phase(phase, fp);
-
-    if (phase->root != NULL && is_top_root) {
+    out("phase_frame_t *curr_frame = _top_frame();\n");
+    if (phase->root != NULL) {
+        out("curr_frame->curr_root = NT_%s;\n", phase->root);
         out("%s *root = NULL;\n", phase->root);
         subtree_generate_call_find_sub_root(root, phase->root, fp);
 
     } else {
+        out("curr_frame->curr_root = NT_%s;\n", root);
         out("%s *root = temp_root;\n", root);
     }
 
     if (phase->cycle && phase->root != NULL) {
         out("bool all_notified = false;\n");
         out("array *marks = array_init(10);\n");
-        out("phase_frame_t *curr_frame = _top_frame();\n");
         out("curr_frame->marks = marks;");
         out("%s *temp = root;\n", phase->root);
         out("while (temp != NULL) {\n");
@@ -114,7 +149,7 @@ void generate_phase_body(Phase *phase, FILE *fp, char *root, bool is_top_root) {
         out("do {\n");
         out("_reset_cycle();\n");
         generate_action_list(phase->actions, fp, new_root, new_is_top_root);
-        out("} while(_ic_cycle_notified());\n\n");
+        out("} while(_is_cycle_notified());\n\n");
     } else {
         generate_action_list(phase->actions, fp, new_root, new_is_top_root);
     }
@@ -162,6 +197,7 @@ void generate_phase_function_definitions(Config *config, FILE *fp,
     out("#include \"generated/phase-%s.h\"\n", phase->id);
     out("#include <stddef.h>\n");
     out("#include <stdio.h>\n");
+    out("#include <time.h>\n");
     generate_include("generated/ast.h", fp);
     generate_include("generated/trav-ast.h", fp);
     generate_include("generated/internal/_sub_root_handlers.h", fp);

@@ -321,7 +321,7 @@ void filegen_phase_subtree(void (*func)(array *)) {
     func(ast_definition->phases);
 }
 
-void filegen_delete_non_generated_filed(CCNset_t*generated_files, array *directories, CCNset_t *blacklist) {
+void filegen_delete_non_generated_filed(ccn_set_t*generated_files, array *directories, ccn_set_t *blacklist) {
     DIR *dir;
     struct dirent *ent;
 

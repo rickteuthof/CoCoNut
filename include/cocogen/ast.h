@@ -71,6 +71,26 @@ enum ActionType {
     ACTION_REFERENCE
 };
 
+enum LifetimeType {
+    LIFETIME_DISALLOWED,
+    LIFETIME_MANDATORY
+};
+
+typedef struct Range_spec {
+    char *id;
+    bool inclusive;
+    char *func_to_target;
+    char *type;
+    bool push;
+} Range_spec_t;
+
+typedef struct Lifetime {
+    Range_spec_t *start;
+    Range_spec_t *end;
+    enum LifetimeType type;
+
+} Lifetime_t;
+
 typedef struct Config {
     array *phases;
     array *passes;
@@ -93,8 +113,9 @@ typedef struct Phase {
     bool cycle;
     bool start;
 
+    array *lifetimes;
     array *actions;
-    CCNset_t *roots;
+    ccn_set_t *roots;
 
     struct NodeCommonInfo *common_info;
 } Phase;
@@ -111,7 +132,6 @@ typedef struct Pass {
     char *id;
     char *info;
     char *func;
-
     struct NodeCommonInfo *common_info;
 } Pass;
 
@@ -124,13 +144,15 @@ typedef struct Traversal {
         array *nodes;
         SetExpr *expr;
     };
-
     struct NodeCommonInfo *common_info;
 } Traversal;
 
 typedef struct Action {
     enum ActionType type;
+    bool checked;
     void *action;
+    char *id;
+    array *lifetimes;
 } Action;
 
 typedef struct Enum {
@@ -166,6 +188,8 @@ typedef struct Node {
 
     // array of (struct Attr *)
     array *attrs;
+
+    array *lifetimes;
 
     bool root;
 
@@ -266,7 +290,7 @@ struct SetExpr {
 
     union {
         char *ref_id;
-        CCNset_t *id_set;
+        ccn_set_t *id_set;
         SetOperation *operation;
     };
 

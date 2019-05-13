@@ -139,7 +139,9 @@ static inline void check_c_keyword(const char *);
 "uint64"        { LEX_KEYWORD(T_UINT64);}
 "string"        { LEX_KEYWORD(T_STRING);}
 "bool"          { LEX_KEYWORD(T_BOOL);}
-
+"lifetime"      { LEX_KEYWORD(T_LIFETIME);}
+"disallowed"    { LEX_KEYWORD(T_DISALLOWED);}
+"->"            { LEX_KEYWORD(T_ARROW);}
 "false"         { LEX_KEYWORD(T_FALSE);}
 "true"          { LEX_KEYWORD(T_TRUE);}
 

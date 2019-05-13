@@ -37,7 +37,11 @@ MandatoryPhase *create_mandatory_singlephase(char *phase, int negation);
 MandatoryPhase *create_mandatory_phaserange(char *phase_start, char *phase_end,
                                             int negation);
 
-Action *create_action(enum ActionType type, void *action);
+Action *create_action(enum ActionType type, void *action, char *id);
+
+Range_spec_t *create_range_spec(bool inclusive, char *);
+Lifetime_t *create_lifetime(Range_spec_t *start, Range_spec_t *end,
+                            enum LifetimeType type);
 
 Attr *create_attr(Attr *attrhead, AttrValue *default_value, int construct);
 

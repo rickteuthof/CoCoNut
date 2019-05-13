@@ -10,6 +10,7 @@
 #include "cocogen/gen-subtree-functions.h"
 
 #include "lib/str.h"
+#include "lib/set_implementations.h"
 #include "lib/array.h"
 #include "lib/memory.h"
 #include "lib/print.h"
@@ -167,6 +168,42 @@ static int check_nodesets(array *nodesets, struct Info *info) {
     return error;
 }
 
+static int check_action_reference(Action *action, struct Info *info) {
+    char *ref = (char *)action->action;
+    void *item = smap_retrieve(info->phase_name, ref);
+    if (item != NULL) {
+        Phase *p = (Phase *)item;
+        action->type = ACTION_PHASE;
+        action->action = p;
+        action->checked = true;
+        mem_free(ref);
+        return 0;
+    }
+
+    item = smap_retrieve(info->traversal_name, ref);
+    if (item != NULL) {
+        action->type = ACTION_TRAVERSAL;
+        action->action = item;
+        action->checked = true;
+        mem_free(ref);
+        return 0;
+    }
+
+    item = smap_retrieve(info->pass_name, ref);
+    if (item != NULL) {
+        action->type = ACTION_PASS;
+        action->action = item;
+        action->checked = true;
+        mem_free(ref);
+        return 0;
+    }
+
+    print_error(
+        action->action,
+        "ID is not a reference to a defined pass, traversal or phase.");
+    return 1;
+}
+
 static int check_phases(array *phases, struct Info *info) {
 
     int error = 0;
@@ -200,6 +237,16 @@ static int check_phases(array *phases, struct Info *info) {
             if (! has_child_next) {
                 print_error(cur_phase->root, "Specified root has no child named next.");
                 error = 1;
+            }
+        }
+    }
+
+    for (int i = 0; i < array_size(phases); ++i) {
+        Phase *cur_phase = (Phase *)array_get(phases, i);
+        for (int j = 0; j < array_size(cur_phase->actions); ++j) {
+            Action *action = array_get(cur_phase->actions, j);
+            if (action->type == ACTION_REFERENCE) {
+                check_action_reference(action, info);
             }
         }
     }
@@ -520,103 +567,6 @@ static int check_pass(Pass *pass, struct Info *info) {
     return error;
 }
 
-static int check_action_reference(Action *action, struct Info *info) {
-    char *ref = (char *)action->action;
-    void *item = smap_retrieve(info->phase_name, ref);
-    if (item != NULL) {
-        Phase *p = (Phase *)item;
-        action->type = ACTION_PHASE;
-        action->action = p;
-        mem_free(ref);
-        return 0;
-    }
-
-    item = smap_retrieve(info->traversal_name, ref);
-    if (item != NULL) {
-        action->type = ACTION_TRAVERSAL;
-        action->action = item;
-        mem_free(ref);
-        return 0;
-    }
-
-    item = smap_retrieve(info->pass_name, ref);
-    if (item != NULL) {
-        action->type = ACTION_PASS;
-        action->action = item;
-        mem_free(ref);
-        return 0;
-    }
-
-    print_error(
-        action->action,
-        "ID is not a reference to a defined pass, traversal or phase.");
-    return 1;
-}
-
-static int check_action_phase(Action *action, struct Info *info) {
-    Phase *phase = (Phase *)action->action;
-    Phase *original = smap_retrieve(info->phase_name, phase->id);
-    if (original != NULL) {
-        print_error(phase->id, "Redefinition of name '%s'", phase->id);
-        print_note(original->id, "Previously declared here");
-        return 1;
-    }
-    array_append(info->config->phases, phase);
-    smap_insert(info->phase_name, phase->id, phase);
-    return 0;
-}
-
-static int check_action_pass(Action *action, struct Info *info) {
-    Pass *pass = action->action;
-    Pass *original = smap_retrieve(info->pass_name, pass->id);
-    if (original != NULL) {
-        print_error(pass->id, "Redefinition of name '%s'", pass->id);
-        print_note(original->id, "Previously declared here");
-        return 1;
-    }
-    array_append(info->config->passes, pass);
-    smap_insert(info->pass_name, pass->id, pass);
-    return 0;
-}
-
-static int check_action_traversal(Action *action, struct Info *info) {
-    Traversal *trav = action->action;
-    Traversal *original = smap_retrieve(info->traversal_name, trav->id);
-    if (original != NULL) {
-        print_error(trav->id, "Redefinion of traversal '%s'", trav->id);
-        print_note(original->id, "Previously defined here");
-        return 1;
-    }
-    array_append(info->config->traversals, trav);
-    smap_insert(info->traversal_name, trav->id, trav);
-    return 0;
-}
-
-static int check_action(Action *action, struct Info *info) {
-    switch (action->type) {
-    case ACTION_REFERENCE:
-        return check_action_reference(action, info);
-    case ACTION_PHASE:
-        return check_action_phase(action, info);
-    case ACTION_PASS:
-        return check_action_pass(action, info);
-    case ACTION_TRAVERSAL:
-        return check_action_traversal(action, info);
-    default:
-        return 1;
-    }
-}
-
-static int check_actions(array *actions, struct Info *info) {
-    int error = 0;
-    for (int i = 0; i < array_size(actions); i++) {
-        Action *action = array_get(actions, i);
-        error = check_action(action, info) != 0 ? 1 : error;
-    }
-
-    return error;
-}
-
 static inline void add_required_root_to_phase(Phase *phase, char *root) {
     ccn_set_insert(phase->roots, ccn_str_cpy(root));
 }
@@ -634,11 +584,8 @@ static int check_phase(Phase *phase, struct Info *info, smap_t *phase_order) {
         }
     }
 
-
-
     for (int i = 0; i < array_size(phase->actions); ++i) {
         Action *action = array_get(phase->actions, i);
-        error = check_action(action, info) != 0 ? 1 : error;
         if (action->type == ACTION_PHASE && phase->root != NULL) {
             add_required_root_to_phase((Phase *)action->action, phase->root);
         }
@@ -652,7 +599,7 @@ static int check_phase(Phase *phase, struct Info *info, smap_t *phase_order) {
 // TODO: handle cyclic dependencies. IF A depends on B and B on A this will go
 // on forever.... Need to throw an error then.
 static void evaluate_set_expr(SetExpr *expr, struct Info *info, int *error) {
-    CCNset_t *new_set = NULL;
+    ccn_set_t *new_set = NULL;
     if (expr->type == SET_REFERENCE) {
         Nodeset *target = smap_retrieve(info->nodeset_name, expr->ref_id);
         evaluate_set_expr(target->expr, info, error);
@@ -667,8 +614,8 @@ static void evaluate_set_expr(SetExpr *expr, struct Info *info, int *error) {
     } else if (expr->type == SET_OPERATION) {
         evaluate_set_expr(expr->operation->left_child, info, error);
         evaluate_set_expr(expr->operation->right_child, info, error);
-        CCNset_t *left = expr->operation->left_child->id_set;
-        CCNset_t *right = expr->operation->right_child->id_set;
+        ccn_set_t *left = expr->operation->left_child->id_set;
+        ccn_set_t *right = expr->operation->right_child->id_set;
 
         switch (expr->operation->operator) {
         case SET_UNION:
@@ -691,7 +638,7 @@ static void evaluate_set_expr(SetExpr *expr, struct Info *info, int *error) {
     }
 }
 
-static array *set_to_array(CCNset_t *set) {
+static array *set_to_array(ccn_set_t *set) {
     assert(set != NULL);
     array *values = smap_values(set->hash_map);
     smap_free(set->hash_map);
@@ -754,6 +701,155 @@ static int traversals_expr_to_array(array *traversals, struct Info *info) {
     return error;
 }
 
+static void unwrap_all_actions(array *phases, struct Info *info) {
+    array *new_phases = create_array();
+    for (int i = 0; i < array_size(phases); ++i) {
+        Phase *phase = array_get(phases, i);
+        for (int j = 0; j < array_size(phase->actions); ++j) {
+            Action *action = array_get(phase->actions, j);
+            switch (action->type) {
+            case ACTION_PASS:
+                array_append(info->config->passes, (Pass *)action->action);
+                break;
+            case ACTION_TRAVERSAL:
+                array_append(info->config->traversals, (Traversal *)action->action);
+                break;
+            case ACTION_PHASE:
+                array_append(new_phases, (Phase *)action->action);
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    if (array_size(new_phases) > 0) {
+        unwrap_all_actions(new_phases, info);
+        for (int i = 0; i < array_size(new_phases); ++i) {
+            array_append(info->config->phases, array_get(new_phases, i));
+        }
+    }
+    array_clear(new_phases);
+    array_cleanup(new_phases, NULL);
+}
+
+bool name_is_action(char *name, struct Info *info) {
+    if (smap_retrieve(info->pass_name, name) != NULL)
+        return true;
+    if (smap_retrieve(info->phase_name, name) != NULL)
+        return true;
+    if (smap_retrieve(info->traversal_name, name) != NULL)
+        return true;
+    return false;
+}
+
+static bool check_action_reached(Action *action, char *id) {
+    return ccn_str_equal(action->id, id);
+}
+
+static Phase *check_action_phase_reached(Phase *phase, Range_spec_t *spec) {
+    char *id = spec->id;
+    if (ccn_str_equal(phase->id, id)) {
+        array_append(phase->lifetimes, spec);
+        return phase;
+    }
+    Phase *reached = NULL;
+    for (int i = 0; i < array_size(phase->actions); ++i) {
+        Action *action = array_get(phase->actions, i);
+        if (action->type == ACTION_PHASE) {
+            reached = check_action_phase_reached(action->action, spec);
+            if (reached != NULL) {
+                break;
+            }
+        } else {
+            if (check_action_reached(action, id)) {
+                array_append(action->lifetimes, spec);
+                reached = phase;
+                break;
+            }
+        }
+    }
+    return reached;
+}
+
+static int check_lifetime_reach(Lifetime_t *lifetime, struct Info *info) {
+    lifetime->start->push = true;
+    lifetime->end->push = false;
+    Phase *start_phase = check_action_phase_reached(info->root_phase, lifetime->start);
+    if(start_phase == NULL) {
+        print_error(lifetime->start, "Valid reference but the action is not used in any phase, so cannot be used as a lifetime specifier.");
+        return 1;
+    }
+    Phase *end__phase = check_action_phase_reached(start_phase, lifetime->end);
+    if (end__phase == NULL) {
+        print_error(lifetime->end, "Valid reference, but end of lifetime can not be reached after the start, or the end is never used.");
+        return 1;
+    }
+
+    return 0;
+}
+
+// TODO: allow prefix to namespace into phases.
+static int check_lifetime(Lifetime_t *lifetime, struct Info *info) {
+    int error = 0;
+    if (lifetime->start == NULL && lifetime->end == NULL)
+        return 0;
+
+    if (lifetime->start != NULL && !name_is_action(lifetime->start->id, info)) {
+        print_error(lifetime->start, "Id is not a reference to a valid action.");
+        error++;
+    }
+
+    if (lifetime->end != NULL && !name_is_action(lifetime->end->id, info)) {
+        print_error(lifetime->end, "Id is not a reference to a valid action.");
+        error++;
+    }
+
+    if (lifetime->start != NULL && lifetime->end != NULL)
+        error += check_lifetime_reach(lifetime, info);
+
+    return error;
+}
+
+static int check_lifetimes_array(array *lifetimes, struct Info *info) {
+    int error = 0;
+    if (array_size(lifetimes) == 0)
+        return 0;
+
+    for (int i = 0; i < array_size(lifetimes); ++i) {
+        error = check_lifetime(array_get(lifetimes, i), info) == 0 ? error : 1;
+    }
+    return error;
+}
+
+static int check_lifetimes(struct Info *info) {
+    array *nodes = info->config->nodes;
+    int error = 0;
+    for (int i = 0; i < array_size(nodes); ++i) {
+        Node *node = array_get(nodes, i);
+        error = check_lifetimes_array(node->lifetimes, info) == 0 ? error : 1;
+    }
+
+    return error;
+}
+
+static void create_lifetime_func(Node *node) {
+    for (int i = 0; i < array_size(node->lifetimes); ++i) {
+        Lifetime_t *lifetime = array_get(node->lifetimes, i);
+        lifetime->start->func_to_target = ccn_str_cat("ccn_chk_", node->id);
+        lifetime->end->func_to_target = ccn_str_cat("ccn_chk_", node->id);
+    }
+}
+
+static void create_lifetime_funcs(struct Info *info) {
+    for (int i = 0; i < array_size(info->config->nodes); ++i) {
+        Node *node = array_get(info->config->nodes, i);
+        create_lifetime_func(node);
+    }
+
+
+
+}
+
 int check_config(Config *config) {
 
     int success = 0;
@@ -762,6 +858,8 @@ int check_config(Config *config) {
     Phase *cur_phase;
     bool start_phase_seen = false;
     bool phase_errors = false;
+
+    unwrap_all_actions(config->phases, info);
 
     success += check_nodes(config->nodes, info);
     success += check_nodesets(config->nodesets, info);
@@ -828,6 +926,9 @@ int check_config(Config *config) {
         print_error_no_loc("No start phase specified.");
         success++;
     }
+
+    success += check_lifetimes(info);
+    create_lifetime_funcs(info);
 
     smap_free(phase_order);
     free_info(info);

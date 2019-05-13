@@ -26,8 +26,8 @@
 
 
 typedef struct filegen_data {
-    CCNset_t *blacklist;
-    CCNset_t *files_gen;
+    ccn_set_t *blacklist;
+    ccn_set_t *files_gen;
     array *directories;
 } filegen_data_t ;
 
@@ -48,7 +48,7 @@ void subtree_generate_call_find_sub_root(char *root, char *to_find, FILE *fp) {
 
 /* Generates the function to set the sub-root for a defined nodetype/
  */
-void subtree_generate_set_handler(char *root, CCNset_t *funcs) {
+void subtree_generate_set_handler(char *root, ccn_set_t *funcs) {
     if (ccn_set_contains(funcs, root))
         return;
 
@@ -104,14 +104,8 @@ void subtree_generate_find_traversal_body(char *trav_name, char *target, filegen
 
 
 // TODO cleanup arguments, place in struct or so.
-void subtree_generate_find_traversal(Phase *phase, char *root, Node *original_root, Config *config, CCNset_t *gen, CCNset_t *funcs, filegen_data_t *filegen_data) {
-    char *target = ccn_str_cat(root, original_root->id);
+void subtree_generate_find_traversal(Phase *phase, char *root, Node *original_root, Config *config, ccn_set_t *gen, ccn_set_t *funcs, filegen_data_t *filegen_data) {
     Node *target_root = NULL;
-    if (!ccn_set_insert(gen, target)) { // Set is owner of target.
-        mem_free(target);
-        return;
-    }
-
     for (int i = 0; i < array_size(config->nodes); ++i) {
         Node *node = array_get(config->nodes, i);
         if (strcmp(node->id, root) == 0) {
@@ -119,6 +113,24 @@ void subtree_generate_find_traversal(Phase *phase, char *root, Node *original_ro
             break;
         }
     }
+
+    for (int i = 0; i < array_size(phase->actions); ++i) {
+        Action *action = array_get(phase->actions, i);
+        if (action->type == ACTION_PHASE) {
+            Phase *child = action->action;
+            if (child->root != NULL) {
+                subtree_generate_find_traversal(child, child->root, target_root, config, gen, funcs, filegen_data);
+            }
+        }
+    }
+
+    char *target = ccn_str_cat(root, original_root->id);
+    if (!ccn_set_insert(gen, target)) { // Set is owner of target.
+        mem_free(target);
+        return;
+    }
+
+
 
     char *trav_name = ccn_str_cat("_CCN_PhaseDriver_Find", root);
     char *trav_name_sec = ccn_str_cat(trav_name, "From");
@@ -138,6 +150,7 @@ void subtree_generate_handlers(filegen_data_t *filegen_data) {
     if (is_only_list_files())
         return;
 
+    int indent = 0;
     array_append(filegen_data->directories, strdup("include/generated/internal/"));
     array_append(filegen_data->directories, strdup("src/generated/internal/"));
     ccn_set_insert(filegen_data->files_gen, strdup("_sub_root_handlers.h"));
@@ -160,10 +173,10 @@ void subtree_generate_handlers(filegen_data_t *filegen_data) {
         fp = get_fp(source, "w");
         out("#include \"generated/enum.h\"\n");
         generate_include("core/internal_phase_functions.h", fp);
-        out("struct CCNsubroot {\n");
-        out("NodeType nodetype;\n");
-        out("void *value;\n");
-        out("};\n\n");
+        out_struct("CCNsubroot");
+        out_field("NodeType nodetype");
+        out_field("void *value");
+        out_struct_end();
         generate_include("generated/internal/_sub_root_handlers.h", fp);
         print_file_gen(source);
         fclose(fp);
@@ -171,15 +184,15 @@ void subtree_generate_handlers(filegen_data_t *filegen_data) {
 }
 
 void subtree_generate_traversals(Config *config) {
-    CCNset_t *blacklist = ccn_set_string_create(5);
-    CCNset_t *files_gen = ccn_set_string_create(10);
+    ccn_set_t *blacklist = ccn_set_string_create(5);
+    ccn_set_t *files_gen = ccn_set_string_create(10);
     array *directories = array_init(5);
     filegen_data_t filegen_data = {.blacklist = blacklist, .files_gen = files_gen, .directories = directories};
     ccn_set_insert(filegen_data.blacklist, ccn_str_cpy("Makefile"));
     subtree_generate_handlers(&filegen_data);
     array *phases = config->phases;
-    CCNset_t *generated = ccn_set_string_create(10);
-    CCNset_t *generated_funcs = ccn_set_string_create(10);
+    ccn_set_t *generated = ccn_set_string_create(10);
+    ccn_set_t *generated_funcs = ccn_set_string_create(10);
 
     for (int i = 0; i < array_size(phases); ++i) {
         Phase *phase = array_get(phases, i);
@@ -196,7 +209,7 @@ void subtree_generate_traversals(Config *config) {
 
 void generate_phase_body(Phase *phase, FILE *fp, char *root, bool is_top_root);
 
-static void require_phase_root(Phase *phase, char *root, CCNset_t *generated) {
+static void require_phase_root(Phase *phase, char *root, ccn_set_t *generated) {
     if(is_only_list_files())
         return;
 
@@ -233,10 +246,55 @@ static void require_phase_root(Phase *phase, char *root, CCNset_t *generated) {
     }
 }
 
+void generate_mark_functions(array *phases) {
+    ccn_set_t *generated = ccn_set_string_create(10);
+    char *header = "include/generated/internal/_cycle.h";
+    char *source = "src/generated/internal/_cycle.c";
+    int indent = 0;
+    FILE *fp = get_fp(header, "w");
+    out("#pragma once\n\n");
+    for (int i = 0; i < array_size(phases); ++i) {
+        Phase *phase = array_get(phases, i);
+        if (! phase->root) continue;
+        if (ccn_set_insert(generated, phase->root)) {
+            out("bool ccn_mark_apply_%s(%s *root);\n", phase->root, phase->root);
+            out("bool ccn_mark_remove_%s(%s *root);\n", phase->root, phase->root);
+        }
+    }
+    fclose(fp);
 
+    fp = get_fp(source, "w");
+    out("#include \"generated/ast.h\"\n");
+    out("#include \"core/internal_phase_functions.h\"\n");
+    out("#include <stdio.h>\n\n");
+    array *roots = ccn_set_values(generated);
+    for (int i = 0; i < array_size(roots); ++i) {
+        char *root = array_get(roots, i);
+        out_start_func("bool ccn_mark_apply_%s(%s *root)", root, root);
+        out_statement("phase_frame_t *top = _top_frame()");
+        out_begin_if("top->curr_root != NT_%s", root);
+        out_statement("printf(\"Given root does not match with current top.\\n\")");
+        out_statement("return false");
+        out_end_if();
+        out_statement("return _ccn_mark_apply(root)");
+        out_end_func();
+
+        out_start_func("bool ccn_mark_remove_%s(%s *root)", root, root);
+        out_statement("phase_frame_t *top = _top_frame()");
+        out_begin_if("top->curr_root != NT_%s", root);
+        out_statement("printf(\"Given root does not match with current top.\\n\")");
+        out_statement("return false");
+        out_end_if();
+        out_statement("return _ccn_mark_remove(root)");
+        out_end_func();
+    }
+    fclose(fp);
+    //ccn_set_free(phases);
+}
 
 void subtree_generate_phase_functions(array *phases) {
-    CCNset_t *generated = ccn_set_string_create(10);
+    generate_mark_functions(phases);
+    ccn_set_t *generated = ccn_set_string_create(10);
     for (int i = 0; i < array_size(phases); ++i) {
         Phase *phase = array_get(phases, i);
         if (phase->root == NULL)

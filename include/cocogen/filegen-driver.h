@@ -24,7 +24,7 @@ void filegen_all_phases(char *fileFormatter,
 
 void filegen_phase_subtree(void (*func)(array *));
 
-void filegen_delete_non_generated_filed(CCNset_t *generated_files, array *directories, CCNset_t *blacklist);
+void filegen_delete_non_generated_filed(ccn_set_t *generated_files, array *directories, ccn_set_t *blacklist);
 void filegen_cleanup_old_files(void);
 void filegen_cleanup(void);
 void print_file_gen(char *full_path);

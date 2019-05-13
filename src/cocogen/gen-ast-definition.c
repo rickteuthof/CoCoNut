@@ -94,7 +94,7 @@ void generate_ast_node_header(Config *config, FILE *fp, Node *node) {
             out("    %s %s;\n", str_attr_type(attr), attr->id);
         }
     }
-    out("} %s;", node->id);
+    out("} %s;\n", node->id);
 }
 void generate_ast_nodeset_header(Config *config, FILE *fp, Nodeset *nodeset) {
     out("#pragma once\n");

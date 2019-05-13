@@ -64,3 +64,9 @@ void generate_node_header_includes(Config *config, FILE *fp, Node *node) {
     if (using_bool)
         out("#include <stdbool.h>\n");
 }
+
+void print_indent_level(int indent_level, FILE *fp) {
+    for (int i = 0; i < indent_level; i++) {
+        fprintf(fp, "    ");
+    }
+}

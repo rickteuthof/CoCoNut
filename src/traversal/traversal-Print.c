@@ -51,7 +51,7 @@ static int cycles = 2;
 void Print_Root(Root *node, Info *info) {
     // ccn_notify_error(CCN_ACTION_FATAL);
     if (cycles > 0)
-        ccn_notify_cycle();
+        ccn_cycle_notify();
 
     cycles--;
     trav_Root_symbol(node, info);
@@ -72,7 +72,7 @@ void Print_LocalFunDef(LocalFunDef *node, Info *info) {
 void Print_FunDef(FunDef *node, Info *info) {
     if (cycles > 0 && strcmp(node->funheader->id, "main") == 0) {
         cycles--;
-        ccn_notify_cycle();
+        ccn_cycle_notify();
     }
     if (node->external) {
         printf("extern ");
