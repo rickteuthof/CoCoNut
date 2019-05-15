@@ -93,6 +93,7 @@ array *ccn_set_values(ccn_set_t *set) {
     return smap_values(set->hash_map);
 }
 
+
 ccn_set_t *ccn_set_intersect(ccn_set_t *first, ccn_set_t *second) {
     assert(first != NULL && second != NULL);
 

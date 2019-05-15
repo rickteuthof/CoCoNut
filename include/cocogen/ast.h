@@ -77,11 +77,12 @@ enum LifetimeType {
 };
 
 typedef struct Range_spec {
-    char *id;
-    bool inclusive;
-    char *func_to_target;
-    char *type;
-    bool push;
+    char *action_id; // Id of the action where this spec starts or ends.
+    bool inclusive; // Range inclusive over the action or not.
+    char *consistency_key; // Key used to lookup this spec in the consistency map.
+    char *type; // Type, used to give the right value to pop and push functions.
+    bool push; // Either push this spec or pop.
+    enum LifetimeType life_type;
 } Range_spec_t;
 
 typedef struct Lifetime {
@@ -113,8 +114,9 @@ typedef struct Phase {
     bool cycle;
     bool start;
 
-    array *lifetimes;
+    array *range_specs;
     array *actions;
+    smap_t *active_specs;
     ccn_set_t *roots;
 
     struct NodeCommonInfo *common_info;
@@ -144,6 +146,8 @@ typedef struct Traversal {
         array *nodes;
         SetExpr *expr;
     };
+
+    smap_t *active_specs;
     struct NodeCommonInfo *common_info;
 } Traversal;
 
@@ -152,7 +156,7 @@ typedef struct Action {
     bool checked;
     void *action;
     char *id;
-    array *lifetimes;
+    array *range_specs;
 } Action;
 
 typedef struct Enum {

@@ -4,6 +4,8 @@
 #include "cocogen/config.h"
 #include <stdio.h>
 
+#define COLOR_GREEN "\033[1m\033[32m"
+#define COLOR_RESET "\033[0m"
 #define out(...) fprintf(fp, __VA_ARGS__)
 #define out_struct(...) print_indent_level(indent, fp); indent++; fprintf(fp, "struct "); fprintf(fp, __VA_ARGS__); fprintf(fp, " {\n")
 #define out_field(...) print_indent_level(indent, fp); fprintf(fp, __VA_ARGS__); fprintf(fp, ";\n")

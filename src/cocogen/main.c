@@ -260,10 +260,11 @@ int main(int argc, char *argv[]) {
     /* filegen_generate("trav-ast.c", generate_trav_definitions); */
     filegen_generate("trav-core.c", generate_trav_core_definitions);
     filegen_all_nodes("trav-%s.c", generate_trav_node_definitions);
-    // filegen_generate("consistency-ast.c", generate_consistency_definitions);
+    filegen_generate("ccn_consistency_check.c", generate_consistency_definitions);
     filegen_generate("phase-driver.c", generate_phase_driver_definitions);
     filegen_all_phases("phase-%s.c", generate_phase_function_definitions);
     filegen_phase_subtree(subtree_generate_phase_functions);
+    filegen_generate("traversal-ccn_consistency_check.c", generate_check_traversal);
 
     filegen_generate("binary-serialization-util.c",
                      generate_binary_serialization_util);

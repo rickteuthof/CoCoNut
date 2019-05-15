@@ -7,11 +7,38 @@
 #include "core/internal_phase_functions.h"
 #include "lib/array.h"
 #include "lib/memory.h"
+#include "cocogen/filegen-util.h"
 
 
 
 static phase_driver_t phase_driver;
 
+void _push_chk_frame(char *key, enum ccn_chk_types type) {
+    ccn_chk_frame_t *frame = smap_retrieve(phase_driver.consistency_map, key);
+    if (frame == NULL) {
+        frame = mem_alloc(sizeof(ccn_chk_frame_t));
+        frame->type = type;
+        frame->ref_counter = 1;
+        smap_insert(phase_driver.consistency_map, key, frame);
+    } else {
+        if (frame->type == type) {
+            frame->ref_counter++;
+        } else {
+            // Should never happen.
+            // TODO: better error.
+            assert(false);
+        }
+    }
+}
+
+void _pop_chk_frame(char *key) {
+    ccn_chk_frame_t *frame = smap_retrieve(phase_driver.consistency_map, key);
+    if (frame == NULL) {
+        return;
+    } else {
+        frame->ref_counter--;
+    }
+}
 
 void _exit_on_action_error() {
     if (phase_driver.action_error) {
@@ -59,7 +86,9 @@ void _initialize_phase_driver() {
     phase_driver.phase_stack = create_array();
     phase_driver.passes_time_frames = array_init(20);
     phase_driver.cycles_time_frames = array_init(20);
+    phase_driver.consistency_map = smap_init(20);
     phase_driver.curr_sub_root = NULL;
+    phase_driver.level = 0;
 }
 
 cycle_mark_t *_ccn_new_mark(void *item) {
@@ -100,16 +129,19 @@ bool _ccn_mark_remove(void *item) {
     return false;
 }
 
-
-
-
+// TODO: Nice way to print?
 void _ccn_start_phase(char *id) {
-    printf("Starting phase: %s\n", id);
+    printf(COLOR_GREEN "[CCN] " COLOR_RESET);
+    for(int i = 0; i < phase_driver.level; i++) {
+        printf("*");
+    }
+    phase_driver.level++;
+    printf("%s\n", id);
     _push_frame(id);
 }
 
 void _ccn_end_phase(char *id) {
-    printf("Ending phase:   %s\n", id);
+    phase_driver.level--;
     _pop_frame();
 }
 
@@ -122,7 +154,6 @@ void _ccn_new_cycle_time_frame(char *id, double time_sec) {
     array_append(phase_driver.cycles_time_frames, time_frame);
 
 }
-
 
 void _ccn_new_passes_time_frame(char *id, double time_sec) {
     phase_frame_t *top = _top_frame();

@@ -746,45 +746,71 @@ static bool check_action_reached(Action *action, char *id) {
     return ccn_str_equal(action->id, id);
 }
 
-static Phase *check_action_phase_reached(Phase *phase, Range_spec_t *spec) {
-    char *id = spec->id;
-    if (ccn_str_equal(phase->id, id)) {
-        array_append(phase->lifetimes, spec);
-        return phase;
+static void action_add_lifetime_spec(Action *action, Range_spec_t *curr_spec) {
+    switch (action->type) {
+    case ACTION_TRAVERSAL:
+        smap_insert(((Traversal*)action->action)->active_specs, curr_spec->consistency_key, curr_spec);
+        break;
+    case ACTION_PASS:
+        //smap_insert(((Pass*)action->action)->ac, curr_spec);
+        break;
+    default:
+        break;
     }
-    Phase *reached = NULL;
+}
+
+// TODO handle when the range is inclusive and when not. Currently (Root ->) is fine which should not be
+// As the second one is never able to be reached.
+static void check_lifetime_specs(Lifetime_t *lifetime, struct Info *info, Range_spec_t **curr_spec, Phase *phase) {
+    if (ccn_str_equal(phase->id, lifetime->start->action_id)) {
+        if ((*curr_spec)->inclusive) {
+            smap_insert(phase->active_specs, strdup((*curr_spec)->consistency_key), &(*curr_spec)->life_type);
+        }
+        array_append(phase->range_specs, *curr_spec);
+        if ((*curr_spec)->push) {
+            *curr_spec = lifetime->end;
+        } else {
+            *curr_spec = NULL;
+            return;
+        }
+    }
     for (int i = 0; i < array_size(phase->actions); ++i) {
         Action *action = array_get(phase->actions, i);
         if (action->type == ACTION_PHASE) {
-            reached = check_action_phase_reached(action->action, spec);
-            if (reached != NULL) {
-                break;
-            }
+            check_lifetime_specs(lifetime, info, curr_spec, action->action);
         } else {
-            if (check_action_reached(action, id)) {
-                array_append(action->lifetimes, spec);
-                reached = phase;
-                break;
+            if (ccn_str_equal(action->id, (*curr_spec)->action_id)) {
+                if ((*curr_spec)->inclusive) {
+                    action_add_lifetime_spec(action, *curr_spec);
+                }
+                if ((*curr_spec)->push) {
+                    *curr_spec = lifetime->end;
+                } else {
+                    *curr_spec = NULL;
+                }
+            } else {
+                if (! (*curr_spec)->push) {
+                    action_add_lifetime_spec(action, *curr_spec);
+                }
             }
         }
+        if (*curr_spec == NULL)
+            break;
     }
-    return reached;
 }
 
+// TODO if no start or end, handle in a specific way.
 static int check_lifetime_reach(Lifetime_t *lifetime, struct Info *info) {
+    // TODO handle when this is NULL.
     lifetime->start->push = true;
     lifetime->end->push = false;
-    Phase *start_phase = check_action_phase_reached(info->root_phase, lifetime->start);
-    if(start_phase == NULL) {
-        print_error(lifetime->start, "Valid reference but the action is not used in any phase, so cannot be used as a lifetime specifier.");
+    Range_spec_t **curr_spec = &lifetime->start;
+    Phase *curr_phase = info->root_phase;
+    check_lifetime_specs(lifetime, info, curr_spec, curr_phase);
+    if (*curr_spec != NULL) {
+        print_error(*curr_spec, "%s: could not be reached from the start specification, recheck your ranges.", (*curr_spec)->action_id);
         return 1;
     }
-    Phase *end__phase = check_action_phase_reached(start_phase, lifetime->end);
-    if (end__phase == NULL) {
-        print_error(lifetime->end, "Valid reference, but end of lifetime can not be reached after the start, or the end is never used.");
-        return 1;
-    }
-
     return 0;
 }
 
@@ -794,17 +820,17 @@ static int check_lifetime(Lifetime_t *lifetime, struct Info *info) {
     if (lifetime->start == NULL && lifetime->end == NULL)
         return 0;
 
-    if (lifetime->start != NULL && !name_is_action(lifetime->start->id, info)) {
+    if (lifetime->start != NULL && !name_is_action(lifetime->start->action_id, info)) {
         print_error(lifetime->start, "Id is not a reference to a valid action.");
         error++;
     }
 
-    if (lifetime->end != NULL && !name_is_action(lifetime->end->id, info)) {
+    if (lifetime->end != NULL && !name_is_action(lifetime->end->action_id, info)) {
         print_error(lifetime->end, "Id is not a reference to a valid action.");
         error++;
     }
 
-    if (lifetime->start != NULL && lifetime->end != NULL)
+    if (!error)
         error += check_lifetime_reach(lifetime, info);
 
     return error;
@@ -835,8 +861,15 @@ static int check_lifetimes(struct Info *info) {
 static void create_lifetime_func(Node *node) {
     for (int i = 0; i < array_size(node->lifetimes); ++i) {
         Lifetime_t *lifetime = array_get(node->lifetimes, i);
-        lifetime->start->func_to_target = ccn_str_cat("ccn_chk_", node->id);
-        lifetime->end->func_to_target = ccn_str_cat("ccn_chk_", node->id);
+        if (lifetime->type == LIFETIME_DISALLOWED) {
+            lifetime->start->type = "CCN_CHK_DISALLOWED";
+            lifetime->end->type = "CCN_CHK_DISALLOWED";
+        } else if (lifetime->type == LIFETIME_MANDATORY) {
+            lifetime->start->type = "CCN_CHK_MANDATORY";
+            lifetime->end->type = "CCN_CHK_MANDATORY";
+        }
+        lifetime->start->consistency_key = strdup(node->id);
+        lifetime->end->consistency_key = strdup(node->id);
     }
 }
 
@@ -845,9 +878,6 @@ static void create_lifetime_funcs(struct Info *info) {
         Node *node = array_get(info->config->nodes, i);
         create_lifetime_func(node);
     }
-
-
-
 }
 
 int check_config(Config *config) {
@@ -927,8 +957,8 @@ int check_config(Config *config) {
         success++;
     }
 
-    success += check_lifetimes(info);
     create_lifetime_funcs(info);
+    success += check_lifetimes(info);
 
     smap_free(phase_order);
     free_info(info);

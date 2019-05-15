@@ -15,8 +15,6 @@
 #include "lib/print.h"
 #include "lib/smap.h"
 
-#define COLOR_GREEN "\033[1m\033[32m"
-#define COLOR_RESET "\033[0m"
 #define HASH_HEADER "// Hash: %s\n"
 
 static Config *ast_definition = NULL;

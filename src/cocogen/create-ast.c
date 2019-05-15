@@ -53,7 +53,8 @@ Phase *create_phase(Phase *phase_header, char *root, array *actions) {
     Phase *p = phase_header;
     p->root = root;
     p->actions = actions;
-    p->lifetimes = array_init(1);
+    p->range_specs = array_init(1);
+    p->active_specs = smap_init(5);
     return p;
 }
 
@@ -75,6 +76,7 @@ Traversal *create_traversal(char *id, char *func, SetExpr *expr) {
     t->func = func;
     t->info = NULL;
     t->expr = expr;
+    t->active_specs = smap_init(5);
 
     t->common_info = create_commoninfo();
     return t;
@@ -181,7 +183,7 @@ Node *create_nodebody(array *children, array *attrs) {
 Range_spec_t *create_range_spec(bool inclusive, char *id) {
     Range_spec_t *spec = mem_alloc(sizeof(Range_spec_t));
     spec->inclusive = inclusive;
-    spec->id = id;
+    spec->action_id = id;
     return spec;
 }
 
@@ -189,7 +191,9 @@ Lifetime_t *create_lifetime(Range_spec_t *start, Range_spec_t *end,
                             enum LifetimeType type) {
     Lifetime_t *lifetime = mem_alloc(sizeof(Lifetime_t));
     lifetime->start = start;
+    lifetime->start->push = true;
     lifetime->end = end;
+    lifetime->end->push = false;
     lifetime->type = type;
     return lifetime;
 }
@@ -245,7 +249,7 @@ Action *create_action(enum ActionType type, void *action, char *id) {
     _action->action = action;
     _action->checked = false;
     _action->id = strdup(id);
-    _action->lifetimes = array_init(1);
+    _action->range_specs = array_init(1);
     return _action;
 }
 

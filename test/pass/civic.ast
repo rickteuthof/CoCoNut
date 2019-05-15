@@ -1,10 +1,8 @@
 start phase RootPhase {
     actions {
         LoadProgram,
-        SemanticAnalysis,
-        CodeGen, 
+        CodeGen,
         Print
-        
     }
 };
 
@@ -16,12 +14,13 @@ phase LoadProgram {
 };
 
 phase SemanticAnalysis {
+    root = StmtList;
     actions {
         CodeGen
     }
 };
 
-cycle phase CodeGen {
+cycle CodeGen {
     root = FunDef;
     actions {
         Print
@@ -30,21 +29,21 @@ cycle phase CodeGen {
 
 enum BasicType {
     prefix = BT,
-    values {
+    values = {
         int, float, bool, void
     }
 };
 
 enum MonOpEnum {
     prefix = MO,
-    values {
+    values = {
         neg, not
     }
 };
 
 enum BinOpEnum {
     prefix = BO,
-    values {
+    values = {
         mul, add, sub, div, mod, lt, leq, eq, gt, geq, neq, and, or
     }
 };
@@ -53,9 +52,6 @@ pass Test;
 
 traversal Print;
 traversal ByteCode;
-traversal FindFundefFromRoot {
-    nodes = {FunDef}
-};
 
 traversal RenameFor {
     nodes = {For, VarLet, Var}
@@ -287,12 +283,9 @@ node BinOp {
     attributes {
         BinOpEnum op { constructor }
     }
-
-/*    lifetime {
-        for_each(op.eq, op.neq) {
-            disallowed after 
-        }
-    }*/
+    lifetime {
+        disallowed (RootPhase -> CodeGen);
+    }
 };
 
 node MonOp {

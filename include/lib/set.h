@@ -7,6 +7,8 @@
  * The copy function should be able to make a deep copy of an element.
  */
 
+// TODO: allow for non owning set, by clearing the elements or so.
+
 
 #include <stdbool.h>
 #include <stdlib.h>

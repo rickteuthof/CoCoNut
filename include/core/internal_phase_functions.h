@@ -11,17 +11,20 @@
 #include <stdbool.h>
 
 #include "lib/array.h"
+#include "lib/smap.h"
 #include "generated/enum.h"
 
 typedef struct CCNsubroot sub_root_t;
 
-// If not disallowed then mandatory.
-typedef struct lifetime_executer {
-    bool disallowed;
-    void (*func)(void *, bool, array*);
-    array *data;
+enum ccn_chk_types {
+    CCN_CHK_DISALLOWED,
+    CCN_CHK_MANDATORY,
+};
 
-} lifetime_executer_t;
+typedef struct ccn_chk_frame {
+    enum ccn_chk_types type;
+    int ref_counter;
+} ccn_chk_frame_t;
 
 typedef struct time_frame {
     char *id;
@@ -40,6 +43,7 @@ typedef struct phase_frame {
     array *marks;
     NodeType curr_root;
     cycle_mark_t *curr_mark;
+
 } phase_frame_t;
 
 typedef struct phase_driver {
@@ -49,6 +53,8 @@ typedef struct phase_driver {
     array *passes_time_frames;
     array *cycles_time_frames;
     sub_root_t *curr_sub_root;
+    smap_t *consistency_map;
+    int level;
 } phase_driver_t;
 
 phase_frame_t *_top_frame();
@@ -57,6 +63,8 @@ bool _ccn_mark_apply(void *);
 bool _ccn_mark_remove(void *);
 void _ccn_start_phase(char *id);
 void _ccn_end_phase(char *id);
+void _push_chk_frame(char *key, enum ccn_chk_types type);
+void _pop_chk_frame(char *key);
 void _exit_on_action_error();
 bool _is_cycle_notified();
 void _reset_cycle();
