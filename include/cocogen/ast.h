@@ -89,6 +89,7 @@ typedef struct Lifetime {
     Range_spec_t *start;
     Range_spec_t *end;
     enum LifetimeType type;
+    char *key;
 
 } Lifetime_t;
 
@@ -212,6 +213,8 @@ typedef struct Child {
     struct Node *node;
     struct Nodeset *nodeset;
 
+    array *lifetimes;
+
     struct NodeCommonInfo *common_info;
 } Child;
 
@@ -240,6 +243,7 @@ typedef struct Attr {
     char *type_id;
     char *id;
     struct AttrValue *default_value;
+    array *lifetimes;
 
     struct NodeCommonInfo *common_info;
 } Attr;

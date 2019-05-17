@@ -104,6 +104,35 @@ void *smap_retrieve(smap_t *t, char *key) {
     return NULL;
 }
 
+void *smap_remove_element(smap_t *map, char *key) {
+    const unsigned int hash_val = smap_hash(map, key);
+    if (map->slots[hash_val]) {
+        smap_entry_t *previous = NULL;
+        smap_entry_t *current = map->slots[hash_val];
+        while (current != NULL) {
+            if (strcmp(current->key, key) == 0) {
+                if (previous == NULL) {
+                    smap_entry_t *next = current->next;
+                    current->next = NULL;
+                    void *val = current->value;
+                    smap_entry_free(current);
+                    map->slots[hash_val] = next;
+                    return val;
+                } else {
+                    smap_entry_t *next = current->next;
+                    current->next = NULL;
+                    previous->next = next;
+                    void *val = current->value;
+                    smap_entry_free(current);
+                    return val;
+                }
+            }
+            current = current->next;
+        }
+    }
+    return NULL;
+}
+
 void smap_map(smap_t *t, void *(f)(char *, void *)) {
     for (int i = 0; i < t->size; i++)
         for (smap_entry_t *last = t->slots[i]; last; last = last->next) {

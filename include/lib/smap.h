@@ -22,5 +22,6 @@ unsigned int smap_hash(smap_t *, char *);
 smap_entry_t *smap_entry_init(char *, void *);
 void smap_insert(smap_t *, char *, void *);
 void *smap_retrieve(smap_t *, char *);
+void *smap_remove_element(smap_t *map, char *key);
 void smap_map(smap_t *, void *(f)(char *, void *));
 array *smap_values(smap_t *map);

@@ -15,6 +15,7 @@ static void generate_enum(Enum *arg_enum, FILE *fp) {
         out("    %s_%s,\n", arg_enum->prefix,
             (char *)array_get(arg_enum->values, i));
     }
+    out("    %s_NULL\n", arg_enum->prefix);
     out("} %s;\n\n", arg_enum->id);
 }
 

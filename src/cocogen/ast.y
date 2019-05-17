@@ -144,9 +144,8 @@ static void new_location(void *ptr, struct ParserLocation *loc);
 %token END 0 "End-of-file (EOF)"
 
 %type<string> info func
-%type<array> idlist mandatoryarglist mandatory actionsbody actions
+%type<array> idlist actionsbody actions
              attrlist attrs childlist children enumvalues lifetimelist
-%type<mandatoryphase> mandatoryarg
 %type<attrval> attrval
 %type<attrtype> attrprimitivetype
 %type<attr> attr attrhead
@@ -513,9 +512,9 @@ nodebody: children ',' attrs
         }
         ;
 
-lifetimelist: lifetimelist lifetime
+lifetimelist: lifetimelist ',' lifetime
             {
-                array_append($$, $2);
+                array_append($$, $3);
             }
             | lifetime
             {
@@ -523,13 +522,21 @@ lifetimelist: lifetimelist lifetime
                 array_append($$, $1);
             }
 
-lifetime: T_DISALLOWED rangespec_start T_ARROW rangespec_end ';'
+lifetime: T_DISALLOWED rangespec_start T_ARROW rangespec_end
         {
             $$ = create_lifetime($2, $4, LIFETIME_DISALLOWED);
         }
-        | T_DISALLOWED ';'
+        | T_DISALLOWED
         {
             $$ = create_lifetime(NULL, NULL, LIFETIME_DISALLOWED);
+        }
+        | T_MANDATORY rangespec_start T_ARROW rangespec_end
+        {
+            $$ = create_lifetime($2, $4, LIFETIME_MANDATORY);
+        }
+        | T_MANDATORY
+        {
+            $$ = create_lifetime(NULL, NULL, LIFETIME_MANDATORY);
         }
         ;
 
@@ -589,35 +596,35 @@ childlist: childlist ',' child
 /* [construct] [mandatory] ID ID */
 child: T_ID T_ID
      {
-         $$ = create_child(0, 0, NULL, $2, $1);
+         $$ = create_child(0, NULL, $2, $1);
          new_location($$, &@$);
          new_location($1, &@1);
          new_location($2, &@2);
      }
-     | T_ID T_ID '{' T_CONSTRUCTOR ',' mandatory '}'
+     | T_ID T_ID '{' T_CONSTRUCTOR ',' lifetimelist '}'
      {
-         $$ = create_child(1, 1, $6, $2, $1);
+         $$ = create_child(1, $6, $2, $1);
          new_location($$, &@$);
          new_location($1, &@1);
          new_location($2, &@2);
      }
-     | T_ID T_ID '{' mandatory ',' T_CONSTRUCTOR '}'
+     | T_ID T_ID '{' lifetimelist ',' T_CONSTRUCTOR '}'
      {
-         $$ = create_child(1, 1, $4, $2, $1);
+         $$ = create_child(1, $4, $2, $1);
          new_location($$, &@$);
          new_location($1, &@1);
          new_location($2, &@2);
      }
      | T_ID T_ID '{' T_CONSTRUCTOR '}'
      {
-         $$ = create_child(1, 0, NULL, $2, $1);
+         $$ = create_child(1, NULL, $2, $1);
          new_location($$, &@$);
          new_location($1, &@1);
          new_location($2, &@2);
      }
-     | T_ID T_ID '{' mandatory '}'
+     | T_ID T_ID '{' lifetimelist '}'
      {
-         $$ = create_child(0, 1, $4, $2, $1);
+         $$ = create_child(0, $4, $2, $1);
          new_location($$, &@$);
          new_location($1, &@1);
          new_location($2, &@2);
@@ -640,14 +647,19 @@ attrlist: attrlist ',' attr
             // $$ is an array and should not be in the locations list
         }
         ;
-attr: attrhead '{' T_CONSTRUCTOR '}'
+attr: attrhead '{' T_CONSTRUCTOR ',' lifetimelist '}'
     {
-        $$ = create_attr($1, NULL, 1);
+        $$ = create_attr($1, NULL, 1, $5);
+        new_location($$, &@$);
+    }
+    | attrhead '{' T_CONSTRUCTOR '}'
+    {
+        $$ = create_attr($1, NULL, 1, NULL);
         new_location($$, &@$);
     }
     | attrhead '=' attrval
     {
-        $$ = create_attr($1, $3, 0);
+        $$ = create_attr($1, $3, 0, NULL);
         new_location($$, &@$);
     }
     ;
@@ -713,44 +725,7 @@ attrval: T_STRINGVAL
        | T_NULL
        { $$ = NULL; }
        ;
-mandatory: T_MANDATORY '{' mandatoryarglist '}'
-         { $$ = $3;      }
-         | T_MANDATORY
-         { $$ = NULL;    }
-         ;
-mandatoryarglist: mandatoryarglist ',' mandatoryarg
-                { array_append($1, $3); $$ = $1; }
-                | mandatoryarg
-                { array *tmp = create_array(); array_append(tmp, $1); $$ = tmp; }
-                ;
-/* Allow single phase or a range of phases. */
-mandatoryarg: T_ID
-            {
-                $$ = create_mandatory_singlephase($1, 0);
-                new_location($$, &@$);
-                new_location($1, &@1);
-            }
-            | '!' T_ID
-            {
-                $$ = create_mandatory_singlephase($2, 1);
-                new_location($$, &@$);
-                new_location($2, &@2);
-            }
-            | T_ID T_TO T_ID
-            {
-                $$ = create_mandatory_phaserange($1, $3, 0);
-                new_location($$, &@$);
-                new_location($1, &@1);
-                new_location($3, &@3);
-            }
-            | '!' '(' T_ID T_TO T_ID ')'
-            {
-                $$ = create_mandatory_phaserange($3, $5, 1);
-                new_location($$, &@$);
-                new_location($3, &@3);
-                new_location($5, &@5);
-            }
-            ;
+
 /* Comma seperated list of identifiers. */
 idlist: idlist ',' T_ID
       {

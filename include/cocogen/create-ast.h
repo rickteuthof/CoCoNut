@@ -29,7 +29,7 @@ Node *create_node(char *id, Node *nodebody);
 
 Node *create_nodebody(array *children, array *attrs);
 
-Child *create_child(int construct, int mandatory, array *mandatory_phases,
+Child *create_child(int construct, array *lifetimes,
                     char *id, char *type);
 
 MandatoryPhase *create_mandatory_singlephase(char *phase, int negation);
@@ -43,7 +43,7 @@ Range_spec_t *create_range_spec(bool inclusive, char *);
 Lifetime_t *create_lifetime(Range_spec_t *start, Range_spec_t *end,
                             enum LifetimeType type);
 
-Attr *create_attr(Attr *attrhead, AttrValue *default_value, int construct);
+Attr *create_attr(Attr *attrhead, AttrValue *default_value, int construct, array *lifetimes);
 
 Attr *create_attrhead_primitive(enum AttrType type, char *id);
 

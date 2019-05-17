@@ -109,12 +109,14 @@ static void free_mandatory(void *p) {
 
 static void free_child(void *p) {
     Child *c = p;
-    if (c->mandatory_phases != NULL)
-        array_cleanup(c->mandatory_phases, free_mandatory);
+
 
     mem_free(c->id);
     if (c->type != NULL)
         mem_free(c->type);
+
+    //    if (c->lifetimes != NULL)
+        //array_cleanup(c->lifetimes, mem_free);
 
     free_commoninfo(c->common_info);
     mem_free(c);
@@ -167,8 +169,6 @@ void free_config(Config *config) {
     array_cleanup(config->enums, free_enum);
     array_cleanup(config->nodesets, free_nodeset);
     array_cleanup(config->nodes, free_node);
-
-    free_phase_tree(config->phase_tree);
 
     free_commoninfo(config->common_info);
     mem_free(config);

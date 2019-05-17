@@ -36,7 +36,13 @@ void _pop_chk_frame(char *key) {
     if (frame == NULL) {
         return;
     } else {
-        frame->ref_counter--;
+        if (frame->ref_counter > 0)
+            frame->ref_counter--;
+
+        if (frame->ref_counter == 0) {
+            smap_remove_element(phase_driver.consistency_map, key);
+            mem_free(frame);
+        }
     }
 }
 
@@ -142,6 +148,11 @@ void _ccn_start_phase(char *id) {
 
 void _ccn_end_phase(char *id) {
     phase_driver.level--;
+    printf(COLOR_GREEN "[CCN] " COLOR_RESET);
+    for(int i = 0; i < phase_driver.level; i++) {
+        printf("*");
+    }
+    printf("%s ended\n", id);
     _pop_frame();
 }
 

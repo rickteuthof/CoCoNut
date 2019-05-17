@@ -143,7 +143,7 @@ node FunDef {
 
 node FunHeader {
     children {
-        Param params { constructor, mandatory }
+        Param params { constructor }
     },
     attributes {
         BasicType rettype { constructor },
@@ -190,7 +190,7 @@ node FunBody {
 
 node VarDec {
     children {
-        Expr expr { constructor, mandatory },
+        Expr expr { constructor },
         VarDec next { constructor }
     },
     attributes {
@@ -281,10 +281,7 @@ node BinOp {
         Expr right { constructor, mandatory }
     },
     attributes {
-        BinOpEnum op { constructor }
-    }
-    lifetime {
-        disallowed (RootPhase -> CodeGen);
+        BinOpEnum op { constructor, disallowed }
     }
 };
 

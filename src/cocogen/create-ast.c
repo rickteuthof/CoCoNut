@@ -191,25 +191,27 @@ Lifetime_t *create_lifetime(Range_spec_t *start, Range_spec_t *end,
                             enum LifetimeType type) {
     Lifetime_t *lifetime = mem_alloc(sizeof(Lifetime_t));
     lifetime->start = start;
-    lifetime->start->push = true;
+    if (lifetime->start != NULL)
+        lifetime->start->push = true;
     lifetime->end = end;
-    lifetime->end->push = false;
+    if (lifetime->end != NULL)
+        lifetime->end->push = false;
     lifetime->type = type;
+    lifetime->key = NULL;
     return lifetime;
 }
 
 
 
-Child *create_child(int construct, int mandatory, array *mandatory_phases,
+Child *create_child(int construct, array *lifetimes,
                     char *id, char *type) {
 
     Child *c = mem_alloc(sizeof(Child));
     c->construct = construct;
-    c->mandatory = mandatory;
-    c->mandatory_phases = mandatory_phases;
     c->id = id;
     c->type = type;
 
+    c->lifetimes = lifetimes;
     c->node = NULL;
     c->nodeset = NULL;
 
@@ -253,9 +255,10 @@ Action *create_action(enum ActionType type, void *action, char *id) {
     return _action;
 }
 
-Attr *create_attr(Attr *a, AttrValue *default_value, int construct) {
+Attr *create_attr(Attr *a, AttrValue *default_value, int construct, array *lifetimes) {
     a->default_value = default_value;
     a->construct = construct;
+    a->lifetimes = lifetimes;
     return a;
 }
 

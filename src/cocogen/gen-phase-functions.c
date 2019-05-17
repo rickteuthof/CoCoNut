@@ -75,27 +75,30 @@ static char *get_action_id(Action *action) {
     }
 }
 
-void generate_lifetimes(array *lifetimes, FILE *fp, bool inclusive) {
+void generate_lifetimes(array *lifetimes, FILE *fp, bool inclusive_start, bool inclusive_end) {
     if (lifetimes == NULL)
         return;
     for (int i = 0; i < array_size(lifetimes); ++i) {
         Range_spec_t *spec = array_get(lifetimes, i);
-        if (spec->push && spec->inclusive == inclusive) {
+        if (spec->push && spec->inclusive == inclusive_start) {
             out("_push_chk_frame(\"%s\", %s);\n", spec->consistency_key, spec->type);
-        } else if (!spec->push && spec->inclusive == inclusive) {
+        } else if (!spec->push && spec->inclusive == inclusive_end) {
+            printf("%s: %d\n", spec->action_id, spec->inclusive);
             out("_pop_chk_frame(\"%s\");\n", spec->consistency_key);
         }
     }
 }
 
+// TODO: handle CHK traversal for sub_roots.
 void generate_action_list(array *actions, FILE *fp, char *new_root, bool is_top_root) {
      for (int i = 0; i < array_size(actions); i++) {
         Action *action = array_get(actions, i);
-        generate_lifetimes(action->range_specs, fp, true);
+        generate_lifetimes(action->range_specs, fp, true, false);
+        out("trav_start_%s(root, TRAV__CCN_CHK);\n", new_root);
         out("start = clock();\n");
         generate_action(action, fp, new_root, is_top_root);
         out("end = clock();\n");
-        generate_lifetimes(action->range_specs, fp, false);
+        generate_lifetimes(action->range_specs, fp, false, true);
 
         if (action->type != ACTION_PHASE) {
             char *id = get_action_id(action);
@@ -109,8 +112,6 @@ void generate_action_list(array *actions, FILE *fp, char *new_root, bool is_top_
             }
         }
         out("_exit_on_action_error();\n");
-        if(is_top_root)
-            out("trav_start_Root(root, TRAV__CCN_CHK);\n");
     }
 }
 
@@ -129,7 +130,7 @@ void generate_phase_body(Phase *phase, FILE *fp, char *root, bool is_top_root) {
     }
     out("double start;\n");
     out("double end;\n");
-    generate_lifetimes(phase->range_specs, fp, true);
+    generate_lifetimes(phase->range_specs, fp, true, false);
     generate_start_phase(phase, fp);
     out("phase_frame_t *curr_frame = _top_frame();\n");
     if (phase->root != NULL) {
@@ -174,7 +175,7 @@ void generate_phase_body(Phase *phase, FILE *fp, char *root, bool is_top_root) {
     }
 
     generate_end_phase(phase, fp);
-    generate_lifetimes(phase->range_specs, fp, false);
+    generate_lifetimes(phase->range_specs, fp, false, true);
     out("}\n\n");
 }
 

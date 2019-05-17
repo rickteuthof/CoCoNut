@@ -28,6 +28,8 @@ struct array *array_init(long initial_capacity) {
 static void noop(void *p) {}
 
 void array_cleanup(struct array *a, void free_func(void *)) {
+    if (a == NULL)
+        return;
     void *e;
     if (free_func == NULL) {
         free_func = noop;

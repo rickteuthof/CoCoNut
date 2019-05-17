@@ -5,6 +5,7 @@
 
 #include "cocogen/ast.h"
 #include "cocogen/check-ast.h"
+#include "cocogen/create-ast.h"
 #include "cocogen/free-ast.h"
 #include "cocogen/gen-phase-functions.h"
 #include "cocogen/gen-subtree-functions.h"
@@ -293,41 +294,6 @@ static int check_traversals(array *traversals, struct Info *info) {
     return error;
 }
 
-static int check_mandatory_phase(MandatoryPhase *phase, struct Info *info) {
-    int error = 0;
-
-    switch (phase->type) {
-    case MP_single:
-        if (smap_retrieve(info->phase_name, phase->value.single) == NULL) {
-            print_error(phase->value.single, "Unknown mandatory phase '%s'",
-                        phase->value.single);
-            error = 1;
-        }
-        break;
-
-    case MP_range:; // Crazy GCC won't allow declaration behind statement.
-
-        PhaseRange *phase_range = phase->value.range;
-        if (smap_retrieve(info->phase_name, phase_range->start) == NULL) {
-            print_error(phase_range->start,
-                        "Unknown mandatory phase range start '%s'",
-                        phase_range->start);
-            error = 1;
-        }
-        if (smap_retrieve(info->phase_name, phase_range->end) == NULL) {
-            print_error(phase_range->end,
-                        "Unknown mandatory phase range end '%s'",
-                        phase_range->end);
-            error = 1;
-        }
-        break;
-    }
-
-    // TODO: Check if there are no overlapping/duplicate phases.
-
-    return error;
-}
-
 static int check_node(Node *node, struct Info *info) {
     int error = 0;
 
@@ -370,13 +336,6 @@ static int check_node(Node *node, struct Info *info) {
                     "Child '%s' of node '%s' cannot use root node as type",
                     child->id, node->id);
                 error = 1;
-            }
-
-            for (int i = 0; i < array_size(child->mandatory_phases); ++i) {
-                MandatoryPhase *phase =
-                    (MandatoryPhase *)array_get(child->mandatory_phases, i);
-
-                error = +check_mandatory_phase(phase, info);
             }
         }
     }
@@ -759,11 +718,11 @@ static void action_add_lifetime_spec(Action *action, Range_spec_t *curr_spec) {
     }
 }
 
-// TODO handle when the range is inclusive and when not. Currently (Root ->) is fine which should not be
-// As the second one is never able to be reached.
+
 static void check_lifetime_specs(Lifetime_t *lifetime, struct Info *info, Range_spec_t **curr_spec, Phase *phase) {
-    if (ccn_str_equal(phase->id, lifetime->start->action_id)) {
-        if ((*curr_spec)->inclusive) {
+    if (ccn_str_equal(phase->id, (*curr_spec)->action_id)) {
+        const bool inclusive = (*curr_spec)->inclusive;
+        if (inclusive) {
             smap_insert(phase->active_specs, strdup((*curr_spec)->consistency_key), &(*curr_spec)->life_type);
         }
         array_append(phase->range_specs, *curr_spec);
@@ -773,6 +732,9 @@ static void check_lifetime_specs(Lifetime_t *lifetime, struct Info *info, Range_
             *curr_spec = NULL;
             return;
         }
+        if (!inclusive) {
+            return;
+        }
     }
     for (int i = 0; i < array_size(phase->actions); ++i) {
         Action *action = array_get(phase->actions, i);
@@ -780,11 +742,19 @@ static void check_lifetime_specs(Lifetime_t *lifetime, struct Info *info, Range_
             check_lifetime_specs(lifetime, info, curr_spec, action->action);
         } else {
             if (ccn_str_equal(action->id, (*curr_spec)->action_id)) {
+                array_append(action->range_specs, *curr_spec);
                 if ((*curr_spec)->inclusive) {
                     action_add_lifetime_spec(action, *curr_spec);
                 }
                 if ((*curr_spec)->push) {
                     *curr_spec = lifetime->end;
+                    if (ccn_str_equal(action->id, (*curr_spec)->action_id)) {
+                        array_append(action->range_specs, *curr_spec);
+                        if ((*curr_spec)->inclusive) {
+                            action_add_lifetime_spec(action, *curr_spec);
+                        }
+                        *curr_spec = NULL;
+                    }
                 } else {
                     *curr_spec = NULL;
                 }
@@ -797,15 +767,49 @@ static void check_lifetime_specs(Lifetime_t *lifetime, struct Info *info, Range_
         if (*curr_spec == NULL)
             break;
     }
+    if (*curr_spec == NULL)
+        return;
+    if (ccn_str_equal(phase->id, (*curr_spec)->action_id)) {
+        const bool inclusive = (*curr_spec)->inclusive;
+        if (inclusive) {
+            smap_insert(phase->active_specs, strdup((*curr_spec)->consistency_key), &(*curr_spec)->life_type);
+        }
+        array_append(phase->range_specs, *curr_spec);
+        *curr_spec = NULL;
+    }
 }
 
 // TODO if no start or end, handle in a specific way.
 static int check_lifetime_reach(Lifetime_t *lifetime, struct Info *info) {
-    // TODO handle when this is NULL.
+    if (lifetime->start == NULL) {
+        lifetime->start = create_range_spec(true, strdup(info->root_phase->id));
+        lifetime->start->consistency_key = strdup(lifetime->key);
+        if (lifetime->type == LIFETIME_DISALLOWED) {
+            lifetime->start->type = "CCN_CHK_DISALLOWED";
+        } else {
+            lifetime->start->type = "CCN_CHK_MANDATORY";
+        }
+    }
+    if (lifetime->end == NULL) {
+        lifetime->end = create_range_spec(true, strdup(info->root_phase->id));
+        lifetime->end->consistency_key = strdup(lifetime->key);
+        if (lifetime->type == LIFETIME_DISALLOWED) {
+            lifetime->end->type = "CCN_CHK_DISALLOWED";
+        } else {
+            lifetime->end->type = "CCN_CHK_MANDATORY";
+        }
+
+    }
+
     lifetime->start->push = true;
     lifetime->end->push = false;
     Range_spec_t **curr_spec = &lifetime->start;
     Phase *curr_phase = info->root_phase;
+    if (lifetime->start != NULL && !lifetime->start->inclusive && ccn_str_equal(lifetime->start->action_id, curr_phase->id)) {
+        print_error(*curr_spec, "Exclusive over the root phase will never be reached, because nothing comes after the root phase.");
+        print_note(*curr_spec, "Maybe you meant to use the \'[\' operator.");
+        return 1;
+    }
     check_lifetime_specs(lifetime, info, curr_spec, curr_phase);
     if (*curr_spec != NULL) {
         print_error(*curr_spec, "%s: could not be reached from the start specification, recheck your ranges.", (*curr_spec)->action_id);
@@ -817,8 +821,8 @@ static int check_lifetime_reach(Lifetime_t *lifetime, struct Info *info) {
 // TODO: allow prefix to namespace into phases.
 static int check_lifetime(Lifetime_t *lifetime, struct Info *info) {
     int error = 0;
-    if (lifetime->start == NULL && lifetime->end == NULL)
-        return 0;
+    //if (lifetime->start == NULL && lifetime->end == NULL)
+     //   return 0;
 
     if (lifetime->start != NULL && !name_is_action(lifetime->start->action_id, info)) {
         print_error(lifetime->start, "Id is not a reference to a valid action.");
@@ -838,7 +842,7 @@ static int check_lifetime(Lifetime_t *lifetime, struct Info *info) {
 
 static int check_lifetimes_array(array *lifetimes, struct Info *info) {
     int error = 0;
-    if (array_size(lifetimes) == 0)
+    if (lifetimes == NULL || array_size(lifetimes) == 0)
         return 0;
 
     for (int i = 0; i < array_size(lifetimes); ++i) {
@@ -853,23 +857,75 @@ static int check_lifetimes(struct Info *info) {
     for (int i = 0; i < array_size(nodes); ++i) {
         Node *node = array_get(nodes, i);
         error = check_lifetimes_array(node->lifetimes, info) == 0 ? error : 1;
+        for (int j = 0; j < array_size(node->children); ++j) {
+            Child *child = array_get(node->children, j);
+            error += check_lifetimes_array(child->lifetimes, info);
+        }
+        for (int j = 0; j < array_size(node->attrs); ++j) {
+            Attr *attr = array_get(node->attrs, j);
+            if (attr->type != AT_enum) {
+                if (attr->lifetimes != NULL) {
+                    print_error(attr, "Attribute is not allowed to have lifetimes. Lifetimes are only possible on enum or pointer attributes.");
+                    error += 1;
+                }
+            } else {
+                error += check_lifetimes_array(attr->lifetimes, info);
+            }
+        }
     }
 
     return error;
 }
 
+static void fill_lifetime(Lifetime_t *lifetime, char *key) {
+    if (lifetime->type == LIFETIME_DISALLOWED) {
+            if (lifetime->start != NULL)
+                lifetime->start->type = "CCN_CHK_DISALLOWED";
+            if (lifetime->end != NULL)
+                lifetime->end->type = "CCN_CHK_DISALLOWED";
+        } else if (lifetime->type == LIFETIME_MANDATORY) {
+            if (lifetime->start != NULL)
+                lifetime->start->type = "CCN_CHK_MANDATORY";
+            if (lifetime->end != NULL)
+                lifetime->end->type = "CCN_CHK_MANDATORY";
+        }
+    if (lifetime->start != NULL)
+        lifetime->start->consistency_key = strdup(key);
+    if (lifetime->end != NULL)
+        lifetime->end->consistency_key = strdup(key);
+}
+
+static void create_lifetime_func_attrs(Attr *attr, char *node_id) {
+    for (int i = 0; i < array_size(attr->lifetimes); ++i) {
+        Lifetime_t *lifetime = array_get(attr->lifetimes, i);
+        char *key = ccn_str_cat(node_id, attr->id);
+        lifetime->key = key; // Move ownership.
+        fill_lifetime(lifetime, key);
+    }
+}
+
+static void create_lifetime_func_child(Child *child, char *node_id) {
+    for (int i = 0; i < array_size(child->lifetimes); ++i) {
+        Lifetime_t *lifetime = array_get(child->lifetimes, i);
+        char *key = ccn_str_cat(node_id, child->id);
+        lifetime->key = key; // Move ownership.
+        fill_lifetime(lifetime, key);
+    }
+}
+
 static void create_lifetime_func(Node *node) {
     for (int i = 0; i < array_size(node->lifetimes); ++i) {
         Lifetime_t *lifetime = array_get(node->lifetimes, i);
-        if (lifetime->type == LIFETIME_DISALLOWED) {
-            lifetime->start->type = "CCN_CHK_DISALLOWED";
-            lifetime->end->type = "CCN_CHK_DISALLOWED";
-        } else if (lifetime->type == LIFETIME_MANDATORY) {
-            lifetime->start->type = "CCN_CHK_MANDATORY";
-            lifetime->end->type = "CCN_CHK_MANDATORY";
-        }
-        lifetime->start->consistency_key = strdup(node->id);
-        lifetime->end->consistency_key = strdup(node->id);
+        fill_lifetime(lifetime, node->id);
+        lifetime->key = strdup(node->id);
+    }
+
+    for (int i = 0; i < array_size(node->children); ++i) {
+        create_lifetime_func_child(array_get(node->children, i), node->id);
+    }
+
+    for (int i = 0; i < array_size(node->attrs); ++i) {
+        create_lifetime_func_attrs(array_get(node->attrs, i), node->id);
     }
 }
 
@@ -938,6 +994,7 @@ int check_config(Config *config) {
         success += check_pass(array_get(config->passes, i), info);
     }
 
+    printf("HELLO\n");
     for (int i = 0; i < array_size(config->phases); ++i) {
         cur_phase = array_get(config->phases, i);
 
@@ -949,7 +1006,6 @@ int check_config(Config *config) {
         if (res)
             phase_errors = true;
     }
-
 
 
     if (info->root_phase == NULL) {
