@@ -77,7 +77,7 @@ $(TARGET_BIN): $(SRC_FILTERED:.c=.o) $(LIB_SRC:.c=.o) $(AST_TXT_LEXER:.c=.o) $(A
 $(SRC_NO_DEPS): $(AST_GENERATED_INC_GENFILE)
 %.o: %.c
 	$(DEBUG)$(ECHO) -e "$(COLOR_GREEN) CC$(COLOR_RESET)        $@"
-	$(DEBUG)$(CC) $(CFLAGS) -I include/ -o $@ -c $<
+	$(DEBUG)$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
 
 $(AST_GENERATED_SRC_BUILDFILE): $(AST_GENERATED_SRC_GENFILE)
 	$(DEBUG)make -C $(AST_GENERATED_SOURCES) -j4 CC="$(CC)" CFLAGS="$(CFLAGS)" \
@@ -86,16 +86,16 @@ $(AST_GENERATED_SRC_BUILDFILE): $(AST_GENERATED_SRC_GENFILE)
 
 $(AST_GENERATED_INTERNAL_BUILDFILE): $(AST_GENERATED_SRC_GENFILE)
 	$(DEBUG)make -C $(AST_INTERNAL_SOURCES) -j4 CC="$(CC)" CFLAGS="$(CFLAGS)" \
-		COLOR_GREEN="$(COLOR_GREEN)" COLOR_RESET="$(COLOR_RESET)"
+		COLOR_GREEN="$(COLOR_GREEN)" COLOR_RESET="$(COLOR_RESET)" 
 	$(DEBUG)touch $(AST_GENERATED_INTERNAL_BUILDFILE)
 
 $(AST_TXT_LEXER:.c=.o): $(AST_TXT_LEXER) $(AST_TXT_PARSER:.c=.h)
 	$(DEBUG)$(ECHO) -e "$(COLOR_GREEN) CC$(COLOR_RESET)        $@"
-	$(DEBUG)$(CC) $(CFLAGS) -I include/ -o $@ -c $<
+	$(DEBUG)$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
 
 $(AST_TXT_PARSER:.c=.o): $(AST_TXT_PARSER) $(AST_TXT_LEXER:.c=.h)
 	$(DEBUG)$(ECHO) -e "$(COLOR_GREEN) CC$(COLOR_RESET)        $@"
-	$(DEBUG)$(CC) $(CFLAGS) -I include/ -o $@ -c $<
+	$(DEBUG)$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
 
 $(AST_TXT_PARSER:.c=.h): $(AST_TXT_PARSER)
 	$(DEBUG)$(ECHO) -e "$(COLOR_GREEN) BISON$(COLOR_RESET)     $@"
@@ -121,19 +121,19 @@ $(AST_TARGET_BIN): $(AST_PARSER:.c=.o) $(AST_LEXER:.c=.o) $(AST_SRC_FILTERED:.c=
 
 $(LIB_SOURCES)/%.o: $(LIB_SOURCES)/%.c
 	$(DEBUG)$(ECHO) -e "$(COLOR_GREEN) CC$(COLOR_RESET)        $@"
-	$(DEBUG)$(CC) $(CFLAGS) -I include/ -o $@ -c $<
+	$(DEBUG)$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
 
 $(AST_GEN_SOURCES)/%.o: $(AST_GEN_SOURCES)/%.c
 	$(DEBUG)$(ECHO) -e "$(COLOR_GREEN) CC$(COLOR_RESET)        $@"
-	$(DEBUG)$(CC) $(CFLAGS) -I include/ -o $@ -c $<
+	$(DEBUG)$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
 
 $(AST_LEXER:.c=.o): $(AST_LEXER) $(AST_PARSER:.c=.h)
 	$(DEBUG)$(ECHO) -e "$(COLOR_GREEN) CC$(COLOR_RESET)        $@"
-	$(DEBUG)$(CC) $(CFLAGS) -I include/ -o $@ -c $<
+	$(DEBUG)$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
 
 $(AST_PARSER:.c=.o): $(AST_PARSER) $(AST_LEXER:.c=.h)
 	$(DEBUG)$(ECHO) -e "$(COLOR_GREEN) CC$(COLOR_RESET)        $@"
-	$(DEBUG)$(CC) $(CFLAGS) -I include/ -o $@ -c $<
+	$(DEBUG)$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
 
 $(AST_PARSER:.c=.h): $(AST_PARSER)
 	$(DEBUG)$(ECHO) -e "$(COLOR_GREEN) BISON$(COLOR_RESET)     $@"
