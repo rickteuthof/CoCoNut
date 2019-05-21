@@ -8,13 +8,13 @@
 Config *create_config(array *phases, array *passes, array *traversals,
                       array *attr_enums, array *nodesets, array *nodes);
 
-Pass *create_pass(char *id, char *func);
+Pass *create_pass(char *id, char *func, char *prefix);
 
-Traversal *create_traversal(char *id, char *func, SetExpr *expr);
+Traversal *create_traversal(char *id, char *func, char *prefix, SetExpr *expr);
 
 Phase *create_phase_header(char *id, bool root, bool cycle);
 
-Phase *create_phase(Phase *phase_header, char *root, array *actions);
+Phase *create_phase(Phase *phase_header, char *root, char *prefix, array *actions);
 
 Enum *create_enum(char *id, char *prefix, array *values);
 
@@ -39,9 +39,9 @@ MandatoryPhase *create_mandatory_phaserange(char *phase_start, char *phase_end,
 
 Action *create_action(enum ActionType type, void *action, char *id);
 
-Range_spec_t *create_range_spec(bool inclusive, char *);
+Range_spec_t *create_range_spec(bool inclusive, array *);
 Lifetime_t *create_lifetime(Range_spec_t *start, Range_spec_t *end,
-                            enum LifetimeType type);
+                            enum LifetimeType type, array *values);
 
 Attr *create_attr(Attr *attrhead, AttrValue *default_value, int construct, array *lifetimes);
 

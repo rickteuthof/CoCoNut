@@ -168,16 +168,48 @@ static int check_nodesets(array *nodesets, struct Info *info) {
     }
     return error;
 }
+static int check_actions_reference(array *actions, struct Info *info);
+static Action *copy_action(Action *action) {
+    Action *new = NULL;
+    if (action->type == ACTION_REFERENCE) {
+        new = create_action(action->type, strdup(action->action), action->id);
+    } else {
+        new = create_action(action->type, action->action, action->id);
+    }
+    new->checked = false;
+    new->action_owner = false;
+    return new;
+}
+
+static Phase *copy_phase_shallow(Phase *phase) {
+    Phase *new = create_phase_header(strdup(phase->id), phase->start, phase->cycle);
+    array *actions = create_array();
+    for (int i = 0; i < array_size(phase->actions); ++i) {
+        array_append(actions, copy_action(array_get(phase->actions, i)));
+    }
+    char *root = NULL;
+    if (phase->root != NULL) {
+        root = ccn_str_cpy(phase->root);
+    }
+    new->common_info->hash = phase->common_info->hash;
+    new->common_info->hash_matches = phase->common_info->hash_matches;
+    new = create_phase(new, root, ccn_str_cpy(phase->prefix), actions);
+    new->roots = ccn_set_copy(new->roots);
+    new->root_owner = false;
+    new->original_ref = phase;
+    return new;
+}
 
 static int check_action_reference(Action *action, struct Info *info) {
     char *ref = (char *)action->action;
     void *item = smap_retrieve(info->phase_name, ref);
     if (item != NULL) {
-        Phase *p = (Phase *)item;
+        Phase *p = copy_phase_shallow(item);
         action->type = ACTION_PHASE;
         action->action = p;
         action->checked = true;
         mem_free(ref);
+        check_actions_reference(p->actions, info);
         return 0;
     }
 
@@ -203,6 +235,17 @@ static int check_action_reference(Action *action, struct Info *info) {
         action->action,
         "ID is not a reference to a defined pass, traversal or phase.");
     return 1;
+}
+
+static int check_actions_reference(array *actions, struct Info *info) {
+    int error = 0;
+    for (int i = 0; i < array_size(actions); ++i) {
+            Action *action = array_get(actions, i);
+            if (action->type == ACTION_REFERENCE) {
+                error = check_action_reference(action, info) == 0 ? error : 1;
+            }
+    }
+    return error;
 }
 
 static int check_phases(array *phases, struct Info *info) {
@@ -527,7 +570,12 @@ static int check_pass(Pass *pass, struct Info *info) {
 }
 
 static inline void add_required_root_to_phase(Phase *phase, char *root) {
-    ccn_set_insert(phase->roots, ccn_str_cpy(root));
+    if (!phase->root_owner) {
+        ccn_set_insert(phase->original_ref->roots, ccn_str_cpy(root));
+
+    } else {
+        ccn_set_insert(phase->roots, ccn_str_cpy(root));
+    }
 }
 
 static int check_phase(Phase *phase, struct Info *info, smap_t *phase_order) {
@@ -660,6 +708,7 @@ static int traversals_expr_to_array(array *traversals, struct Info *info) {
     return error;
 }
 
+/* This makes sure inline defined actions are also taken into account. */
 static void unwrap_all_actions(array *phases, struct Info *info) {
     array *new_phases = create_array();
     for (int i = 0; i < array_size(phases); ++i) {
@@ -705,131 +754,216 @@ static bool check_action_reached(Action *action, char *id) {
     return ccn_str_equal(action->id, id);
 }
 
-static void action_add_lifetime_spec(Action *action, Range_spec_t *curr_spec) {
+char *get_current_namespace(Range_spec_t *spec) {
+    return array_get(spec->ids, spec->id_index);
+}
+
+bool is_last_namespace(Range_spec_t *spec) {
+    return array_size(spec->ids) - 1 == spec->id_index;
+}
+
+
+int insert_active_spec(smap_t *active_specs, Range_spec_t *curr_spec) {
+    Range_spec_t *old = smap_retrieve(active_specs, curr_spec->consistency_key);
+    if (old == NULL) {
+        smap_insert(active_specs, curr_spec->consistency_key, curr_spec);
+        return 0;
+    }
+    if (old->life_type != curr_spec->life_type) {
+        print_error(curr_spec, "Conflicting lifetimes.");
+        return 1;
+    }
+    return 0;
+}
+
+static void lifetime_phase_set_specs(Phase *phase, Range_spec_t *spec, int *error);
+
+// TODO add lifetime range spec to passes.
+static void action_add_lifetime_spec(Action *action, Range_spec_t *curr_spec, int *error) {
     switch (action->type) {
     case ACTION_TRAVERSAL:
-        smap_insert(((Traversal*)action->action)->active_specs, curr_spec->consistency_key, curr_spec);
+        *error = insert_active_spec(action->active_specs, curr_spec) == 0 ? *error : 1;
         break;
     case ACTION_PASS:
-        //smap_insert(((Pass*)action->action)->ac, curr_spec);
+        break;
+    case ACTION_PHASE:
+        *error = insert_active_spec(((Phase *)action->action)->active_specs, curr_spec) == 0 ? *error : 1;
+        if (error)
+            break;
+        lifetime_phase_set_specs(action->action, curr_spec, error);
         break;
     default:
         break;
     }
 }
 
-
-static void check_lifetime_specs(Lifetime_t *lifetime, struct Info *info, Range_spec_t **curr_spec, Phase *phase) {
-    if (ccn_str_equal(phase->id, (*curr_spec)->action_id)) {
-        const bool inclusive = (*curr_spec)->inclusive;
-        if (inclusive) {
-            smap_insert(phase->active_specs, strdup((*curr_spec)->consistency_key), &(*curr_spec)->life_type);
-        }
-        array_append(phase->range_specs, *curr_spec);
-        if ((*curr_spec)->push) {
-            *curr_spec = lifetime->end;
-        } else {
-            *curr_spec = NULL;
-            return;
-        }
-        if (!inclusive) {
-            return;
-        }
-    }
+static void lifetime_phase_set_specs(Phase *phase, Range_spec_t *spec, int *error) {
     for (int i = 0; i < array_size(phase->actions); ++i) {
+        if (error) return;
         Action *action = array_get(phase->actions, i);
-        if (action->type == ACTION_PHASE) {
-            check_lifetime_specs(lifetime, info, curr_spec, action->action);
-        } else {
-            if (ccn_str_equal(action->id, (*curr_spec)->action_id)) {
-                array_append(action->range_specs, *curr_spec);
-                if ((*curr_spec)->inclusive) {
-                    action_add_lifetime_spec(action, *curr_spec);
-                }
-                if ((*curr_spec)->push) {
-                    *curr_spec = lifetime->end;
-                    if (ccn_str_equal(action->id, (*curr_spec)->action_id)) {
-                        array_append(action->range_specs, *curr_spec);
-                        if ((*curr_spec)->inclusive) {
-                            action_add_lifetime_spec(action, *curr_spec);
-                        }
-                        *curr_spec = NULL;
-                    }
-                } else {
-                    *curr_spec = NULL;
-                }
-            } else {
-                if (! (*curr_spec)->push) {
-                    action_add_lifetime_spec(action, *curr_spec);
-                }
-            }
-        }
-        if (*curr_spec == NULL)
-            break;
-    }
-    if (*curr_spec == NULL)
-        return;
-    if (ccn_str_equal(phase->id, (*curr_spec)->action_id)) {
-        const bool inclusive = (*curr_spec)->inclusive;
-        if (inclusive) {
-            smap_insert(phase->active_specs, strdup((*curr_spec)->consistency_key), &(*curr_spec)->life_type);
-        }
-        array_append(phase->range_specs, *curr_spec);
-        *curr_spec = NULL;
+        action_add_lifetime_spec(action, spec, error);
     }
 }
 
-// TODO if no start or end, handle in a specific way.
+uint32_t get_last_action_id(Phase *phase) {
+    Action *action = array_get(phase->actions, array_size(phase->actions) - 1);
+    return action->id_counter;
+}
+
+
+void last_action_found(Action *action, Range_spec_t *spec, bool active) {
+    if (action->type == ACTION_PHASE) {
+        if ((active && spec->inclusive) || (!active && !spec->inclusive)) {
+            spec->action_counter_id = get_last_action_id(action->action);
+        }
+    } else {
+        spec->action_counter_id = action->id_counter;
+    }
+}
+
+bool find_lifetime_spec(Lifetime_t *lifetime, struct Info *info, Phase *phase, bool active, bool *found) {
+    Range_spec_t *spec = NULL;
+    if (active)
+        spec = lifetime->end;
+    else
+        spec = lifetime->start;
+
+    for (int i = 0; i < array_size(phase->actions); ++i) {
+        Action *action = array_get(phase->actions, i);
+        if (ccn_str_equal(action->id, get_current_namespace(spec))) {
+            if (spec->inclusive) {
+                int error = 0;
+                action_add_lifetime_spec(action, spec, &error);
+                if (error) // TODO handle this better.
+                    return false;
+            }
+            if (is_last_namespace(spec)) {
+                last_action_found(action, spec, active);
+                *found = true;
+            } else {
+                if (action->type == ACTION_PHASE) {
+                    spec->id_index++;
+                    bool cont = find_lifetime_spec(lifetime, info, action->action, active, found);
+                }
+            }
+            return false;
+        }
+        if (action->type == ACTION_PHASE) {
+            bool cont = find_lifetime_spec(lifetime, info, action->action, active, found);
+            if (!cont)
+                return false;
+        }
+    }
+
+    return true;
+}
+
+bool check_lifetime_spec_root(Lifetime_t *lifetime, struct Info *info, bool active, Phase *root) {
+    Range_spec_t *spec = NULL;
+    bool found = false;
+    if (active)
+        spec = lifetime->end;
+    else
+        spec = lifetime->start;
+
+    if (ccn_str_equal(root->id, get_current_namespace(spec))) {
+        if (spec->inclusive) {
+            int error = 0;
+            error = insert_active_spec(root->active_specs, spec) == 0 ? error : 1;
+            lifetime_phase_set_specs(root, spec, &error);
+            if (error) // Handle better.
+                return false;
+        }
+        if (is_last_namespace(spec)) { // Need to handle this fully with inclusiveness and so on.
+            if ((active && spec->inclusive) || (!active && !spec->inclusive)) {
+                spec->action_counter_id = get_last_action_id(root);
+            } else {
+                spec->action_counter_id = 0;
+            }
+            return true;
+        }
+        spec->id_index++;
+    }
+    bool cont = find_lifetime_spec(lifetime, info, root, active, &found);
+    return found;
+}
+
+// TODO, create a function that construct a range spec based of a lifetime?
+// Either way, there are multiple points where a lifetime gets constucted
+// or populated. Need to have this in one/two functions(1 for create, 1 for population).
+// Now it is messy.
 static int check_lifetime_reach(Lifetime_t *lifetime, struct Info *info) {
+    // TODO: refactor this into a function, not DRY!
     if (lifetime->start == NULL) {
-        lifetime->start = create_range_spec(true, strdup(info->root_phase->id));
+        array *ids = array_init(1);
+        array_append(ids, strdup(info->root_phase->id));
+        lifetime->start = create_range_spec(true, ids);
         lifetime->start->consistency_key = strdup(lifetime->key);
+        lifetime->start->life_type = lifetime->type;
         if (lifetime->type == LIFETIME_DISALLOWED) {
-            lifetime->start->type = "CCN_CHK_DISALLOWED";
+            lifetime->start->type = ccn_str_cpy("CCN_CHK_DISALLOWED");
         } else {
-            lifetime->start->type = "CCN_CHK_MANDATORY";
+            lifetime->start->type = ccn_str_cpy("CCN_CHK_MANDATORY");
         }
     }
     if (lifetime->end == NULL) {
-        lifetime->end = create_range_spec(true, strdup(info->root_phase->id));
+        array *ids = array_init(1);
+        array_append(ids, strdup(info->root_phase->id));
+        lifetime->end = create_range_spec(true, ids);
+        lifetime->end->life_type = lifetime->type;
         lifetime->end->consistency_key = strdup(lifetime->key);
         if (lifetime->type == LIFETIME_DISALLOWED) {
-            lifetime->end->type = "CCN_CHK_DISALLOWED";
+            lifetime->end->type = ccn_str_cpy("CCN_CHK_DISALLOWED");
         } else {
-            lifetime->end->type = "CCN_CHK_MANDATORY";
+            lifetime->end->type = ccn_str_cpy("CCN_CHK_MANDATORY");
         }
 
     }
 
+    if (lifetime->values != NULL) {
+        lifetime->start->values = lifetime->values;
+        lifetime->end->values = lifetime->values;
+    }
     lifetime->start->push = true;
     lifetime->end->push = false;
-    Range_spec_t **curr_spec = &lifetime->start;
-    Phase *curr_phase = info->root_phase;
-    if (lifetime->start != NULL && !lifetime->start->inclusive && ccn_str_equal(lifetime->start->action_id, curr_phase->id)) {
-        print_error(*curr_spec, "Exclusive over the root phase will never be reached, because nothing comes after the root phase.");
-        print_note(*curr_spec, "Maybe you meant to use the \'[\' operator.");
+
+    Range_spec_t *curr_spec = lifetime->start;
+    Phase *root_phase = info->root_phase;
+    if (lifetime->start != NULL && !lifetime->start->inclusive && ccn_str_equal(get_current_namespace(curr_spec), root_phase->id)) {
+        if (is_last_namespace(curr_spec)) {
+            print_error(curr_spec, "Exclusive over the root phase will never be reached, because nothing comes after the root phase.");
+            print_note(curr_spec, "Maybe you meant to use the \'[\' operator.");
+            return 1;
+        }
+    }
+    bool active = false;
+    int error = 0;
+
+    bool found = check_lifetime_spec_root(lifetime, info, false, root_phase);
+    if (!found) {
+        print_error(lifetime->start, "Specification could not be reached. Recheck your ranges.");
         return 1;
     }
-    check_lifetime_specs(lifetime, info, curr_spec, curr_phase);
-    if (*curr_spec != NULL) {
-        print_error(*curr_spec, "%s: could not be reached from the start specification, recheck your ranges.", (*curr_spec)->action_id);
+
+    found = check_lifetime_spec_root(lifetime, info, true, root_phase);
+    if (!found) {
+        print_error(lifetime->end, "Specification could not be reached. Recheck your ranges.");
         return 1;
     }
+
     return 0;
 }
 
 // TODO: allow prefix to namespace into phases.
 static int check_lifetime(Lifetime_t *lifetime, struct Info *info) {
     int error = 0;
-    //if (lifetime->start == NULL && lifetime->end == NULL)
-     //   return 0;
 
-    if (lifetime->start != NULL && !name_is_action(lifetime->start->action_id, info)) {
+    if (lifetime->start != NULL && !name_is_action(get_current_namespace(lifetime->start), info)) {
         print_error(lifetime->start, "Id is not a reference to a valid action.");
         error++;
     }
 
-    if (lifetime->end != NULL && !name_is_action(lifetime->end->action_id, info)) {
+    if (lifetime->end != NULL && !name_is_action(get_current_namespace(lifetime->end), info)) {
         print_error(lifetime->end, "Id is not a reference to a valid action.");
         error++;
     }
@@ -842,13 +976,58 @@ static int check_lifetime(Lifetime_t *lifetime, struct Info *info) {
 
 static int check_lifetimes_array(array *lifetimes, struct Info *info) {
     int error = 0;
-    if (lifetimes == NULL || array_size(lifetimes) == 0)
+    if (lifetimes == NULL)
         return 0;
 
     for (int i = 0; i < array_size(lifetimes); ++i) {
-        error = check_lifetime(array_get(lifetimes, i), info) == 0 ? error : 1;
+        Lifetime_t *lifetime = array_get(lifetimes, i);
+        error = check_lifetime(lifetime, info) == 0 ? error : 1;
     }
     return error;
+}
+
+// TODO move to generic location.
+static Enum *find_enum(array *enums, char *id) {
+    for (int i = 0; i < array_size(enums); ++i) {
+        Enum *e = array_get(enums, i);
+        if (ccn_str_equal(e->id, id))
+            return e;
+    }
+
+    return NULL;
+}
+
+static int check_lifetimes_attribute_values(Attr *attr, struct Info *info) {
+    bool found = false;
+    bool error = false;
+
+    for (int i = 0; i < array_size(attr->lifetimes); ++i) {
+        Lifetime_t *lifetime = array_get(attr->lifetimes, i);
+        Enum *e = find_enum(info->config->enums, attr->type_id);
+
+        if (e == NULL) continue;
+
+        for (int j = 0; j < array_size(lifetime->values); ++j) {
+            char *id = array_get(lifetime->values, j);
+            found = false;
+
+            for (int k = 0; k < array_size(e->values); k++) {
+                char *val = array_get(e->values, k);
+                if (ccn_str_equal(val, id)) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                error = true;
+                print_error(id, "Could not find this value in the values of the corresponding attribute.");
+                print_note(e, "The corresponding attribute can be found here.");
+            }
+        }
+    }
+
+    return error ? 1 : 0;
 }
 
 static int check_lifetimes(struct Info *info) {
@@ -857,18 +1036,21 @@ static int check_lifetimes(struct Info *info) {
     for (int i = 0; i < array_size(nodes); ++i) {
         Node *node = array_get(nodes, i);
         error = check_lifetimes_array(node->lifetimes, info) == 0 ? error : 1;
+
         for (int j = 0; j < array_size(node->children); ++j) {
             Child *child = array_get(node->children, j);
             error += check_lifetimes_array(child->lifetimes, info);
         }
         for (int j = 0; j < array_size(node->attrs); ++j) {
             Attr *attr = array_get(node->attrs, j);
+
             if (attr->type != AT_enum) {
                 if (attr->lifetimes != NULL) {
-                    print_error(attr, "Attribute is not allowed to have lifetimes. Lifetimes are only possible on enum or pointer attributes.");
+                    print_error(attr, "This attribute is not allowed to have lifetimes. Lifetimes are only possible on enum or pointer attributes.");
                     error += 1;
                 }
             } else {
+                error += check_lifetimes_attribute_values(attr, info);
                 error += check_lifetimes_array(attr->lifetimes, info);
             }
         }
@@ -879,23 +1061,32 @@ static int check_lifetimes(struct Info *info) {
 
 static void fill_lifetime(Lifetime_t *lifetime, char *key) {
     if (lifetime->type == LIFETIME_DISALLOWED) {
-            if (lifetime->start != NULL)
+            if (lifetime->start != NULL) {
                 lifetime->start->type = "CCN_CHK_DISALLOWED";
-            if (lifetime->end != NULL)
+            }
+            if (lifetime->end != NULL) {
                 lifetime->end->type = "CCN_CHK_DISALLOWED";
+            }
         } else if (lifetime->type == LIFETIME_MANDATORY) {
-            if (lifetime->start != NULL)
+            if (lifetime->start != NULL) {
                 lifetime->start->type = "CCN_CHK_MANDATORY";
-            if (lifetime->end != NULL)
+            }
+            if (lifetime->end != NULL) {
                 lifetime->end->type = "CCN_CHK_MANDATORY";
+            }
         }
-    if (lifetime->start != NULL)
+
+    if (lifetime->start != NULL) {
         lifetime->start->consistency_key = strdup(key);
-    if (lifetime->end != NULL)
+        lifetime->start->life_type = lifetime->type;
+    }
+    if (lifetime->end != NULL) {
+        lifetime->end->life_type = lifetime->type;
         lifetime->end->consistency_key = strdup(key);
+    }
 }
 
-static void create_lifetime_func_attrs(Attr *attr, char *node_id) {
+static void create_lifetime_func_attrs(Attr *attr, char *node_id, struct Info *info) {
     for (int i = 0; i < array_size(attr->lifetimes); ++i) {
         Lifetime_t *lifetime = array_get(attr->lifetimes, i);
         char *key = ccn_str_cat(node_id, attr->id);
@@ -913,11 +1104,11 @@ static void create_lifetime_func_child(Child *child, char *node_id) {
     }
 }
 
-static void create_lifetime_func(Node *node) {
+static void create_lifetime_func(Node *node, struct Info *info) {
     for (int i = 0; i < array_size(node->lifetimes); ++i) {
         Lifetime_t *lifetime = array_get(node->lifetimes, i);
         fill_lifetime(lifetime, node->id);
-        lifetime->key = strdup(node->id);
+        lifetime->key = ccn_str_cpy(node->id);
     }
 
     for (int i = 0; i < array_size(node->children); ++i) {
@@ -925,16 +1116,81 @@ static void create_lifetime_func(Node *node) {
     }
 
     for (int i = 0; i < array_size(node->attrs); ++i) {
-        create_lifetime_func_attrs(array_get(node->attrs, i), node->id);
+        create_lifetime_func_attrs(array_get(node->attrs, i), node->id, info);
     }
 }
 
 static void create_lifetime_funcs(struct Info *info) {
     for (int i = 0; i < array_size(info->config->nodes); ++i) {
         Node *node = array_get(info->config->nodes, i);
-        create_lifetime_func(node);
+        create_lifetime_func(node, info);
     }
 }
+
+// TODO handle actions that are not being used.
+uint32_t assign_id_to_phase_actions(Phase *phase, uint32_t id) {
+    for (int i = 0; i < array_size(phase->actions); ++i) {
+        Action *act = array_get(phase->actions, i);
+        act->id_counter = id++;
+        if (act->type == ACTION_PHASE)
+            id = assign_id_to_phase_actions(act->action, id);
+    }
+    return id;
+}
+
+void assign_id_to_action(struct Info *info) {
+    Phase *root = info->root_phase;
+    uint32_t id = 1;
+    assign_id_to_phase_actions(root, id);
+}
+
+
+Lifetime_t *copy_lifetime(Lifetime_t *lifetime, char *key) {
+    Lifetime_t *new = create_lifetime(lifetime->start, lifetime->end, lifetime->type, NULL);
+    new->key = ccn_str_cpy(key);
+    new->owner = false;
+    return new;
+}
+
+void unpack_lifetime_value(array *new_lifetimes, Lifetime_t *lifetime) {
+    for (int i = 0; i < array_size(lifetime->values) - 1; ++i) {
+        char *val = array_get(lifetime->values, i);
+        char *key = ccn_str_cat(lifetime->key, val);
+        Lifetime_t *new = copy_lifetime(lifetime, key);
+        array_append(new_lifetimes, new);
+    }
+    char *val = array_get(lifetime->values, array_size(lifetime->values) - 1);
+    char *key = ccn_str_cat(lifetime->key, val);
+    mem_free(lifetime->key);
+    lifetime->key = key;
+}
+
+void unpack_lifetime_values(struct Info *info, Attr *attr) {
+    array *new_lifetimes = create_array();
+    for (int i = 0; i < array_size(attr->lifetimes); ++i) {
+        Lifetime_t *lifetime = array_get(attr->lifetimes, i);
+        if (array_size(lifetime->values) > 0) {
+            unpack_lifetime_value(new_lifetimes, lifetime);
+        }
+    }
+    for (int i = 0; i < array_size(new_lifetimes); ++i) {
+        Lifetime_t *new = array_get(new_lifetimes, i);
+        array_append(attr->lifetimes, new);
+    }
+    array_clear(new_lifetimes);
+    array_cleanup(new_lifetimes, NULL);
+}
+
+void unpack_lifetime_attrb_values(struct Info *info) {
+    for (int i = 0; i < array_size(info->config->nodes); ++i) {
+        Node *n = array_get(info->config->nodes, i);
+        for (int j = 0; j < array_size(n->attrs); ++j) {
+            Attr *attr = array_get(n->attrs, j);
+            unpack_lifetime_values(info, attr);
+        }
+    }
+}
+
 
 int check_config(Config *config) {
 
@@ -964,7 +1220,6 @@ int check_config(Config *config) {
     success += check_phases(config->phases, info);
 
     subtree_generate_traversals(config);
-
     // Transform setExpr to array of node ptrs.
     success += evaluate_nodesets_expr(config->nodesets, info);
     success += evaluate_traversals_expr(config->traversals, info);
@@ -994,7 +1249,6 @@ int check_config(Config *config) {
         success += check_pass(array_get(config->passes, i), info);
     }
 
-    printf("HELLO\n");
     for (int i = 0; i < array_size(config->phases); ++i) {
         cur_phase = array_get(config->phases, i);
 
@@ -1013,7 +1267,9 @@ int check_config(Config *config) {
         success++;
     }
 
+    assign_id_to_action(info);
     create_lifetime_funcs(info);
+    unpack_lifetime_attrb_values(info);
     success += check_lifetimes(info);
 
     smap_free(phase_order);

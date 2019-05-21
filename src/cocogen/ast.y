@@ -143,8 +143,8 @@ static void new_location(void *ptr, struct ParserLocation *loc);
 %token T_ARROW "->"
 %token END 0 "End-of-file (EOF)"
 
-%type<string> info func
-%type<array> idlist actionsbody actions
+%type<string> info func prefix
+%type<array> idlist actionsbody actions lifetimelistwithvalues namespacelist
              attrlist attrs childlist children enumvalues lifetimelist
 %type<attrval> attrval
 %type<attrtype> attrprimitivetype
@@ -160,7 +160,7 @@ static void new_location(void *ptr, struct ParserLocation *loc);
 %type<setexpr> setexpr traversalnodes
 %type<setoperation> setoperation
 %type<action> action
-%type<lifetime> lifetime
+%type<lifetime> lifetime lifetimewithvalues
 %type<range_spec> rangespec_start rangespec_end
 %start root
 
@@ -190,16 +190,20 @@ entry: phase { array_append(config_phases, $1); }
      | node { array_append(config_nodes, $1);  }
      ;
 
+prefix: T_PREFIX '=' T_STRINGVAL
+      {
+          $$ = $3;
+          new_location($$, &@$);
+      }
 
-
-phase: phaseheader '{' actionsbody '}'
+phase: phaseheader '{' prefix ',' actionsbody '}'
      {
-         $$ = create_phase($1, NULL, $3);
+         $$ = create_phase($1, NULL, $3, $5);
      }
-     | phaseheader '{' T_ROOT '=' T_ID ';' actionsbody '}'
+     | phaseheader '{' prefix ',' T_ROOT '=' T_ID ',' actionsbody '}'
      {
-         $$ = create_phase($1, $5, $7);
-         new_location($5, &@5);
+         $$ = create_phase($1, $7, $3, $9);
+         new_location($7, &@7);
      }
      ;
 
@@ -268,31 +272,31 @@ phaseheader: T_PHASE T_ID
            }
            ;
 
-pass: T_PASS T_ID '{' T_FUNC '=' T_ID '}'
+pass: T_PASS T_ID '{' prefix ',' T_FUNC '=' T_ID '}'
     {
-        $$ = create_pass($2, $6);
-        new_location($$, &@$);
-        new_location($2, &@2);
-        new_location($6, &@6);
-    }
-    | T_PASS T_ID '{' info ',' T_FUNC '=' T_ID '}'
-    {
-        $$ = create_pass($2, $8);
-        $$->info = $4;
+        $$ = create_pass($2, $8, $4);
         new_location($$, &@$);
         new_location($2, &@2);
         new_location($8, &@8);
     }
-    | T_PASS T_ID '{' info '}'
+    | T_PASS T_ID '{' info ',' prefix ',' T_FUNC '=' T_ID '}'
     {
-        $$ = create_pass($2, NULL);
+        $$ = create_pass($2, $10, $6);
+        $$->info = $4;
+        new_location($$, &@$);
+        new_location($2, &@2);
+        new_location($10, &@10);
+    }
+    | T_PASS T_ID '{' info ',' prefix '}'
+    {
+        $$ = create_pass($2, NULL, $6);
         $$->info = $4;
         new_location($$, &@$);
         new_location($2, &@2);
     }
     | T_PASS T_ID
     {
-        $$ = create_pass($2, NULL);
+        $$ = create_pass($2, NULL, NULL);
         new_location($$, &@$);
         new_location($2, &@2);
     }
@@ -301,52 +305,52 @@ pass: T_PASS T_ID '{' T_FUNC '=' T_ID '}'
 
 traversal: T_TRAVERSAL T_ID
          {
-             $$ = create_traversal($2, NULL, NULL);
+             $$ = create_traversal($2, NULL, NULL, NULL);
              new_location($$, &@$);
              new_location($2, &@2);
          }
-         | T_TRAVERSAL T_ID '{' func '}'
+         | T_TRAVERSAL T_ID '{' prefix ',' func '}'
          {
-             $$ = create_traversal($2, $4, NULL);
+             $$ = create_traversal($2, $6, $4, NULL);
              new_location($$, &@$);
              new_location($2, &@2);
          }
-         | T_TRAVERSAL T_ID '{' func ',' traversalnodes '}'
+         | T_TRAVERSAL T_ID '{' prefix ',' func ',' traversalnodes '}'
          {
-             $$ = create_traversal($2, $4, $6);
+             $$ = create_traversal($2, $6, $4, $8);
              new_location($$, &@$);
              new_location($2, &@2);
          }
-         | T_TRAVERSAL T_ID '{' traversalnodes '}'
+         | T_TRAVERSAL T_ID '{' prefix ',' traversalnodes '}'
          {
-             $$ = create_traversal($2, NULL, $4);
+             $$ = create_traversal($2, NULL, $4, $6);
              new_location($$, &@$);
              new_location($2, &@2);
          }
-         | T_TRAVERSAL T_ID '{' info '}'
+         | T_TRAVERSAL T_ID '{' info ',' prefix '}'
          {
-             $$ = create_traversal($2, NULL, NULL);
+             $$ = create_traversal($2, NULL, $6, NULL);
              $$->info = $4;
              new_location($$, &@$);
              new_location($2, &@2);
          }
-         | T_TRAVERSAL T_ID '{' info ',' func '}'
+         | T_TRAVERSAL T_ID '{' info ',' prefix ',' func '}'
          {
-             $$ = create_traversal($2, $6, NULL);
+             $$ = create_traversal($2, $8, $6, NULL);
              $$->info = $4;
              new_location($$, &@$);
              new_location($2, &@2);
          }
-         | T_TRAVERSAL T_ID '{' info ',' func ',' traversalnodes '}'
+         | T_TRAVERSAL T_ID '{' info ',' prefix ',' func ',' traversalnodes '}'
          {
-             $$ = create_traversal($2, $6, $8);
+             $$ = create_traversal($2, $8, $6, $10);
              $$->info = $4;
              new_location($$, &@$);
              new_location($2, &@2);
          }
-         | T_TRAVERSAL T_ID '{' info ',' traversalnodes '}'
+         | T_TRAVERSAL T_ID '{' info ',' prefix ',' traversalnodes '}'
          {
-             $$ = create_traversal($2, NULL, $6);
+             $$ = create_traversal($2, NULL, $6, $8);
              $$->info = $4;
              new_location($$, &@$);
              new_location($2, &@2);
@@ -512,6 +516,32 @@ nodebody: children ',' attrs
         }
         ;
 
+
+lifetimelistwithvalues: lifetimelistwithvalues ',' lifetimewithvalues
+        {
+            array_append($$, $3);
+        }
+        | lifetimewithvalues
+        {
+            $$ = array_init(2);
+            array_append($$, $1);
+        }
+        ;
+
+lifetimewithvalues: T_DISALLOWED rangespec_start T_ARROW rangespec_end '=' '{' idlist '}'
+        {
+            $$ = create_lifetime($2, $4, LIFETIME_DISALLOWED, $7);
+        }
+        | lifetime
+        {
+            $$ = $1;
+        }
+        | T_DISALLOWED '=' '{' idlist '}'
+        {
+            $$ = create_lifetime(NULL, NULL, LIFETIME_DISALLOWED, $4);
+        }
+        ;
+
 lifetimelist: lifetimelist ',' lifetime
             {
                 array_append($$, $3);
@@ -524,23 +554,35 @@ lifetimelist: lifetimelist ',' lifetime
 
 lifetime: T_DISALLOWED rangespec_start T_ARROW rangespec_end
         {
-            $$ = create_lifetime($2, $4, LIFETIME_DISALLOWED);
+            $$ = create_lifetime($2, $4, LIFETIME_DISALLOWED, NULL);
         }
         | T_DISALLOWED
         {
-            $$ = create_lifetime(NULL, NULL, LIFETIME_DISALLOWED);
+            $$ = create_lifetime(NULL, NULL, LIFETIME_DISALLOWED, NULL);
         }
         | T_MANDATORY rangespec_start T_ARROW rangespec_end
         {
-            $$ = create_lifetime($2, $4, LIFETIME_MANDATORY);
+            $$ = create_lifetime($2, $4, LIFETIME_MANDATORY, NULL);
         }
         | T_MANDATORY
         {
-            $$ = create_lifetime(NULL, NULL, LIFETIME_MANDATORY);
+            $$ = create_lifetime(NULL, NULL, LIFETIME_MANDATORY, NULL);
         }
         ;
 
-rangespec_start: '(' T_ID
+namespacelist: namespacelist '.' T_ID
+            {
+                array_append($1, $3);
+                new_location($3, &@3);
+            }
+            | T_ID
+            {
+                $$ = create_array();
+                array_append($$, $1);
+                new_location($1, &@1);
+            }
+
+rangespec_start: '('namespacelist
           {
               $$ = create_range_spec(false, $2);
               new_location($$, &@$);
@@ -549,14 +591,14 @@ rangespec_start: '(' T_ID
           {
               $$ = NULL;
           }
-          | '[' T_ID
+          | '['namespacelist
           {
               $$ = create_range_spec(true, $2);
               new_location($$, &@$);
           }
           ;
 
-rangespec_end: T_ID ')'
+rangespec_end: namespacelist ')'
           {
               $$ = create_range_spec(false, $1);
               new_location($$, &@$);
@@ -565,7 +607,7 @@ rangespec_end: T_ID ')'
           {
               $$ = NULL;
           }
-          | T_ID ']'
+          | namespacelist ']'
           {
               $$ = create_range_spec(true, $1);
               new_location($$, &@$);
@@ -647,7 +689,7 @@ attrlist: attrlist ',' attr
             // $$ is an array and should not be in the locations list
         }
         ;
-attr: attrhead '{' T_CONSTRUCTOR ',' lifetimelist '}'
+attr: attrhead '{' T_CONSTRUCTOR ',' lifetimelistwithvalues '}'
     {
         $$ = create_attr($1, NULL, 1, $5);
         new_location($$, &@$);

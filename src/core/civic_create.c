@@ -28,8 +28,8 @@
 ///     a4 = a3;
 ///     return a4;
 /// }
-int main() {
-    // VARDECS
+
+FunDef *make_fundef(char *name) {
     VarDec *vda1 = create_VarDec(NULL, NULL, strdup("a1"), BT_int);
     VarDec *vda2 = create_VarDec(NULL, NULL, strdup("a2"), BT_int);
     VarDec *vda3 = create_VarDec(NULL, NULL, strdup("a3"), BT_int);
@@ -70,16 +70,26 @@ int main() {
 
     FunDef *mainfun =
         create_FunDef(create_FunBody(NULL, stmtla1, vda1),
-                      create_FunHeader(NULL, strdup("main"), BT_int), NULL,
+                      create_FunHeader(NULL, strdup(name), BT_int), NULL,
                       NULL, NULL, true, false);
     
-    FunDef *secondfun =
-        create_FunDef(create_FunBody(NULL, stmtla1, vda1),
-                      create_FunHeader(NULL, strdup("secondFun"), BT_int), NULL,
-                      NULL, NULL, true, false);
-    
-    mainfun->next = secondfun; 
- 
+    return mainfun;
+}
+
+FunDef *create_n_fundefs(int n) {
+    FunDef *root = make_fundef("main");
+    FunDef *next = root;
+
+    for (int i = 0; i < n -1; i++) {
+        next->next = make_fundef("fundef");
+        next = next->next;
+    }
+    return root;
+}
+
+int main() {
+     
+    FunDef *mainfun = create_n_fundefs(5);
     Root *program = create_Root(
         create_Decls(create_Decl_FunDef(mainfun), NULL), NULL, NULL);
     

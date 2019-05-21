@@ -81,9 +81,15 @@ void generate_lifetimes(array *lifetimes, FILE *fp, bool inclusive_start, bool i
     for (int i = 0; i < array_size(lifetimes); ++i) {
         Range_spec_t *spec = array_get(lifetimes, i);
         if (spec->push && spec->inclusive == inclusive_start) {
-            out("_push_chk_frame(\"%s\", %s);\n", spec->consistency_key, spec->type);
+            if (spec->values != NULL) {
+                for (int j = 0; j < array_size(spec->values); ++j) {
+                    char *val = array_get(spec->values, j);
+                    out("_push_chk_frame(\"%s%s\", %s);\n", spec->consistency_key, val, spec->type);
+                }
+            } else {
+                out("_push_chk_frame(\"%s\", %s);\n", spec->consistency_key, spec->type);
+            }
         } else if (!spec->push && spec->inclusive == inclusive_end) {
-            printf("%s: %d\n", spec->action_id, spec->inclusive);
             out("_pop_chk_frame(\"%s\");\n", spec->consistency_key);
         }
     }
@@ -93,12 +99,13 @@ void generate_lifetimes(array *lifetimes, FILE *fp, bool inclusive_start, bool i
 void generate_action_list(array *actions, FILE *fp, char *new_root, bool is_top_root) {
      for (int i = 0; i < array_size(actions); i++) {
         Action *action = array_get(actions, i);
-        generate_lifetimes(action->range_specs, fp, true, false);
+        //generate_lifetimes(action->range_specs, fp, true, false);
+        out("pd->action_id = %lu;\n", (unsigned long)action->id_counter);
         out("trav_start_%s(root, TRAV__CCN_CHK);\n", new_root);
         out("start = clock();\n");
         generate_action(action, fp, new_root, is_top_root);
         out("end = clock();\n");
-        generate_lifetimes(action->range_specs, fp, false, true);
+        //generate_lifetimes(action->range_specs, fp, false, true);
 
         if (action->type != ACTION_PHASE) {
             char *id = get_action_id(action);
@@ -119,24 +126,20 @@ void generate_phase_body(Phase *phase, FILE *fp, char *root, bool is_top_root) {
     char *new_root = phase->root == NULL ? root : phase->root;
     bool new_is_top_root = phase->root == NULL ? is_top_root : false;
 
-/*    if (phase->root != NULL) {
-        out("#include \"generated/traversal-_CCN_PhaseDriver_Find%sFrom%s.h\"\n", phase->root, root);
-    }*/
-
     if (is_top_root) {
         out("void %s(%s *temp_root) {\n", phase->id, root);
     } else {
         out("void %s_%s(%s *temp_root) {\n", phase->id, root, root);
     }
+    out("phase_driver_t *pd = _get_phase_driver();\n");
     out("double start;\n");
     out("double end;\n");
-    generate_lifetimes(phase->range_specs, fp, true, false);
     generate_start_phase(phase, fp);
     out("phase_frame_t *curr_frame = _top_frame();\n");
     if (phase->root != NULL) {
         out("curr_frame->curr_root = NT_%s;\n", phase->root);
         out("%s *root = NULL;\n", phase->root);
-        subtree_generate_call_find_sub_root(root, phase->root, fp);
+        subtree_generate_call_find_sub_root(root, phase->root, fp, phase);
 
     } else {
         out("curr_frame->curr_root = NT_%s;\n", root);
@@ -175,7 +178,6 @@ void generate_phase_body(Phase *phase, FILE *fp, char *root, bool is_top_root) {
     }
 
     generate_end_phase(phase, fp);
-    generate_lifetimes(phase->range_specs, fp, false, true);
     out("}\n\n");
 }
 
@@ -193,6 +195,7 @@ static inline void generate_include_traversal(Action *action, FILE *fp) {
 static inline void  generate_include_phase(Action *action, FILE *fp) {
     Phase *phase = action->action;
     out("#include \"generated/phase-%s.h\"\n", phase->id);
+    out("#include <stdint.h>\n");
 }
 
 static void generate_include_action_header(Action *action, FILE *fp) {

@@ -101,6 +101,7 @@ static inline void check_c_keyword(const char *);
 "|" {return '|';}
 "&" {return '&';}
 "-" {return '-';}
+"." {return '.';}
 
 "attributes"    { LEX_KEYWORD(T_ATTRIBUTES);}
 "children"      { LEX_KEYWORD(T_CHILDREN);}

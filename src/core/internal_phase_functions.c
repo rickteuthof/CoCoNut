@@ -95,6 +95,7 @@ void _initialize_phase_driver() {
     phase_driver.consistency_map = smap_init(20);
     phase_driver.curr_sub_root = NULL;
     phase_driver.level = 0;
+    phase_driver.action_id = 0;
 }
 
 cycle_mark_t *_ccn_new_mark(void *item) {

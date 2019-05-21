@@ -9,6 +9,7 @@
  */
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "lib/array.h"
 #include "lib/smap.h"
@@ -23,6 +24,7 @@ enum ccn_chk_types {
 
 typedef struct ccn_chk_frame {
     enum ccn_chk_types type;
+    array *values;
     int ref_counter;
 } ccn_chk_frame_t;
 
@@ -55,6 +57,7 @@ typedef struct phase_driver {
     sub_root_t *curr_sub_root;
     smap_t *consistency_map;
     int level;
+    uint32_t action_id;
 } phase_driver_t;
 
 phase_frame_t *_top_frame();

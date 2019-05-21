@@ -77,12 +77,15 @@ enum LifetimeType {
 };
 
 typedef struct Range_spec {
-    char *action_id; // Id of the action where this spec starts or ends.
+    array *ids; // Ids of the action this spec starts or end, with namespacing.
+    unsigned int id_index;
     bool inclusive; // Range inclusive over the action or not.
     char *consistency_key; // Key used to lookup this spec in the consistency map.
-    char *type; // Type, used to give the right value to pop and push functions.
+    char *type;
     bool push; // Either push this spec or pop.
     enum LifetimeType life_type;
+    uint32_t action_counter_id;
+    array *values; // Non owning, lifetime is owner.
 } Range_spec_t;
 
 typedef struct Lifetime {
@@ -90,6 +93,8 @@ typedef struct Lifetime {
     Range_spec_t *end;
     enum LifetimeType type;
     char *key;
+    bool owner;
+    array *values;
 
 } Lifetime_t;
 
@@ -107,21 +112,26 @@ typedef struct Config {
     struct NodeCommonInfo *common_info;
 } Config;
 
-typedef struct Phase {
+typedef struct Phase Phase;
+
+struct Phase {
     char *id;
     char *info;
+    char *prefix;
     char *root;
 
     bool cycle;
     bool start;
+    bool root_owner;
 
+    Phase *original_ref;
     array *range_specs;
     array *actions;
     smap_t *active_specs;
     ccn_set_t *roots;
 
     struct NodeCommonInfo *common_info;
-} Phase;
+};
 
 typedef struct PhaseLeaf {
     // enum PhaseLeafType type;
@@ -134,6 +144,7 @@ typedef struct PhaseLeaf {
 typedef struct Pass {
     char *id;
     char *info;
+    char *prefix;
     char *func;
     struct NodeCommonInfo *common_info;
 } Pass;
@@ -141,6 +152,7 @@ typedef struct Pass {
 typedef struct Traversal {
     char *id;
     char *info;
+    char *prefix;
     char *func;
 
     union {
@@ -148,16 +160,18 @@ typedef struct Traversal {
         SetExpr *expr;
     };
 
-    smap_t *active_specs;
     struct NodeCommonInfo *common_info;
 } Traversal;
 
 typedef struct Action {
     enum ActionType type;
+    uint32_t id_counter;
+    bool action_owner; // We create shallow actions, that do not awn the actual action.
     bool checked;
     void *action;
     char *id;
     array *range_specs;
+    smap_t *active_specs;
 } Action;
 
 typedef struct Enum {

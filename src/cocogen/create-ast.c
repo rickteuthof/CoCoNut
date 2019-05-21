@@ -43,40 +43,44 @@ Phase *create_phase_header(char *id, bool start, bool cycle) {
     p->roots = ccn_set_string_create(2);
     p->start = start;
     p->cycle = cycle;
+    p->root_owner = true;
+    p->original_ref = NULL;
 
     p->common_info = create_commoninfo();
     return p;
 }
 
-Phase *create_phase(Phase *phase_header, char *root, array *actions) {
+Phase *create_phase(Phase *phase_header, char *root, char *prefix, array *actions) {
 
     Phase *p = phase_header;
     p->root = root;
     p->actions = actions;
+    p->prefix = prefix;
     p->range_specs = array_init(1);
     p->active_specs = smap_init(5);
     return p;
 }
 
-Pass *create_pass(char *id, char *func) {
+Pass *create_pass(char *id, char *func, char *prefix) {
     Pass *p = mem_alloc(sizeof(Pass));
 
     p->id = id;
     p->func = func;
     p->info = NULL;
+    p->prefix = prefix;
 
     p->common_info = create_commoninfo();
     return p;
 }
 
-Traversal *create_traversal(char *id, char *func, SetExpr *expr) {
+Traversal *create_traversal(char *id, char *func, char *prefix, SetExpr *expr) {
 
     Traversal *t = mem_alloc(sizeof(Traversal));
     t->id = id;
     t->func = func;
     t->info = NULL;
+    t->prefix = prefix;
     t->expr = expr;
-    t->active_specs = smap_init(5);
 
     t->common_info = create_commoninfo();
     return t;
@@ -180,15 +184,17 @@ Node *create_nodebody(array *children, array *attrs) {
     return n;
 }
 
-Range_spec_t *create_range_spec(bool inclusive, char *id) {
+Range_spec_t *create_range_spec(bool inclusive, array *ids) {
     Range_spec_t *spec = mem_alloc(sizeof(Range_spec_t));
     spec->inclusive = inclusive;
-    spec->action_id = id;
+    spec->ids = ids;
+    spec->id_index = 0;
+    spec->values = NULL;
     return spec;
 }
 
 Lifetime_t *create_lifetime(Range_spec_t *start, Range_spec_t *end,
-                            enum LifetimeType type) {
+                            enum LifetimeType type, array *values) {
     Lifetime_t *lifetime = mem_alloc(sizeof(Lifetime_t));
     lifetime->start = start;
     if (lifetime->start != NULL)
@@ -198,6 +204,8 @@ Lifetime_t *create_lifetime(Range_spec_t *start, Range_spec_t *end,
         lifetime->end->push = false;
     lifetime->type = type;
     lifetime->key = NULL;
+    lifetime->values = values;
+    lifetime->owner = true;
     return lifetime;
 }
 
@@ -252,6 +260,8 @@ Action *create_action(enum ActionType type, void *action, char *id) {
     _action->checked = false;
     _action->id = strdup(id);
     _action->range_specs = array_init(1);
+    _action->active_specs = smap_init(2);
+    _action->action_owner = true;
     return _action;
 }
 

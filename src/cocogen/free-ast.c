@@ -11,6 +11,24 @@ static void free_commoninfo(NodeCommonInfo *info) {
     mem_free(info);
 }
 
+
+static void free_range_spec(Range_spec_t *spec) {
+    mem_free(spec->consistency_key);
+    mem_free(spec->type);
+    mem_free(spec);
+}
+
+static void free_lifetime(void *p) {
+    Lifetime_t *lifetime = p;
+    if (lifetime->owner) {
+        free_range_spec(lifetime->start);
+        free_range_spec(lifetime->end);
+    }
+    mem_free(lifetime->key);
+    mem_free(lifetime);
+
+}
+
 void free_setOperation(SetOperation *operation);
 
 void free_setExpr(SetExpr *expr) {
@@ -37,6 +55,7 @@ void free_setOperation(SetOperation *operation) {
 
 static void free_action(void *a) {
     Action *action = a;
+    mem_free(action->id);
     mem_free(action);
 }
 
@@ -49,13 +68,15 @@ static void free_phase(void *p) {
         mem_free(phase->root);
     }
     ccn_set_free(phase->roots);
-    array_cleanup(phase->actions, mem_free);
+    mem_free(phase->prefix);
+    array_cleanup(phase->actions, free_action);
     mem_free(phase);
 }
 
 static void free_pass(void *p) {
     Pass *pass = p;
 
+    mem_free(pass->prefix);
     mem_free(pass->id);
     free_commoninfo(pass->common_info);
     mem_free(pass);
@@ -66,6 +87,7 @@ static void free_traversal(void *p) {
     if (traversal->nodes != NULL)
         array_cleanup(traversal->nodes, mem_free);
 
+    mem_free(traversal->prefix);
     mem_free(traversal->id);
     free_commoninfo(traversal->common_info);
     mem_free(traversal);
@@ -107,6 +129,7 @@ static void free_mandatory(void *p) {
     mem_free(ph);
 }
 
+
 static void free_child(void *p) {
     Child *c = p;
 
@@ -115,8 +138,8 @@ static void free_child(void *p) {
     if (c->type != NULL)
         mem_free(c->type);
 
-    //    if (c->lifetimes != NULL)
-        //array_cleanup(c->lifetimes, mem_free);
+    if (c->lifetimes != NULL)
+        array_cleanup(c->lifetimes, free_lifetime);
 
     free_commoninfo(c->common_info);
     mem_free(c);
@@ -136,7 +159,8 @@ static void free_attr(void *p) {
         }
         mem_free(a->default_value);
     }
-
+    if (a->lifetimes != NULL)
+        array_cleanup(a->lifetimes, free_lifetime);
     free_commoninfo(a->common_info);
     mem_free(a);
 }
@@ -149,6 +173,9 @@ static void free_node(void *p) {
 
     if (node->attrs != NULL)
         array_cleanup(node->attrs, free_attr);
+
+    if (node->lifetimes != NULL)
+        array_cleanup(node->lifetimes, free_lifetime);
 
     mem_free(node->id);
     free_commoninfo(node->common_info);

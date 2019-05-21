@@ -167,17 +167,15 @@ int main(int argc, char *argv[]) {
         source_dir = "src/generated/";
 
     FILE *f = open_input_file(yy_filename);
-
     Config *parse_result = parse(f);
-
     fclose(f);
 
     if (check_config(parse_result)) {
         exit_compile_error();
     }
-
-    Traversal *consistency_check = create_traversal(strdup("_CCN_CHK"), NULL, NULL);
+    Traversal *consistency_check = create_traversal(strdup("_CCN_CHK"), NULL, strdup("_CHK"), NULL);
     array_append(parse_result->traversals, consistency_check);
+
     // Sort to prevent changes in order of attributes trigger regeneration of
     // code.
     sort_config(parse_result);

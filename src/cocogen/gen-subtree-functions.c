@@ -37,11 +37,12 @@ static inline void generate_include(char *filename, FILE *fp) {
 }
 
 /* TODO we only take one root. Not really the root idea. */
-void subtree_generate_call_find_sub_root(char *root, char *to_find, FILE *fp) {
+void subtree_generate_call_find_sub_root(char *root, char *to_find, FILE *fp, Phase *phase) {
     out("trav_start_%s(temp_root, TRAV__CCN_PhaseDriver_Find%sFrom%s);\n", root, to_find, root);
     out("root = _ccn_subroot_get_%s();\n", to_find);
     out("if (root == NULL) {\n");
-    out("printf(\"O NO ITS NULL\\n\");\n");
+    out("printf(\"O NO ITS NULL\\n\");\n"); // TODO improve this.
+    out("_ccn_end_phase(\"%s\");", phase->id);
     out("return;\n");
     out("}\n\n");
 }
@@ -140,7 +141,7 @@ void subtree_generate_find_traversal(Phase *phase, char *root, Node *original_ro
     array *literal = create_array();
     array_append(literal, strdup(root));
     SetExpr *expr = create_set_expr(SET_LITERAL, literal);
-    Traversal *trav = create_traversal(trav_name, NULL, expr);
+    Traversal *trav = create_traversal(trav_name, NULL, ccn_str_cpy("CCN"), expr);
     array_append(config->traversals, trav);
     subtree_generate_set_handler(root, funcs);
     subtree_generate_find_traversal_body(trav_name, root, filegen_data);
@@ -218,14 +219,13 @@ static void require_phase_root(Phase *phase, char *root, ccn_set_t *generated) {
         mem_free(target);
         return;
     }
-
     const char *header_dir = "include/generated/";
     const char *source_dir = "src/generated/";
     char *header = get_full_path_with_dir(header_dir, "phase-%s.h", phase->id);
     char *source = get_full_path_with_dir(source_dir, "phase-%s.c", phase->id);
 
     // Hash matches so do not append, will create a redefinition.
-    if (!phase->common_info->hash_matches) {
+    if (!phase->common_info->hash_matches && phase->root_owner) {
         FILE *fp = get_fp(header, "a");
         out("void %s_%s(%s *root);\n", phase->id, root, root);
         fclose(fp);
@@ -237,13 +237,6 @@ static void require_phase_root(Phase *phase, char *root, ccn_set_t *generated) {
     }
     mem_free(header);
     mem_free(source);
-
-    for (int i = 0; i < array_size(phase->actions); ++i) {
-        Action *action = array_get(phase->actions, i);
-        if (action->type == ACTION_PHASE) {
-            require_phase_root(action->action, root, generated);
-        }
-    }
 }
 
 void generate_mark_functions(array *phases) {
@@ -297,14 +290,12 @@ void subtree_generate_phase_functions(array *phases) {
     ccn_set_t *generated = ccn_set_string_create(10);
     for (int i = 0; i < array_size(phases); ++i) {
         Phase *phase = array_get(phases, i);
-        if (phase->root == NULL)
-            continue;
-        for (int j = 0; j < array_size(phase->actions); ++j) {
-            Action *action = array_get(phase->actions, j);
-            if (action->type == ACTION_PHASE) {
-                require_phase_root(action->action, phase->root, generated);
-            }
+        array *values = ccn_set_values(phase->roots);
+        for (int j = 0; j < array_size(values); ++j) {
+            char *root = array_get(values, j);
+            require_phase_root(phase, root, generated);
         }
+
     }
     ccn_set_free(generated);
 }
