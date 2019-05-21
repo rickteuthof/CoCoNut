@@ -92,7 +92,9 @@ void generate_ast_node_header(Config *config, FILE *fp, Node *node) {
     if (node->attrs) {
         for (int j = 0; j < array_size(node->attrs); ++j) {
             Attr *attr = (Attr *)array_get(node->attrs, j);
-            out("    %s %s;\n", str_attr_type(attr), attr->id);
+            char *attr_string = str_attr_type(attr);
+            out("    %s %s;\n", attr_string, attr->id);
+            if (attr->type == AT_link) mem_free(attr_string);
         }
     }
     out("} %s;\n", node->id);

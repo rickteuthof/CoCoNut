@@ -125,7 +125,6 @@ struct Phase {
     bool root_owner;
 
     Phase *original_ref;
-    array *range_specs;
     array *actions;
     smap_t *active_specs;
     ccn_set_t *roots;
@@ -166,11 +165,10 @@ typedef struct Traversal {
 typedef struct Action {
     enum ActionType type;
     uint32_t id_counter;
-    bool action_owner; // We create shallow actions, that do not awn the actual action.
+    bool action_owner; // We create shallow actions, that do not own the actual action.
     bool checked;
     void *action;
     char *id;
-    array *range_specs;
     smap_t *active_specs;
 } Action;
 

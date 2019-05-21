@@ -202,6 +202,7 @@ void subtree_generate_traversals(Config *config) {
         subtree_generate_find_traversal(phase, phase->root, config->root_node, config, generated, generated_funcs, &filegen_data);
     }
     filegen_delete_non_generated_filed(filegen_data.files_gen, filegen_data.directories, filegen_data.blacklist);
+    array_cleanup(directories, mem_free);
     ccn_set_free(blacklist);
     ccn_set_free(files_gen);
     ccn_set_free(generated);
@@ -249,9 +250,12 @@ void generate_mark_functions(array *phases) {
     for (int i = 0; i < array_size(phases); ++i) {
         Phase *phase = array_get(phases, i);
         if (! phase->root) continue;
-        if (ccn_set_insert(generated, phase->root)) {
+        char *root_copy = ccn_str_cpy(phase->root);
+        if (ccn_set_insert(generated, root_copy)) {
             out("bool ccn_mark_apply_%s(%s *root);\n", phase->root, phase->root);
             out("bool ccn_mark_remove_%s(%s *root);\n", phase->root, phase->root);
+        } else {
+            mem_free(root_copy);
         }
     }
     fclose(fp);
@@ -282,6 +286,8 @@ void generate_mark_functions(array *phases) {
         out_end_func();
     }
     fclose(fp);
+    array_cleanup(roots, NULL);
+    ccn_set_free(generated);
     //ccn_set_free(phases);
 }
 
@@ -295,6 +301,7 @@ void subtree_generate_phase_functions(array *phases) {
             char *root = array_get(values, j);
             require_phase_root(phase, root, generated);
         }
+        array_cleanup(values, NULL);
 
     }
     ccn_set_free(generated);

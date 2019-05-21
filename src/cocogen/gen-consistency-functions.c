@@ -47,9 +47,15 @@ void generate_headers(Config *c, FILE *fp) {
             Attr *attr = array_get(n->attrs, j);
             char *key = ccn_str_cat(n->id, attr->id);
             out("void ccn_chk_%s(%s *node, enum ccn_chk_types type);\n", key, n->id);
-            if (attr->type != AT_enum) continue;
+            if (attr->type != AT_enum) {
+                mem_free(key);
+                continue;
+            }
             Enum *enm = find_enum(c->enums, attr->type_id);
-            if (enm == NULL) continue;
+            if (enm == NULL) {
+                mem_free(key);
+                continue;
+            }
             //out("void ccn_chk_%svalues(%s *node, struct ccn_chk_frame *frame);\n", key, n->id, attr->type_id);
             for (int k = 0; k < array_size(enm->values); ++k) {
                 char *val = array_get(enm->values, k);

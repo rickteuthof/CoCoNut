@@ -1,29 +1,35 @@
 start phase RootPhase {
+    prefix = "Root",
     actions {
         LoadProgram,
+        SemanticAnalysis,
         CodeGen,
         Print
     }
 };
 
 phase LoadProgram {
+    prefix = "LP", 
     actions {
         CodeGen,
         pass ScanAndParse
     }
 };
 
-phase SemanticAnalysis {
-    root = StmtList;
+cycle SemanticAnalysis {
+    prefix = "SEA",
+    root = StmtList,
     actions {
-        CodeGen
+       Print,
+       CodeGen
     }
 };
 
-cycle CodeGen {
-    root = FunDef;
+phase CodeGen {
+    prefix = "CG",
+    root = FunDef,
     actions {
-        Print
+        ByteCode
     }  
 };
 
@@ -54,26 +60,32 @@ traversal Print;
 traversal ByteCode;
 
 traversal RenameFor {
+    prefix = "RFOR",
     nodes = {For, VarLet, Var}
 };
 
 traversal Context {
+    prefix = "CTX",
     nodes = Decl | Vars | {Root, Param, For, FunCall}
 };
 
 traversal SplitInit {
+    prefix = "SIT",
     nodes = {Root, GlobalDef, FunBody, VarDec}
 };
 
 traversal TypeCheck {
+    prefix = "TCK",
     nodes = Stmt | FunctionParts | Expr - {Ternary}
 };
 
 traversal Refactor {
+    prefix = "RAT",
     nodes = {While, StmtList} | Expr - {MonOp, Ternary}
 };
 
 traversal Symbols {
+    prefix = "SOS",
     nodes = {Root, FunDef, FunSymbol, Symbol}
 };
 
@@ -277,11 +289,11 @@ node Return {
 
 node BinOp {
     children {
-        Expr left { constructor, mandatory },
+        Expr left { constructor, mandatory},
         Expr right { constructor, mandatory }
     },
     attributes {
-        BinOpEnum op { constructor, disallowed }
+        BinOpEnum op { constructor, mandatory, disallowed = {and, or}}
     }
 };
 

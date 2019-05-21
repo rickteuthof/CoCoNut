@@ -56,7 +56,6 @@ Phase *create_phase(Phase *phase_header, char *root, char *prefix, array *action
     p->root = root;
     p->actions = actions;
     p->prefix = prefix;
-    p->range_specs = array_init(1);
     p->active_specs = smap_init(5);
     return p;
 }
@@ -259,7 +258,6 @@ Action *create_action(enum ActionType type, void *action, char *id) {
     _action->action = action;
     _action->checked = false;
     _action->id = strdup(id);
-    _action->range_specs = array_init(1);
     _action->active_specs = smap_init(2);
     _action->action_owner = true;
     return _action;

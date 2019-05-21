@@ -15,6 +15,7 @@ static void free_commoninfo(NodeCommonInfo *info) {
 static void free_range_spec(Range_spec_t *spec) {
     mem_free(spec->consistency_key);
     mem_free(spec->type);
+    array_cleanup(spec->ids, mem_free);
     mem_free(spec);
 }
 
@@ -53,8 +54,16 @@ void free_setOperation(SetOperation *operation) {
     mem_free(operation);
 }
 
+static void free_phase(void *);
+
 static void free_action(void *a) {
     Action *action = a;
+    if (action->type == ACTION_PHASE) {
+        if (((Phase*)action->action)->original_ref != NULL) {
+            free_phase(action->action);
+        }
+    }
+    smap_free(action->active_specs);
     mem_free(action->id);
     mem_free(action);
 }
@@ -70,6 +79,7 @@ static void free_phase(void *p) {
     ccn_set_free(phase->roots);
     mem_free(phase->prefix);
     array_cleanup(phase->actions, free_action);
+    smap_free(phase->active_specs);
     mem_free(phase);
 }
 

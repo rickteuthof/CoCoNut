@@ -54,8 +54,9 @@ static void hash_node(Node *n) {
 
     for (int i = 0; i < array_size(n->attrs); ++i) {
         Attr *attr = array_get(n->attrs, i);
+        char *attr_type_string = str_attr_type(attr);
         hash(attr->id, char);
-        hash(str_attr_type(attr), char);
+        hash(attr_type_string, char);
         hash(attr->construct ? "y" : "n", char);
         if (attr->default_value) {
             AttrValue *val = attr->default_value;
@@ -84,6 +85,7 @@ static void hash_node(Node *n) {
                 break;
             }
         }
+        if (attr->type == AT_link) mem_free(attr_type_string);
     }
     mhash_deinit(td, hash);
     set_hash(n->common_info, false);

@@ -194,7 +194,8 @@ static Phase *copy_phase_shallow(Phase *phase) {
     new->common_info->hash = phase->common_info->hash;
     new->common_info->hash_matches = phase->common_info->hash_matches;
     new = create_phase(new, root, ccn_str_cpy(phase->prefix), actions);
-    new->roots = ccn_set_copy(new->roots);
+    ccn_set_free(new->roots);
+    new->roots = ccn_set_copy(phase->roots);
     new->root_owner = false;
     new->original_ref = phase;
     return new;
@@ -897,6 +898,7 @@ static int check_lifetime_reach(Lifetime_t *lifetime, struct Info *info) {
     if (lifetime->start == NULL) {
         array *ids = array_init(1);
         array_append(ids, strdup(info->root_phase->id));
+        lifetime->owner = true;
         lifetime->start = create_range_spec(true, ids);
         lifetime->start->consistency_key = strdup(lifetime->key);
         lifetime->start->life_type = lifetime->type;
@@ -909,6 +911,7 @@ static int check_lifetime_reach(Lifetime_t *lifetime, struct Info *info) {
     if (lifetime->end == NULL) {
         array *ids = array_init(1);
         array_append(ids, strdup(info->root_phase->id));
+        lifetime->owner = true;
         lifetime->end = create_range_spec(true, ids);
         lifetime->end->life_type = lifetime->type;
         lifetime->end->consistency_key = strdup(lifetime->key);
@@ -1157,10 +1160,13 @@ void unpack_lifetime_value(array *new_lifetimes, Lifetime_t *lifetime) {
         char *val = array_get(lifetime->values, i);
         char *key = ccn_str_cat(lifetime->key, val);
         Lifetime_t *new = copy_lifetime(lifetime, key);
+        mem_free(key);
         array_append(new_lifetimes, new);
     }
     char *val = array_get(lifetime->values, array_size(lifetime->values) - 1);
     char *key = ccn_str_cat(lifetime->key, val);
+    array_cleanup(lifetime->values, mem_free);
+    lifetime->values = NULL;
     mem_free(lifetime->key);
     lifetime->key = key;
 }
