@@ -2,13 +2,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <unistd.h>
 
 #include "core/error.h"
 #include "core/internal_phase_functions.h"
 #include "lib/array.h"
 #include "lib/memory.h"
+#include "lib/str.h"
 #include "cocogen/filegen-util.h"
-
+#include "generated/breakpoint-finder.h"
+#include "generated/traversal-Print.h"
 
 
 static phase_driver_t phase_driver;
@@ -25,7 +28,6 @@ void _push_chk_frame(char *key, enum ccn_chk_types type) {
             frame->ref_counter++;
         } else {
             // Should never happen.
-            // TODO: better error.
             assert(false);
         }
     }
@@ -56,6 +58,7 @@ void _reset_cycle() {
     phase_frame_t *frame = array_last(phase_driver.phase_stack);
     assert(frame != NULL);
     frame->cycle_notified = false;
+    frame->cycles++;
 }
 
 bool _is_cycle_notified() {
@@ -78,6 +81,7 @@ void _push_frame(char *id) {
     frame->cycle_notified = false;
     frame->curr_mark = NULL;
     frame->marks = NULL;
+    frame->cycles = 0;
     array_append(phase_driver.phase_stack, frame);
 }
 
@@ -87,6 +91,9 @@ void _pop_frame() {
 }
 
 void _initialize_phase_driver() {
+    if (phase_driver.initialized)
+        return;
+    phase_driver.initialized = true;
     phase_driver.action_error = false;
     phase_driver.non_fatal_error = false;
     phase_driver.phase_stack = create_array();
@@ -95,7 +102,12 @@ void _initialize_phase_driver() {
     phase_driver.consistency_map = smap_init(20);
     phase_driver.curr_sub_root = NULL;
     phase_driver.level = 0;
-    phase_driver.action_id = 0;
+    phase_driver.action_id = 1; // We start at 1, as 0 states that its not set.
+    phase_driver.id_to_enum_map = create_enum_mapping();
+    phase_driver.breakpoint = NULL;
+    phase_driver.ast = NULL;
+    phase_driver.current_action = NULL;
+
 }
 
 cycle_mark_t *_ccn_new_mark(void *item) {
@@ -216,4 +228,129 @@ void _print_top_n_time(int n) {
     }
     printf("---------------------------------------------------------------------------------\n\n");
 
+}
+
+point_frame_t *_ccn_create_point_frame_from_string(char *target) {
+    if (!phase_driver.initialized)
+        return NULL;
+
+    char *action = NULL;
+    long int cycle_count = 1;
+    array *actions = ccn_str_split(target, '=');
+    if (array_size(actions) > 1) {
+        action = array_get(actions, 1);
+        printf("ACTION: %s\n", action);
+    }
+
+    array *cycle_counts = ccn_str_split(array_get(actions, 0), ':');
+    if (array_size(cycle_counts) > 1) {
+        char *ptr = NULL;
+        cycle_count = strtol(array_get(cycle_counts, 1), &ptr, 10);
+        printf("Cycle count: %li\n", cycle_count);
+    }
+
+    array *vals = ccn_str_split(array_get(cycle_counts, 0), '.');
+    point_frame_t *frame = mem_alloc(sizeof(point_frame_t));
+    char *curr_target = array_get(vals, 0);
+    frame->current_id = *((enum ACTION_IDS*)smap_retrieve(phase_driver.id_to_enum_map, curr_target));
+
+    frame->cycle_counter = cycle_count;
+    frame->action = action;
+    frame->ids = vals;
+    frame->index = 0;
+    return frame;
+}
+
+bool ccn_set_breakpoint(char *breakpoint) {
+    if (!phase_driver.initialized || phase_driver.breakpoint != NULL)
+        return false;
+    point_frame_t *frame = _ccn_create_point_frame_from_string(breakpoint);
+    if (frame == NULL)
+        return false;
+
+    phase_driver.breakpoint = frame;
+    return true;
+}
+
+bool ccn_set_inspect_point(char *inspect) {
+    if (!phase_driver.initialized)
+        return false;
+
+    if (phase_driver.inspection_points == NULL) {
+        phase_driver.inspection_points = array_init(2);
+    }
+
+    point_frame_t *frame = _ccn_create_point_frame_from_string(inspect);
+    if (frame == NULL)
+        return false;
+
+    array_append(phase_driver.inspection_points, frame);
+    return true;
+}
+
+bool _ccn_is_final_point(enum ACTION_IDS id, phase_frame_t *frame, point_frame_t *curr_point) {
+    if (curr_point->current_id == id && curr_point->cycle_counter == frame->cycles) {
+        if (curr_point->index == array_size(curr_point->ids) - 1) {
+            return true;
+        } else {
+            curr_point->index++;
+            char *target = array_get(curr_point->ids, curr_point->index);
+            curr_point->current_id = *((enum ACTION_IDS*)smap_retrieve(phase_driver.id_to_enum_map, target));
+        }
+    }
+
+    return false;
+}
+// TODO: implement function lookup.
+void _ccn_check_inspect_point(enum ACTION_IDS id, char *curr_action) {
+    if (phase_driver.inspection_points == NULL)
+        return;
+
+    phase_frame_t *frame = _top_frame();
+    for (int i = 0; i < array_size(phase_driver.inspection_points); ++i) {
+        point_frame_t *point = array_get(phase_driver.inspection_points, i);
+        if (_ccn_is_final_point(id, frame, point)) {
+            char *tmp_filename = ccn_str_cat("inspect_", curr_action);
+            char *filename = ccn_str_cat(tmp_filename, ".txt");
+            FILE *f = fopen(filename, "w");
+            int stdout = dup(STDOUT_FILENO);
+            int new_stdout = dup2(fileno(f), STDOUT_FILENO);
+            printf("Inspection point reached:\n");
+            trav_start_Root(phase_driver.ast, TRAV_Print);
+            dup2(stdout, new_stdout);
+            close(stdout);
+            mem_free(tmp_filename);
+            mem_free(filename);
+        }
+    }
+}
+
+void _ccn_check_breakpoint(enum ACTION_IDS id) {
+    phase_driver_t *pd = _get_phase_driver();
+    if (pd->breakpoint == NULL)
+        return;
+
+    if (_ccn_is_final_point(id, _top_frame(), pd->breakpoint)) {
+        printf("Breakpoint reached:\n");
+        trav_start_Root(phase_driver.ast, TRAV_Print);
+        exit(0);
+    }
+}
+
+void _ccn_check_points(enum ACTION_IDS id, char *current_action) {
+    _ccn_check_inspect_point(id, current_action);
+    _ccn_check_breakpoint(id);
+}
+
+void _print_path() {
+    if (array_size(phase_driver.phase_stack) <= 0)
+        return;
+    printf("Path: ");
+    for (int i = 0; i < array_size(phase_driver.phase_stack) - 1; ++i) {
+        phase_frame_t *frame = array_get(phase_driver.phase_stack, i);
+        printf("%s.", frame->phase_id);
+    }
+
+    phase_frame_t *frame = array_get(phase_driver.phase_stack, array_size(phase_driver.phase_stack) - 1);
+    printf("%s\n", frame->phase_id);
 }

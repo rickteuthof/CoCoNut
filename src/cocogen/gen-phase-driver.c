@@ -50,8 +50,10 @@ void generate_phase_driver_definitions(Config *config, FILE *fp) {
 
     out("#include \"generated/phase-%s.h\"\n", root_phase->id);
 
-    out("void phasedriver_run(Root *root) {\n\t_initialize_phase_driver();"
-        "\n\t%s(root);\n", root_phase->id);
+    out("void phasedriver_run(%s *root) {\n\t_initialize_phase_driver();", config->root_node->id);
+    out("phase_driver_t *pd = _get_phase_driver();\n");
+    out("pd->ast = root;\n");
+    out("%s(root);\n", root_phase->id);
     out(" _print_top_n_time(10);\n");
     out("}\n");
 }

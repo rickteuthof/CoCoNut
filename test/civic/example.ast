@@ -1,0 +1,314 @@
+start phase compileProgram {
+    prefix = "CP",
+    actions {
+        loadProgram;
+        semanticAnalysis;
+        CodeGeneration;
+    }
+};
+
+phase loadProgram {
+    prefix = "LP",
+    actions {
+        pass doCpreprocessor;
+        pass readInputFile;
+    }
+};
+
+phase semanticAnalysis {
+    prefix = "SEA",
+    actions {
+        traversal renameInductionVariables = {FunDef, Stmt, Var, For, VarLet};
+        traversal buildSymbolTable = Decl | Vars | Function;
+        traversal typeChecking = Stmt | Operations | {VarDecl, FunCall} | Def;
+        traversal varInitialisationToAssignment = Def | {VarDecl};
+        traversal compileBooleanJunctions = {BinOp};
+        traversal compileBooleanCastExpression = {Cast};
+    }
+};
+
+phase CodeGenerationTransformation {
+    prefix = "CGT",
+    actions {
+        traversal forToWhile = {For, FunDef};
+        traversal whileToDoWhile = {While};
+    }
+};
+
+phase CodeGeneration {
+    prefix = "CG",
+    actions {
+        CodeGenerationTransformation;
+        traversal generatingByteCode = Stmt | Function | Expr | {VarLet};
+        printAST;
+    }
+};
+
+traversal printAST;
+
+enum BinOpEnum {
+    prefix = BO,
+    values {
+        mul, add, sub, div, mod, lt, leq, eq, gt, geq, neq, and, or
+    }
+};
+
+enum MonOpEnum {
+    prefix = MO,
+    values {
+        neg, not
+    }
+};
+
+enum Type {
+    prefix = T,
+    values {
+        int, float, bool, void
+    }
+};
+
+nodeset Function = {Param, FunBody, FunDef, FunCall};
+
+nodeset Def = {FunDef, GlobDef};
+
+nodeset Vars = {Var, VarDecl, VarLet};
+
+nodeset Operations = {BinOp, MonOp};
+
+nodeset Constants = {Num, Float, Bool};
+
+nodeset Expr = Operations | Constants | {FunCall, Var, Cast};
+
+nodeset Stmt = {Assign, IfElse, While, For, DoWhile, Return};
+
+nodeset Decl = Vars | {GlobDecl};
+
+nodeset Link = Decl | {VarDecl};
+
+
+root node Program {
+    children {
+        Decls decls { constructor }
+    }
+};
+
+node Decls {
+    children {
+        Decl decl {constructor, mandatory},
+        Decls next
+    }
+};
+
+node Exprs {
+    children {
+        Expr expr {constructor, mandatory},
+        Exprs next
+    }
+};
+
+node Ids {
+    children {
+        Ids next
+    },
+
+    attributes {
+        string name {constructor, mandatory}
+    }
+};
+
+node Return {
+    children {
+        Expr expr {constructor}
+    }
+};
+
+node FunCall {
+    children {
+        Exprs args {constructor}
+    },
+
+    attributes {
+        string name {constructor, mandatory},
+        Link decl
+    }
+};
+
+node Cast {
+    children {
+        Expr expr {constructor, mandatory}
+    },
+
+    attributes {
+        Type type {constructor, mandatory}
+    }
+};
+
+node FunDefs {
+    children {
+        FunDef fundef {constructor, mandatory},
+        FunDefs next
+    },
+};
+
+node FunDef {
+    children {
+        FunBody funbody {constructor},
+        Params params {constructor}
+    },
+
+    attributes {
+        Type type {constructor, mandatory},
+        string name {constructor, mandatory},
+        bool IsExport
+    }
+};
+
+node FunBody {
+    children {
+        VarDecl vardecls {constructor},
+        Stmts stmts {constructor}
+    }
+
+};
+
+node IfElse {
+    children {
+        Expr condition {constructor, mandatory},
+        Stmts then {constructor},
+        Stmts else {constructor}
+    }
+};
+
+node While {
+    children {
+        Expr condition {constructor, mandatory},
+        Stmts body {constructor}
+    }
+};
+
+node DoWhile {
+    children {
+        Expr condition {constructor, mandatory},
+        Stmts body {constructor}
+    }
+};
+
+node For {
+    children {
+        Expr startexpr { constructor, mandatory },
+        Expr stopexpr { constructor, mandatory },
+        Expr stepexpr { constructor },
+        Stmts block { constructor }
+    },
+    attributes {
+        string loopvar { constructor }
+    }
+};
+
+node GlobDecl {
+    attributes {
+        Type type {constructor, mandatory},
+        string name {constructor, mandatory}
+    }
+};
+
+node GlobDef {
+    children {
+        Expr initialise {constructor}
+    }
+    attributes {
+        Type type {constructor, mandatory},
+        string name {constructor, mandatory},
+        bool IsExport
+    }
+};
+
+node Params {
+    children {
+        Params next
+    },
+
+    attributes {
+        Type type {constructor, mandatory},
+        string name {constructor, mandatory}
+    }
+};
+
+node VarDecl {
+    children {
+        Expr initialise {constructor},
+        VarDecl next
+    },
+
+    attributes {
+        Type type {constructor, mandatory},
+        string name {constructor, mandatory} 
+    }
+};
+
+node Assign {
+    children {
+        VarLet let {constructor},
+        Expr expr {constructor, mandatory}
+    }
+};
+
+node VarLet {
+    attributes {
+        string name {constructor, mandatory},
+        Link decl {constructor},
+    }
+};
+
+node Var {
+    attributes {
+        string name {constructor, mandatory},
+        Link decl {constructor}
+    }
+};
+
+node Bool {
+    attributes {
+        bool value { constructor, mandatory }
+    }
+};
+
+node Float {
+    attributes {
+        float value { constructor, mandatory }
+    }
+};
+
+node Num {
+    attributes {
+        int value { constructor, mandatory }
+    }
+};
+
+node MonOp {
+    children {
+        Expr expr { constructor, mandatory }
+    },
+    attributes {
+        MonOpEnum op { constructor }
+    }
+};
+
+
+node BinOp {
+    children {
+        Expr left { constructor, mandatory},
+        Expr right { constructor, mandatory }
+    },
+    attributes {
+        BinOpEnum op { constructor, mandatory, 
+            disallowed (compileBooleanJunctions -> ) = {and, or}}
+    }
+};
+
+node Stmts {
+    children {
+        Stmt stmt { constructor, mandatory },
+        Stmts next { constructor }
+    }
+};

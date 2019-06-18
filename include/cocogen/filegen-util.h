@@ -17,6 +17,9 @@
 #define out_end_if() indent--; print_indent_level(indent, fp); fprintf(fp, "}\n\n");
 #define out_begin_for(...) print_indent_level(indent, fp); indent++; fprintf(fp, "for ("); fprintf(fp, __VA_ARGS__); fprintf(fp, ") {\n");
 #define out_end_for() indent--; print_indent_level(indent, fp); fprintf(fp, "}\n");
+#define out_begin_while(...) print_indent_level(indent, fp); indent++; fprintf(fp, "while ("); fprintf(fp, __VA_ARGS__); fprintf(fp, ") {\n");
+#define out_end_while() indent--; print_indent_level(indent, fp); fprintf(fp, "}\n");
+#define out_enum_field(...) print_indent_level(indent, fp); fprintf(fp, __VA_ARGS__); fprintf(fp, ",\n");
 
 void print_indent_level(int indent_level, FILE *);
 void generate_node_header_includes(Config *, FILE *, Node *);

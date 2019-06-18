@@ -5,9 +5,12 @@
 #include "generated/phase-driver.h"
 #include "generated/trav-ast.h"
 #include "generated/enum.h"
+#include "core/internal_phase_functions.h"
 
 #include "generated/serialization-Root.h"
+#include "generated/traversal-_CCN_CHK.h"
 
+#include <time.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -67,7 +70,9 @@ FunDef *make_fundef(char *name) {
     stmtla3->next = stmtla4;
     stmtla4->next = stmtla5;
     stmtla5->next = stmtreturn;
-
+    
+    //VarLet *a1 = create_VarLet(create_Expr_FunCall("scanint"), strdup("a1"));
+    //StmtList *stmtla1 = create_StmtList(NULL, create_Stmt_VarLet(a1));
     FunDef *mainfun =
         create_FunDef(create_FunBody(NULL, stmtla1, vda1),
                       create_FunHeader(NULL, strdup(name), BT_int), NULL,
@@ -88,17 +93,37 @@ FunDef *create_n_fundefs(int n) {
 }
 
 int main() {
-     
-    FunDef *mainfun = create_n_fundefs(5);
+    double total = 0.0;
+    double start, end;
+    const int amount_of_funcs = 2;
+    const int nodes_per_func = 45;     
+    const int total_nodes = amount_of_funcs * nodes_per_func;
+    FunDef *mainfun = create_n_fundefs(amount_of_funcs);
     Root *program = create_Root(
         create_Decls(create_Decl_FunDef(mainfun), NULL), NULL, NULL);
-    
+   
+    _initialize_phase_driver();
+    //ccn_set_breakpoint("CodeGen:2=Print");
+    //ccn_set_breakpoint("CodeGen:2");
     phasedriver_run(program);
-    // FILE *fp;
-
+    /*for (int i = 0; i < 10; i++) {
+        start = clock();
+        //serialization_write_binfile_Root(program, "test-serialization.bin");
+        trav_start_Root(program, TRAV__CCN_CHK);
+        end = clock();
+        end = (end-start)/CLOCKS_PER_SEC;
+        total += end;
+    }*/
+    //printf("%d, %f\n", total_nodes, total / 10);
+    //FILE *fp;
+    //start = clock(); 
     //serialization_write_binfile_Root(program, "test-serialization.bin");
+    //end = clock();
+    //printf("Time to hash %d nodes: %f seconds\n", total_nodes, (end-start)/CLOCKS_PER_SEC);
     //Root *root_ser = serialization_read_binfile_Root("test-serialization.bin");
-
+    //phasedriver_run(program);
     //trav_start_Root(program, TRAV_Print);
+    //phase_driver_t *pd = _get_phase_driver();
+    //printf("ID: %lu\n", (unsigned long)pd->action_id);
     return 0;
 }

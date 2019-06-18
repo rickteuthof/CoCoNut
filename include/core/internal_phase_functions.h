@@ -14,6 +14,7 @@
 #include "lib/array.h"
 #include "lib/smap.h"
 #include "generated/enum.h"
+#include "generated/breakpoint-finder.h"
 
 typedef struct CCNsubroot sub_root_t;
 
@@ -45,10 +46,19 @@ typedef struct phase_frame {
     array *marks;
     NodeType curr_root;
     cycle_mark_t *curr_mark;
-
+    size_t cycles;
 } phase_frame_t;
 
+typedef struct point_frame {
+    array *ids;
+    enum ACTION_IDS current_id;
+    size_t index;
+    char *action;
+    size_t cycle_counter;
+} point_frame_t;
+
 typedef struct phase_driver {
+    bool initialized;
     bool action_error;
     bool non_fatal_error;
     array *phase_stack;
@@ -56,9 +66,15 @@ typedef struct phase_driver {
     array *cycles_time_frames;
     sub_root_t *curr_sub_root;
     smap_t *consistency_map;
+    smap_t *id_to_enum_map;
     int level;
     uint32_t action_id;
+    point_frame_t *breakpoint;
+    array *inspection_points;
+    char *current_action;
+    void *ast;
 } phase_driver_t;
+
 
 phase_frame_t *_top_frame();
 cycle_mark_t *_ccn_new_mark(void *);
@@ -75,6 +91,10 @@ void _initialize_phase_driver();
 void _ccn_set_curr_mark(cycle_mark_t *mark);
 void _ccn_new_passes_time_frame(char *id, double time);
 void _ccn_new_cycle_time_frame(char *id, double time);
+void _ccn_check_points(enum ACTION_IDS id, char *curr_action);
+bool ccn_set_breakpoint(char *breakpoint);
+bool ccn_set_inspect_point(char *inspect);
 void _print_top_n_time(int n);
+void _print_path();
 
 phase_driver_t *_get_phase_driver();

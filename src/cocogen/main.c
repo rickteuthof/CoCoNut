@@ -35,10 +35,15 @@
 #include "cocogen/gen-user-trav-header.h"
 #include "cocogen/gen-phase-functions.h"
 #include "cocogen/gen-subtree-functions.h"
+#include "cocogen/breakpoint_generation.h"
+
+#include "cocogen/command_opts.h"
 
 // Defined in parser
 extern Config *parse(FILE *fp);
 extern char *yy_filename;
+
+command_options_t global_options;
 
 static void usage(char *program) {
     char *program_bin = strrchr(program, '/');
@@ -102,6 +107,8 @@ void exit_compile_error(void) {
     exit(INVALID_CONFIG);
 }
 
+
+
 int main(int argc, char *argv[]) {
     int verbose_flag = 0;
     int list_gen_files_flag = 0;
@@ -112,6 +119,10 @@ int main(int argc, char *argv[]) {
     char *source_dir = NULL;
     char *dot_dir = NULL;
 
+    global_options.breakpoints = false;
+    global_options.consistcheck = false;
+    global_options.profiling = false;
+
     struct option long_options[] = {
         {"verbose", no_argument, &verbose_flag, 1},
         {"header-dir", required_argument, 0, 21},
@@ -120,6 +131,9 @@ int main(int argc, char *argv[]) {
         {"dot", required_argument, 0, 23},
         {"help", no_argument, 0, 'h'},
         {"version", no_argument, 0, 20},
+        {"profiling", no_argument, 0, 24},
+        {"break-inspectpoints", no_argument, 0, 25},
+        {"consistency-checks", no_argument, 0, 26},
         {0, 0, 0, 0}};
 
     while (1) {
@@ -144,6 +158,15 @@ int main(int argc, char *argv[]) {
             break;
         case 23: // ast.dot output directory.
             dot_dir = optarg;
+            break;
+        case 24:
+            global_options.profiling = true;
+            break;
+        case 25:
+            global_options.breakpoints = true;
+            break;
+        case 26:
+            global_options.consistcheck = true;
             break;
         case 'h':
             usage(argv[0]);
@@ -180,7 +203,6 @@ int main(int argc, char *argv[]) {
     // code.
     sort_config(parse_result);
     hash_config(parse_result);
-
     if (verbose_flag) {
         print_config(parse_result);
     }
@@ -241,6 +263,8 @@ int main(int argc, char *argv[]) {
     filegen_generate("serialization-all.h",
                      generate_binary_serialization_all_header);
 
+    filegen_generate("breakpoint-finder.h", generate_breakpoint);
+
     filegen_cleanup_old_files();
 
     // Genereate all the source files.
@@ -293,11 +317,14 @@ int main(int argc, char *argv[]) {
     filegen_generate("textual-serialization-util.c",
                      generate_textual_serialization_util);
 
+    filegen_generate("breakpoints-finder.c", generate_breakpoint_body);
+
     filegen_cleanup_old_files();
 
     filegen_cleanup();
 
     free_config(parse_result);
+
 
     return ret;
 }

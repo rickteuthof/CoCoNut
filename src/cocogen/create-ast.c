@@ -188,6 +188,7 @@ Range_spec_t *create_range_spec(bool inclusive, array *ids) {
     spec->inclusive = inclusive;
     spec->ids = ids;
     spec->id_index = 0;
+    spec->action_counter_id = 0;
     spec->values = NULL;
     return spec;
 }
@@ -260,6 +261,7 @@ Action *create_action(enum ActionType type, void *action, char *id) {
     _action->id = strdup(id);
     _action->active_specs = smap_init(2);
     _action->action_owner = true;
+    _action->id_counter = 0;
     return _action;
 }
 

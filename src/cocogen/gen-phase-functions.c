@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "lib/memory.h"
 #include "lib/str.h"
@@ -8,15 +9,16 @@
 #include "cocogen/filegen-driver.h"
 #include "cocogen/filegen-util.h"
 #include "cocogen/gen-subtree-functions.h"
+#include "cocogen/command_opts.h"
 
-static inline void generate_start_phase(Phase *phase, FILE *fp) {
+static inline void generate_start_phase(Phase *phase, FILE *fp, int indent) {
     assert(phase != NULL);
-    out("_ccn_start_phase(\"%s\");\n", phase->id);
+    out_statement("_ccn_start_phase(\"%s\")", phase->id);
 }
 
-static inline void generate_end_phase(Phase *phase, FILE *fp) {
+static inline void generate_end_phase(Phase *phase, FILE *fp, int indent) {
     assert(phase != NULL);
-    out("_ccn_end_phase(\"%s\");\n", phase->id);
+    out_statement("_ccn_end_phase(\"%s\")", phase->id);
 }
 
 static inline void generate_include(char *filename, FILE *fp) {
@@ -24,36 +26,39 @@ static inline void generate_include(char *filename, FILE *fp) {
 }
 
 
-static inline void generate_action_traversal(Traversal *trav, FILE *fp, char *root, bool is_top_root) {
-    out("trav_start_%s(root, TRAV_%s);\n", root, trav->id);
+static inline void generate_action_traversal(Traversal *trav, FILE *fp, char *root, bool is_top_root, int *_indent) {
+    int indent = *_indent;
+    out_statement("trav_start_%s(root, TRAV_%s)", root, trav->id);
 }
 
-static inline void generate_action_phase(Phase *phase, FILE *fp, char *root, bool is_top_root) {
+static inline void generate_action_phase(Phase *phase, FILE *fp, char *root, bool is_top_root, int *_indent) {
+    int indent = *_indent;
     if (!is_top_root) {
-        out("%s_%s(root);\n", phase->id, root);
+        out_statement("%s_%s(root)", phase->id, root);
     } else {
-        out("%s(root);\n", phase->id);
+        out_statement("%s(root)", phase->id);
     }
 }
 
-static inline void generate_action_pass(Pass *pass, FILE *fp, char *root, bool is_top_root) {
+static inline void generate_action_pass(Pass *pass, FILE *fp, char *root, bool is_top_root, int *_indent) {
+    int indent = *_indent;
     if (pass->func != NULL) {
-        out("root = %s(root);\n", pass->func);
+        out_statement("root = %s(root)", pass->func);
     } else {
-        out("pass_%s_entry(root);\n", pass->id);
+        out_statement("pass_%s_entry(root)", pass->id);
     }
 }
 
-static void generate_action(Action *action, FILE *fp, char *root, bool is_top_root) {
+static void generate_action(Action *action, FILE *fp, char *root, bool is_top_root, int *_indent) {
     switch (action->type) {
     case ACTION_TRAVERSAL:
-        generate_action_traversal(action->action, fp, root, is_top_root);
+        generate_action_traversal(action->action, fp, root, is_top_root, _indent);
         break;
     case ACTION_PHASE:
-        generate_action_phase(action->action, fp, root, is_top_root);
+        generate_action_phase(action->action, fp, root, is_top_root, _indent);
         break;
     case ACTION_PASS:
-        generate_action_pass(action->action, fp, root, is_top_root);
+        generate_action_pass(action->action, fp, root, is_top_root, _indent);
         break;
     default:
         break;
@@ -96,89 +101,120 @@ void generate_lifetimes(array *lifetimes, FILE *fp, bool inclusive_start, bool i
 }
 
 // TODO: handle CHK traversal for sub_roots.
-void generate_action_list(array *actions, FILE *fp, char *new_root, bool is_top_root) {
-     for (int i = 0; i < array_size(actions); i++) {
+void generate_action_list(array *actions, FILE *fp, char *new_root, bool is_top_root, int *_indent) {
+    int indent = *_indent;
+     for (int i = 0; i < array_size(actions); ++i){
         Action *action = array_get(actions, i);
         //generate_lifetimes(action->range_specs, fp, true, false);
-        out("pd->action_id = %lu;\n", (unsigned long)action->id_counter);
-        out("trav_start_%s(root, TRAV__CCN_CHK);\n", new_root);
-        out("start = clock();\n");
-        generate_action(action, fp, new_root, is_top_root);
-        out("end = clock();\n");
+        out_statement("pd->action_id++");
+        out_statement("pd->current_action = \"%s\"", action->id);
+        out_statement("trav_start_%s(root, TRAV__CCN_CHK)", new_root);
+
+        if (global_options.profiling) {
+            out_statement("start = clock()");
+        }
+
+        generate_action(action, fp, new_root, is_top_root, &indent);
+        out_statement("_ccn_check_points(ACTION_ID_%s, \"%s\")", action->id, action->id);
+        if (global_options.profiling) {
+            out_statement("end = clock()");
+        }
         //generate_lifetimes(action->range_specs, fp, false, true);
 
-        if (action->type != ACTION_PHASE) {
-            char *id = get_action_id(action);
-            if (id == NULL)
-                break;
-            out("_ccn_new_passes_time_frame(\"%s\", (end-start)/CLOCKS_PER_SEC);\n", id); // TODO handle error in time frame.(clock() can return -1 and so on).
-        } else {
-            Phase *phase = action->action;
-            if (phase->cycle) {
-                out("_ccn_new_cycle_time_frame(\"%s\", (end-start)/CLOCKS_PER_SEC);\n", phase->id); // TODO handle error in time frame.
+        if (global_options.profiling) {
+            if (action->type != ACTION_PHASE) {
+                char *id = get_action_id(action);
+                if (id == NULL)
+                    break;
+                out_statement("_ccn_new_passes_time_frame(\"%s\", (end-start)/CLOCKS_PER_SEC)", id); // TODO handle error in time frame.(clock() can return -1 and so on).
+            } else {
+                Phase *phase = action->action;
+                if (phase->cycle) {
+                    out_statement("_ccn_new_cycle_time_frame(\"%s\", (end-start)/CLOCKS_PER_SEC)", phase->id); // TODO handle error in time frame.
+                }
             }
         }
-        out("_exit_on_action_error();\n");
+        out_statement("_exit_on_action_error()");
     }
+    *_indent = indent;
 }
 
 void generate_phase_body(Phase *phase, FILE *fp, char *root, bool is_top_root) {
     char *new_root = phase->root == NULL ? root : phase->root;
     bool new_is_top_root = phase->root == NULL ? is_top_root : false;
+    int indent = 0;
 
     if (is_top_root) {
-        out("void %s(%s *temp_root) {\n", phase->id, root);
+        out_start_func("void %s(%s *temp_root)", phase->id, root);
     } else {
-        out("void %s_%s(%s *temp_root) {\n", phase->id, root, root);
+        out_start_func("void %s_%s(%s *temp_root)", phase->id, root, root);
     }
-    out("phase_driver_t *pd = _get_phase_driver();\n");
-    out("double start;\n");
-    out("double end;\n");
-    generate_start_phase(phase, fp);
-    out("phase_frame_t *curr_frame = _top_frame();\n");
+    out_statement("phase_driver_t *pd = _get_phase_driver()");
+    out_statement("pd = pd");
+    out_statement("const int action_id = pd->action_id");
+    if (global_options.profiling) {
+        out_statement("double start");
+        out_statement("double end");
+    }
+    generate_start_phase(phase, fp, indent);
+    out_statement("phase_frame_t *curr_frame = _top_frame()");
     if (phase->root != NULL) {
-        out("curr_frame->curr_root = NT_%s;\n", phase->root);
-        out("%s *root = NULL;\n", phase->root);
-        subtree_generate_call_find_sub_root(root, phase->root, fp, phase);
+        out_statement("curr_frame->curr_root = NT_%s", phase->root);
+        out_statement("%s *root = NULL", phase->root);
+        subtree_generate_call_find_sub_root(root, phase->root, fp, phase, &indent);
 
     } else {
-        out("curr_frame->curr_root = NT_%s;\n", root);
-        out("%s *root = temp_root;\n", root);
+        out_statement("curr_frame->curr_root = NT_%s", root);
+        out_statement("%s *root = temp_root", root);
     }
 
     if (phase->cycle && phase->root != NULL) {
-        out("bool all_notified = false;\n");
-        out("array *marks = array_init(10);\n");
-        out("curr_frame->marks = marks;");
-        out("%s *temp = root;\n", phase->root);
-        out("while (temp != NULL) {\n");
-        out("array_append(marks, _ccn_new_mark(temp));\n");
-        out("temp = temp->next;\n");
-        out("}\n\n");
-        out("cycle_mark_t *mark = NULL;\n");
-        out("while(!all_notified) {\n");
-        out("all_notified = true;\n");
-        out("for (int i = 0; i < array_size(marks); ++i) {\n");
-        out("mark = array_get(marks, i);\n");
-        out("if (!mark->notified){ continue;}\n");
-        out("mark->notified = false;\n");
-        out("_ccn_set_curr_mark(mark);\n");
-        out("all_notified = false;\n");
-        out("%s *root = mark->node;\n", new_root);
-        generate_action_list(phase->actions, fp, new_root, new_is_top_root);
-        out("}\n");
-        out("}\n\n");
+        out_statement("bool all_notified = false");
+        out_statement("array *marks = array_init(10)");
+        out_statement("curr_frame->marks = marks");
+        out_statement("%s *temp = root", phase->root);
+        out_begin_while("temp != NULL");
+        out_statement("array_append(marks, _ccn_new_mark(temp))");
+        out_statement("temp = temp->next");
+        out_end_while();
+        out_statement("cycle_mark_t *mark = NULL");
+        out_begin_while("!all_notified");
+        out_statement("_reset_cycle()");
+        out_statement("all_notified = true");
+        out_begin_for("int i = 0; i < array_size(marks); ++i");
+        out_statement("pd->action_id = action_id");
+        out_statement("mark = array_get(marks, i)");
+        out_begin_if("!mark->notified");
+        out_statement("continue");
+        out_end_if();
+        out_statement("mark->notified = false");
+        out_statement("_ccn_set_curr_mark(mark)");
+        out_statement("all_notified = false");
+        out_statement("%s *root = mark->node", new_root);
+        out_statement("%s *next = root->next", new_root);
+        out_statement("root->next = NULL");
+        generate_action_list(phase->actions, fp, new_root, new_is_top_root, &indent);
+        out_statement("root->next = next");
+        out_statement("_ccn_check_points(ACTION_ID_%s, \"%s\")", phase->id, phase->id);
+        out_end_for();
+        out_end_while();
     } else if (phase->cycle && phase->root == NULL) {
         out("do {\n");
-        out("_reset_cycle();\n");
-        generate_action_list(phase->actions, fp, new_root, new_is_top_root);
-        out("} while(_is_cycle_notified());\n\n");
+        indent++;
+        out_statement("_reset_cycle()");
+        out_statement("pd->action_id = action_id");
+        generate_action_list(phase->actions, fp, new_root, new_is_top_root, &indent);
+        out_statement("_ccn_check_points(ACTION_ID_%s, \"%s\")", phase->id, phase->id);
+        indent--;
+        out_statement("} while(_is_cycle_notified())");
+        out("\n");
     } else {
-        generate_action_list(phase->actions, fp, new_root, new_is_top_root);
+        generate_action_list(phase->actions, fp, new_root, new_is_top_root, &indent);
     }
 
-    generate_end_phase(phase, fp);
-    out("}\n\n");
+    out_statement("_ccn_check_points(ACTION_ID_%s, \"%s\")", phase->id, phase->id);
+    generate_end_phase(phase, fp, indent);
+    out_end_func();
 }
 
 
@@ -214,6 +250,18 @@ static void generate_include_action_header(Action *action, FILE *fp) {
     }
 }
 
+void print_action_ids(array *phases) {
+    for (int j = 0; j < array_size(phases); ++j) {
+        Phase *phase = array_get(phases, j);
+    for (int i = 0; i <array_size(phase->actions); ++i) {
+        Action *action = array_get(phase->actions, i);
+        printf("ACTION, ID: %s, %lu\n", action->id, (unsigned long)action->id_counter);
+    }
+    }
+}
+
+
+
 void generate_phase_function_definitions(Config *config, FILE *fp,
                                          Phase *phase) {
 
@@ -225,6 +273,7 @@ void generate_phase_function_definitions(Config *config, FILE *fp,
     generate_include("generated/ast.h", fp);
     generate_include("generated/trav-ast.h", fp);
     generate_include("generated/internal/_sub_root_handlers.h", fp);
+    generate_include("generated/breakpoint-finder.h", fp);
 
     for (int i = 0; i < array_size(phase->actions); ++i) {
         generate_include_action_header(array_get(phase->actions, i), fp);

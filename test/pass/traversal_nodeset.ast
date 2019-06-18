@@ -1,18 +1,16 @@
 // Traversal nodes should expand to A,B,C,D
 traversal Trav {
-    nodes {
-        SET1, SET2
-    }
+    nodes = SET1 | SET2 | {A, B, C},
 };
 
 nodeset SET1 {
-    nodes {
+    nodes = {
         A, B, C
     }
 };
 
 nodeset SET2 {
-    nodes {
+    nodes = {
         C, D
     }
 };

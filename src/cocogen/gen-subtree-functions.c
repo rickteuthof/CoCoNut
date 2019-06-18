@@ -37,14 +37,16 @@ static inline void generate_include(char *filename, FILE *fp) {
 }
 
 /* TODO we only take one root. Not really the root idea. */
-void subtree_generate_call_find_sub_root(char *root, char *to_find, FILE *fp, Phase *phase) {
-    out("trav_start_%s(temp_root, TRAV__CCN_PhaseDriver_Find%sFrom%s);\n", root, to_find, root);
-    out("root = _ccn_subroot_get_%s();\n", to_find);
-    out("if (root == NULL) {\n");
-    out("printf(\"O NO ITS NULL\\n\");\n"); // TODO improve this.
-    out("_ccn_end_phase(\"%s\");", phase->id);
-    out("return;\n");
-    out("}\n\n");
+void subtree_generate_call_find_sub_root(char *root, char *to_find, FILE *fp, Phase *phase, int *_indent) {
+    int indent = *_indent;
+    out_statement("trav_start_%s(temp_root, TRAV__CCN_PhaseDriver_Find%sFrom%s)", root, to_find, root);
+    out_statement("root = _ccn_subroot_get_%s()", to_find);
+    out_begin_if("root == NULL");
+    out_statement("printf(\"Could not find sub-root %s from parent %s\\n\")", to_find, root);
+    out_statement("_ccn_end_phase(\"%s\")", phase->id);
+    out_statement("return");
+    out_end_if();
+    *_indent = indent;
 }
 
 /* Generates the function to set the sub-root for a defined nodetype/

@@ -1,38 +1,56 @@
+/*start phase RootPhase {
+    prefix = "RT",
+    actions {
+        LoadProgram,
+        Semantic,
+        Codegen
+    }
+};
+
+pass LoadProgram;
+traversal Semantic;
+
+cycle Codegen {
+    prefix = "CDG",
+    root = FunDef,
+    actions {
+        traversal Bytecode,
+        traversal Print
+    }
+};*/
+
 start phase RootPhase {
     prefix = "Root",
     actions {
         LoadProgram,
         SemanticAnalysis,
-        CodeGen,
-        Print
+        CodeGen
     }
 };
 
 phase LoadProgram {
     prefix = "LP", 
     actions {
-        CodeGen,
         pass ScanAndParse
     }
 };
 
+
 cycle SemanticAnalysis {
     prefix = "SEA",
-    root = StmtList,
     actions {
-       Print,
-       CodeGen
+        ByteCode
     }
 };
 
-phase CodeGen {
+cycle CodeGen {
     prefix = "CG",
     root = FunDef,
     actions {
-        ByteCode
+        ByteCode,
+        Print
     }  
 };
-
 enum BasicType {
     prefix = BT,
     values = {
@@ -289,7 +307,7 @@ node Return {
 
 node BinOp {
     children {
-        Expr left { constructor, mandatory},
+        Expr left { constructor, disallowed},
         Expr right { constructor, mandatory }
     },
     attributes {

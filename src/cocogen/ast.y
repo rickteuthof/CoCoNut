@@ -818,5 +818,6 @@ struct Config* parse(FILE *fp) {
         yy_lines, yy_parser_locations);
     yyparse();
     yylex_destroy();
+
     return parse_result;
 }

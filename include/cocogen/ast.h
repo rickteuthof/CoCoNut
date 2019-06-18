@@ -107,7 +107,7 @@ typedef struct Config {
     array *nodes;
 
     struct Node *root_node;
-    struct Phase *phase_tree;
+    struct Phase *start_phase;
 
     struct NodeCommonInfo *common_info;
 } Config;
