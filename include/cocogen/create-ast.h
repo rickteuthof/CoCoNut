@@ -14,7 +14,7 @@ Traversal *create_traversal(char *id, char *func, char *prefix, SetExpr *expr);
 
 Phase *create_phase_header(char *id, bool root, bool cycle);
 
-Phase *create_phase(Phase *phase_header, char *root, char *prefix, array *actions);
+Phase *create_phase(Phase *phase_header, char *root, char *prefix, array *actions, char *gate);
 
 Enum *create_enum(char *id, char *prefix, array *values);
 

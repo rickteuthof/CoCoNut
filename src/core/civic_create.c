@@ -104,7 +104,8 @@ int main() {
    
     _initialize_phase_driver();
     //ccn_set_breakpoint("CodeGen:2=Print");
-    //ccn_set_breakpoint("CodeGen:2");
+    //ccn_set_breakpoint("CodeGen:1");
+    ccn_set_inspect_point("LoadProgram");
     phasedriver_run(program);
     /*for (int i = 0; i < 10; i++) {
         start = clock();

@@ -9,6 +9,7 @@
 #include "lib/array.h"
 #include "lib/memory.h"
 #include "lib/str.h"
+#include "lib/print.h"
 #include "cocogen/filegen-util.h"
 #include "generated/breakpoint-finder.h"
 #include "generated/traversal-Print.h"
@@ -48,11 +49,20 @@ void _pop_chk_frame(char *key) {
     }
 }
 
-void _exit_on_action_error() {
+void _exit_on_action_error(const char *action) {
     if (phase_driver.action_error) {
+        print_user_error("CCN Error", "Reached action error.\n| Action: %s\n| Path: %s\n", action,  _ccn_get_path());
         exit(1);
     }
 }
+
+void _exit_on_phase_error() {
+    if (_top_frame()->phase_error) {
+        print_user_error("CCN Error", "Reached phase error .\n| Path: %s\n", _ccn_get_path());
+        exit(1);
+    }
+}
+
 
 void _reset_cycle() {
     phase_frame_t *frame = array_last(phase_driver.phase_stack);
@@ -82,6 +92,7 @@ void _push_frame(char *id) {
     frame->curr_mark = NULL;
     frame->marks = NULL;
     frame->cycles = 0;
+    frame->phase_error = false;
     array_append(phase_driver.phase_stack, frame);
 }
 
@@ -107,6 +118,7 @@ void _initialize_phase_driver() {
     phase_driver.breakpoint = NULL;
     phase_driver.ast = NULL;
     phase_driver.current_action = NULL;
+    phase_driver.total_time = 0;
 
 }
 
@@ -160,6 +172,8 @@ void _ccn_start_phase(char *id) {
 }
 
 void _ccn_end_phase(char *id) {
+    _exit_on_phase_error();
+
     phase_driver.level--;
     printf(COLOR_GREEN "[CCN] " COLOR_RESET);
     for(int i = 0; i < phase_driver.level; i++) {
@@ -169,22 +183,22 @@ void _ccn_end_phase(char *id) {
     _pop_frame();
 }
 
-void _ccn_new_cycle_time_frame(char *id, double time_sec) {
+void _ccn_new_phase_time_frame(char *id, double time_sec) {
     phase_frame_t *top = _top_frame();
     time_frame_t *time_frame = mem_alloc(sizeof(time_frame_t));
     time_frame->id = id;
     time_frame->time_sec = time_sec;
-    time_frame->parent_phase = top->phase_id;
+    time_frame->path = _ccn_get_path();
     array_append(phase_driver.cycles_time_frames, time_frame);
 
 }
 
-void _ccn_new_passes_time_frame(char *id, double time_sec) {
+void _ccn_new_pass_time_frame(char *id, double time_sec) {
     phase_frame_t *top = _top_frame();
     time_frame_t *time_frame = mem_alloc(sizeof(time_frame_t));
     time_frame->id = id;
     time_frame->time_sec = time_sec;
-    time_frame->parent_phase = top->phase_id;
+    time_frame->path = _ccn_get_path();
     array_append(phase_driver.passes_time_frames, time_frame);
 }
 
@@ -197,6 +211,17 @@ int compare_time_frame_inverse(const void *a, const void *b) {
         return 1;
     }
     return 0;
+}
+
+void _ccn_print_time_frame(time_frame_t *time_frame) {
+    printf("Name: %s\n", time_frame->id);
+    printf("Path: %s\n", time_frame->path);
+    printf("Time: %f\n", time_frame->time_sec);
+    if (time_frame->time_sec == 0.0) {
+        printf("\n");
+        return;
+    }
+    printf("%% Time: %f\n\n" , (time_frame->time_sec / phase_driver.total_time) * 100);
 }
 
 void _print_top_n_time(int n) {
@@ -212,20 +237,21 @@ void _print_top_n_time(int n) {
     printf("Time statistic:\n\n");
 
     printf("Passes:\n");
-    printf("Time(s)  | name of pass\n");
     for (int i = 0; i < n; ++i) {
         time_frame_t *time_frame = array_get(passes_times, i);
-        printf("%f | %s.%s\n", time_frame->time_sec, time_frame->parent_phase, time_frame->id);
+        _ccn_print_time_frame(time_frame);
     }
     printf("\n");
+    printf("-----------------------------------------------\n");
     if (n > array_size(cycles_times))
         n = array_size(cycles_times);
-    printf("Cycles:\n");
-    printf("Time(s)  | name of cycle\n");
+    printf("Phases:\n");
     for (int i = 0; i < n; ++i) {
         time_frame_t *time_frame = array_get(cycles_times, i);
-        printf("%f | %s.%s\n", time_frame->time_sec, time_frame->parent_phase, time_frame->id);
+        _ccn_print_time_frame(time_frame);
     }
+    printf("-------------------------------------------\n");
+    printf("Total time: %f seconds\n", phase_driver.total_time);
     printf("---------------------------------------------------------------------------------\n\n");
 
 }
@@ -341,6 +367,31 @@ void _ccn_check_points(enum ACTION_IDS id, char *current_action) {
     _ccn_check_inspect_point(id, current_action);
     _ccn_check_breakpoint(id);
 }
+
+// TODO: cache this in phase driver as an array.
+char *_ccn_get_path() {
+    array *path_elements = create_array();
+    if (array_size(phase_driver.phase_stack) == 0) {
+        return ccn_str_cpy("");
+    }
+
+    for (int i = 0; i < array_size(phase_driver.phase_stack) - 1; ++i) {
+        phase_frame_t *frame = array_get(phase_driver.phase_stack, i);
+        array_append(path_elements, frame->phase_id);
+        array_append(path_elements, ".");
+    }
+
+    phase_frame_t *frame = array_get(phase_driver.phase_stack, array_size(phase_driver.phase_stack) - 1);
+    array_append(path_elements, frame->phase_id);
+
+    char *path = ccn_str_cat_array(path_elements);
+
+    array_clear(path_elements);
+    array_cleanup(path_elements, mem_free);
+
+    return path;
+}
+
 
 void _print_path() {
     if (array_size(phase_driver.phase_stack) <= 0)

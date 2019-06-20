@@ -17,6 +17,11 @@ static inline void error_action_fatal() {
     pd->action_error = true;
 }
 
+static inline void error_phase_fatal() {
+    phase_frame_t *frame = _top_frame();
+    frame->phase_error = true;
+}
+
 void ccn_notify_error(enum CCN_Error error_type) {
     switch (error_type) {
     case CCN_FATAL:
@@ -27,6 +32,9 @@ void ccn_notify_error(enum CCN_Error error_type) {
         break;
     case CCN_NON_FATAL:
         error_non_fatal();
+        break;
+    case CCN_PHASE_FATAL:
+        error_phase_fatal();
         break;
     }
 }

@@ -49,11 +49,16 @@ void generate_phase_driver_definitions(Config *config, FILE *fp) {
     }
 
     out("#include \"generated/phase-%s.h\"\n", root_phase->id);
+    out("#include <time.h>\n");
 
     out("void phasedriver_run(%s *root) {\n\t_initialize_phase_driver();", config->root_node->id);
     out("phase_driver_t *pd = _get_phase_driver();\n");
     out("pd->ast = root;\n");
+    out("double start = 0.0, end = 0.0;\n");
+    out("start = clock();\n");
     out("%s(root);\n", root_phase->id);
+    out("end = clock();\n");
+    out("pd->total_time = (end - start)/CLOCKS_PER_SEC;\n");
     out(" _print_top_n_time(10);\n");
     out("}\n");
 }

@@ -200,7 +200,7 @@ static Phase *copy_phase_shallow(Phase *phase) {
     }
     new->common_info->hash = phase->common_info->hash;
     new->common_info->hash_matches = phase->common_info->hash_matches;
-    new = create_phase(new, root, ccn_str_cpy(phase->prefix), actions);
+    new = create_phase(new, root, ccn_str_cpy(phase->prefix), actions, phase->gate_func);
     ccn_set_free(new->roots);
     new->roots = ccn_set_copy(phase->roots);
     new->root_owner = false;

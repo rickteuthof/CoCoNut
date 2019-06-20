@@ -15,6 +15,7 @@ struct Info {
 Info *Print_createinfo(void) {
     Info *res = (Info *)mem_alloc(sizeof(Info));
     res->indent = 0;
+    //ccn_notify_error(CCN_PHASE_FATAL);
     return res;
 }
 

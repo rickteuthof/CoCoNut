@@ -145,6 +145,7 @@ static inline void check_c_keyword(const char *);
 "->"            { LEX_KEYWORD(T_ARROW);}
 "false"         { LEX_KEYWORD(T_FALSE);}
 "true"          { LEX_KEYWORD(T_TRUE);}
+"gate"          { LEX_KEYWORD(T_GATE);}
 
 "NULL"          { return T_NULL;}
 

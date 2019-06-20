@@ -100,13 +100,19 @@ void generate_lifetimes(array *lifetimes, FILE *fp, bool inclusive_start, bool i
     }
 }
 
-// TODO: handle CHK traversal for sub_roots.
+
 void generate_action_list(array *actions, FILE *fp, char *new_root, bool is_top_root, int *_indent) {
     int indent = *_indent;
      for (int i = 0; i < array_size(actions); ++i){
         Action *action = array_get(actions, i);
-        //generate_lifetimes(action->range_specs, fp, true, false);
+
         out_statement("pd->action_id++");
+        if (action->type == ACTION_PHASE) {
+            Phase *p = (Phase*)action->action;
+            if (p->gate_func != NULL) {
+                out_begin_if("%s()", p->gate_func);
+            }
+        }
         out_statement("pd->current_action = \"%s\"", action->id);
         out_statement("trav_start_%s(root, TRAV__CCN_CHK)", new_root);
 
@@ -115,10 +121,10 @@ void generate_action_list(array *actions, FILE *fp, char *new_root, bool is_top_
         }
 
         generate_action(action, fp, new_root, is_top_root, &indent);
-        out_statement("_ccn_check_points(ACTION_ID_%s, \"%s\")", action->id, action->id);
         if (global_options.profiling) {
             out_statement("end = clock()");
         }
+        out_statement("_ccn_check_points(ACTION_ID_%s, \"%s\")", action->id, action->id);
         //generate_lifetimes(action->range_specs, fp, false, true);
 
         if (global_options.profiling) {
@@ -126,15 +132,23 @@ void generate_action_list(array *actions, FILE *fp, char *new_root, bool is_top_
                 char *id = get_action_id(action);
                 if (id == NULL)
                     break;
-                out_statement("_ccn_new_passes_time_frame(\"%s\", (end-start)/CLOCKS_PER_SEC)", id); // TODO handle error in time frame.(clock() can return -1 and so on).
+                out_statement("_ccn_new_pass_time_frame(\"%s\", (end-start)/CLOCKS_PER_SEC)", id); // TODO handle error in time frame.(clock() can return -1 and so on).
             } else {
                 Phase *phase = action->action;
-                if (phase->cycle) {
-                    out_statement("_ccn_new_cycle_time_frame(\"%s\", (end-start)/CLOCKS_PER_SEC)", phase->id); // TODO handle error in time frame.
-                }
+                out_statement("_ccn_new_phase_time_frame(\"%s\", (end-start)/CLOCKS_PER_SEC)", phase->id); // TODO handle error in time frame.
             }
         }
-        out_statement("_exit_on_action_error()");
+        out_statement("_exit_on_action_error(\"%s\")", action->id);
+        if (action->type == ACTION_PHASE) {
+            Phase *p = (Phase*)action->action;
+            if (p->gate_func != NULL) {
+                out_end_if();
+                out_begin_else();
+                out_statement("pd->action_id += %d", array_size(p->actions));
+                out_end_else();
+            }
+        }
+
     }
     *_indent = indent;
 }
@@ -195,8 +209,8 @@ void generate_phase_body(Phase *phase, FILE *fp, char *root, bool is_top_root) {
         out_statement("root->next = NULL");
         generate_action_list(phase->actions, fp, new_root, new_is_top_root, &indent);
         out_statement("root->next = next");
-        out_statement("_ccn_check_points(ACTION_ID_%s, \"%s\")", phase->id, phase->id);
         out_end_for();
+        out_statement("_ccn_check_points(ACTION_ID_%s, \"%s\")", phase->id, phase->id);
         out_end_while();
     } else if (phase->cycle && phase->root == NULL) {
         out("do {\n");
@@ -274,6 +288,7 @@ void generate_phase_function_definitions(Config *config, FILE *fp,
     generate_include("generated/trav-ast.h", fp);
     generate_include("generated/internal/_sub_root_handlers.h", fp);
     generate_include("generated/breakpoint-finder.h", fp);
+    generate_include("generated/gate_functions.h", fp);
 
     for (int i = 0; i < array_size(phase->actions); ++i) {
         generate_include_action_header(array_get(phase->actions, i), fp);

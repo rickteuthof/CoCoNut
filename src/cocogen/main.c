@@ -36,6 +36,7 @@
 #include "cocogen/gen-phase-functions.h"
 #include "cocogen/gen-subtree-functions.h"
 #include "cocogen/breakpoint_generation.h"
+#include "cocogen/gen-gate-functions.h"
 
 #include "cocogen/command_opts.h"
 
@@ -264,6 +265,7 @@ int main(int argc, char *argv[]) {
                      generate_binary_serialization_all_header);
 
     filegen_generate("breakpoint-finder.h", generate_breakpoint);
+    filegen_generate("gate_functions.h", generate_gate_functions);
 
     filegen_cleanup_old_files();
 

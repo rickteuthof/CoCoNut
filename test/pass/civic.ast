@@ -30,6 +30,7 @@ start phase RootPhase {
 
 phase LoadProgram {
     prefix = "LP", 
+    gate,
     actions {
         pass ScanAndParse
     }
@@ -38,6 +39,7 @@ phase LoadProgram {
 
 cycle SemanticAnalysis {
     prefix = "SEA",
+    gate,
     actions {
         ByteCode
     }
@@ -46,6 +48,7 @@ cycle SemanticAnalysis {
 cycle CodeGen {
     prefix = "CG",
     root = FunDef,
+    gate = "Gate_CodeGen",
     actions {
         ByteCode,
         Print
@@ -307,7 +310,7 @@ node Return {
 
 node BinOp {
     children {
-        Expr left { constructor, disallowed},
+        Expr left { constructor, mandatory},
         Expr right { constructor, mandatory }
     },
     attributes {

@@ -31,7 +31,7 @@ typedef struct ccn_chk_frame {
 
 typedef struct time_frame {
     char *id;
-    char *parent_phase;
+    char *path;
     double time_sec;
 } time_frame_t;
 
@@ -43,6 +43,7 @@ typedef struct cycle_mark {
 typedef struct phase_frame {
     char *phase_id;
     bool cycle_notified;
+    bool phase_error;
     array *marks;
     NodeType curr_root;
     cycle_mark_t *curr_mark;
@@ -73,6 +74,7 @@ typedef struct phase_driver {
     array *inspection_points;
     char *current_action;
     void *ast;
+    double total_time;
 } phase_driver_t;
 
 
@@ -85,16 +87,18 @@ void _ccn_end_phase(char *id);
 void _push_chk_frame(char *key, enum ccn_chk_types type);
 void _pop_chk_frame(char *key);
 void _exit_on_action_error();
+void _exit_on_phase_error();
 bool _is_cycle_notified();
 void _reset_cycle();
 void _initialize_phase_driver();
 void _ccn_set_curr_mark(cycle_mark_t *mark);
-void _ccn_new_passes_time_frame(char *id, double time);
-void _ccn_new_cycle_time_frame(char *id, double time);
+void _ccn_new_pass_time_frame(char *id, double time);
+void _ccn_new_phase_time_frame(char *id, double time);
 void _ccn_check_points(enum ACTION_IDS id, char *curr_action);
 bool ccn_set_breakpoint(char *breakpoint);
 bool ccn_set_inspect_point(char *inspect);
 void _print_top_n_time(int n);
 void _print_path();
+char *_ccn_get_path();
 
 phase_driver_t *_get_phase_driver();

@@ -45,17 +45,19 @@ Phase *create_phase_header(char *id, bool start, bool cycle) {
     p->cycle = cycle;
     p->root_owner = true;
     p->original_ref = NULL;
+    p->gate_func = NULL;
 
     p->common_info = create_commoninfo();
     return p;
 }
 
-Phase *create_phase(Phase *phase_header, char *root, char *prefix, array *actions) {
+Phase *create_phase(Phase *phase_header, char *root, char *prefix, array *actions, char *gate_func) {
 
     Phase *p = phase_header;
     p->root = root;
     p->actions = actions;
     p->prefix = prefix;
+    p->gate_func = gate_func;
     p->active_specs = smap_init(5);
     return p;
 }

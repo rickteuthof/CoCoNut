@@ -13,6 +13,7 @@
 #include "lib/array.h"
 #include "lib/imap.h"
 #include "lib/print.h"
+#include "lib/str.h"
 
 extern bool yy_lex_keywords;
 
@@ -140,6 +141,7 @@ static void new_location(void *ptr, struct ParserLocation *loc);
 %token T_NULL "NULL"
 %token T_LIFETIME "lifetime"
 %token T_DISALLOWED "disallowed"
+%token T_GATE "gate"
 %token T_ARROW "->"
 %token END 0 "End-of-file (EOF)"
 
@@ -196,16 +198,48 @@ prefix: T_PREFIX '=' T_STRINGVAL
           new_location($$, &@$);
       }
 
-phase: phaseheader '{' prefix ',' actionsbody '}'
+phase: phaseheader '{' prefix ',' T_GATE ',' actionsbody '}'
      {
-         $$ = create_phase($1, NULL, $3, $5);
+         $$ = create_phase($1, NULL, $3, $7, ccn_str_cat($1->id, "_gate"));
      }
      | phaseheader '{' prefix ',' T_ROOT '=' T_ID ',' actionsbody '}'
      {
-         $$ = create_phase($1, $7, $3, $9);
+         $$ = create_phase($1, $7, $3, $9, NULL);
          new_location($7, &@7);
      }
+     | phaseheader '{' prefix ',' actionsbody '}'
+     {
+         $$ = create_phase($1, NULL, $3, $5, NULL);
+     }
+     | phaseheader '{' prefix ',' T_ROOT '=' T_ID ',' T_GATE ',' actionsbody '}'
+     {
+         $$ = create_phase($1, $7, $3, $11, ccn_str_cat($1->id, "_gate"));
+         new_location($7, &@7);
+     }
+     | phaseheader '{' prefix ',' T_ROOT '=' T_ID ',' T_GATE '=' T_STRINGVAL ',' actionsbody '}'
+     {
+         $$ = create_phase($1, $7, $3, $13, $11);
+         new_location($11, &@11);
+         new_location($7, &@7);
+     }
+     | phaseheader '{' prefix ',' T_GATE '=' T_STRINGVAL ',' actionsbody '}'
+     {
+         $$ = create_phase($1, NULL, $3, $9, $7);
+         new_location($7, &@7);
+     }
+     | phaseheader '{' T_GATE '=' T_STRINGVAL ',' actionsbody '}'
+     {
+         $$ = create_phase($1, NULL, NULL, $7, $5);
+         new_location($5, &@5);
+     }
+     | phaseheader '{' T_GATE ',' actionsbody '}'
+     {
+         $$ = create_phase($1, NULL, NULL, $5, ccn_str_cat($1->id, "_gate"));
+     }
+    
+ 
      ;
+
 
 actionsbody: T_ACTIONS '{' actions '}'
      {

@@ -119,6 +119,7 @@ struct Phase {
     char *info;
     char *prefix;
     char *root;
+    char *gate_func;
 
     bool cycle;
     bool start;
