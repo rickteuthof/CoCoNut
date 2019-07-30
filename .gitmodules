@@ -1,0 +1,4 @@
+[submodule "CoCoNut-lib"]
+	path = CoCoNut-lib
+	url = https://github.com/leegbestand/CoCoNut-lib.git
+	branch = master
