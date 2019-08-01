@@ -22,6 +22,11 @@
 #define out_enum_field(...) print_indent_level(indent, fp); fprintf(fp, __VA_ARGS__); fprintf(fp, ",\n");
 #define out_begin_else() print_indent_level(indent, fp); fprintf(fp, "else {\n"); indent++;
 #define out_end_else() indent--; print_indent_level(indent, fp); fprintf(fp, "}\n\n");
+#define out_begin_switch(...) print_indent_level(indent, fp); fprintf(fp, "switch ("); fprintf(fp, __VA_ARGS__); fprintf(fp, ") {\n");
+#define out_begin_case(...) print_indent_level(indent, fp); fprintf(fp, "case "); fprintf(fp, __VA_ARGS__); fprintf(fp, ":\n"); indent++;
+#define out_end_case() indent--;
+#define out_begin_default_case() print_indent_level(indent, fp); fprintf(fp, "default:\n"); indent++;
+#define out_end_switch() print_indent_level(indent, fp); fprintf(fp, "}\n");
 
 void print_indent_level(int indent_level, FILE *);
 void generate_node_header_includes(Config *, FILE *, Node *);

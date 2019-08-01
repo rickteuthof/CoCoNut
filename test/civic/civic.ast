@@ -1,124 +1,87 @@
-start phase RootPhase {
-    prefix = R,
-    actions {
-        LoadProgram;
-        SemanticAnalysis;
-        Optimisations;
-        CodeGen;
+root phase RootPhase {
+    passes {
+        Print
     }
 };
-
-phase LoadProgram {
-    prefix = LP, 
-    actions {
-        pass ScanAndParse;
-    }
-};
-
-cycle Optimisations {
-    gate,
-    actions {
-        pass Optimisation1;
-        pass Optimisation2;
-        pass Optimisation3;
-    }
-};
-
-phase SemanticAnalysis {
-    prefix = SA,
-    actions {
-        ByteCode;
-    }
-};
-
-phase CodeGen {
-    prefix = CG,
-    actions {
-        ByteCode;
-        Print;
-    }  
-};
-
-
-
-
-
-
-
-
-
-
-
 
 enum BasicType {
     prefix = BT,
-    values = {
+    values {
         int, float, bool, void
     }
 };
 
 enum MonOpEnum {
     prefix = MO,
-    values = {
+    values {
         neg, not
     }
 };
 
 enum BinOpEnum {
     prefix = BO,
-    values = {
+    values {
         mul, add, sub, div, mod, lt, leq, eq, gt, geq, neq, and, or
     }
 };
 
-pass Test;
-
 traversal Print;
 traversal ByteCode;
-
 traversal RenameFor {
-    prefix = RFOR,
-    nodes = {For, VarLet, Var}
+    nodes {
+        For, VarLet, Var
+    }
 };
 
 traversal Context {
-    prefix = CTX,
-    nodes = Decl | Vars | {Root, Param, For, FunCall}
+    nodes {
+        Root, GlobalDef, GlobalDec, FunDef, Param, For, VarDec, VarLet, Var, FunCall
+    }
 };
 
 traversal SplitInit {
-    prefix = SIT,
-    nodes = {Root, GlobalDef, FunBody, VarDec}
+    nodes {
+        Root, GlobalDef, FunBody, VarDec
+    }
 };
 
 traversal TypeCheck {
-    prefix = TCK,
-    nodes = Stmt | FunctionParts | Expr - {Ternary}
+    nodes {
+        FunDef, FunBody, Return, VarLet, For, DoWhile, While, IfElse, FunCall,
+        BinOp, MonOp, Cast, Var, IntConst, FloatConst, BoolConst
+    }
 };
 
 traversal Refactor {
-    prefix = RAT,
-    nodes = {While, StmtList} | Expr - {MonOp, Ternary}
+    nodes {
+        Cast, While, StmtList, BinOp, IntConst, FloatConst, BoolConst, Var,
+        FunCall
+    }
 };
 
 traversal Symbols {
-    prefix = SOS,
-    nodes = {Root, FunDef, FunSymbol, Symbol}
+    nodes {
+        Root, FunDef, FunSymbol, Symbol
+    }
 };
 
-nodeset Constants = {FloatConst, BoolConst, IntConst};
+nodeset Decl {
+    nodes {
+        FunDef, GlobalDef, GlobalDec
+    }
+};
 
-nodeset Operations = {BinOp, MonOp};
+nodeset Expr {
+    nodes {
+        BinOp, MonOp, Cast, FunCall, Var, Ternary, IntConst, FloatConst, BoolConst
+    }
+};
 
-nodeset Decl = {GlobalDef, GlobalDec, FunDef};
-
-nodeset Vars = {VarDec, Var, VarLet};
-
-nodeset FunctionParts = {FunDef, FunHeader, Param, FunBody};
-
-nodeset Expr = {Cast, FunCall, Var, Ternary} | (Constants | Operations);
-
-nodeset Stmt = {VarLet, FunCall, IfElse, While, DoWhile, For, Return};
+nodeset Stmt {
+    nodes {
+        VarLet, FunCall, IfElse, While, DoWhile, For, Return
+    }
+};
 
 root node Root {
     children {
@@ -147,7 +110,6 @@ node FunDef {
         FunHeader funheader { constructor, mandatory },
         FunBody funbody { constructor },
         FunSymbol funsymbol { constructor },
-        FunDef next { constructor },
         Symbol symbol { constructor }
     },
     attributes {
@@ -158,7 +120,7 @@ node FunDef {
 
 node FunHeader {
     children {
-        Param params { constructor }
+        Param params { constructor, mandatory }
     },
     attributes {
         BasicType rettype { constructor },
@@ -205,7 +167,7 @@ node FunBody {
 
 node VarDec {
     children {
-        Expr expr { constructor },
+        Expr expr { constructor, mandatory },
         VarDec next { constructor }
     },
     attributes {
@@ -292,11 +254,11 @@ node Return {
 
 node BinOp {
     children {
-        Expr left { constructor, mandatory},
+        Expr left { constructor, mandatory },
         Expr right { constructor, mandatory }
     },
     attributes {
-        BinOpEnum op { constructor, mandatory, disallowed = {and, or}}
+        BinOpEnum op { constructor }
     }
 };
 

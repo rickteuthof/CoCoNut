@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
+#include <math.h>
 
 #include "cocogen/ast.h"
 #include "cocogen/check-ast.h"
@@ -27,6 +29,7 @@ struct Info {
     smap_t *phase_name;
     smap_t *pass_name;
     smap_t *action_prefix;
+    ccn_set_t *functions;
 
     Config *config;
     Node *root_node;
@@ -36,7 +39,7 @@ struct Info {
 static struct Info *create_info(Config *config) {
 
     struct Info *info = (struct Info *)mem_alloc(sizeof(struct Info));
-
+    // 32 is a magic number.
     info->enum_name = smap_init(32);
     info->enum_prefix = smap_init(32);
     info->node_name = smap_init(32);
@@ -45,6 +48,7 @@ static struct Info *create_info(Config *config) {
     info->phase_name = smap_init(32);
     info->pass_name = smap_init(32);
     info->action_prefix = smap_init(32);
+    info->functions = ccn_set_string_create(32);
 
     info->config = config;
     info->root_node = NULL;
@@ -61,12 +65,61 @@ static void free_info(struct Info *info) {
     smap_free(info->phase_name);
     smap_free(info->pass_name);
     smap_free(info->action_prefix);
+    ccn_set_free(info->functions);
     mem_free(info);
 }
 
 static void *check_prefix_exists(struct Info *info, char *prefix) {
     return smap_retrieve(info->action_prefix, prefix);
 }
+
+static char *gen_unique_prefix_from_existing_prefix(char *prefix, struct Info *info) {
+    size_t i = 1;
+    int max_size = (int)ceil(log10(SIZE_MAX));
+    char buffer[max_size + 2];
+    while (true) {
+        snprintf(buffer, max_size + 2, "%zu", i);
+        char *new_prefix = ccn_str_cat(prefix, buffer);
+        if (check_prefix_exists(info, new_prefix) == NULL) {
+            mem_free(prefix);
+            return new_prefix;
+        }
+        i++;
+        if (i == 0) // Reached when overflowed.
+            return NULL;
+    }
+}
+
+static char *gen_prefix_from_string(const char *string, struct Info *info) {
+    size_t len = strlen(string);
+    assert(len > 0);
+    size_t index = 0;
+    bool push = false;
+
+    char *chars = mem_alloc(len * sizeof(char));
+    chars[0] = *string;
+    index++;
+
+    while (*string++) {
+        if (push) {
+            chars[index] = *string;
+            index++;
+        }
+        push = false;
+
+        if (isupper(*string)) {
+            chars[index] = *string;
+            index++;
+        }
+
+        if (*string == '_') {
+            push = true;
+        }
+    }
+    chars[index] = '\0';
+    return gen_unique_prefix_from_existing_prefix(realloc(chars, (strlen(chars) + 1) * sizeof(char)), info);
+}
+
 
 static void *check_name_exists(struct Info *info, char *name) {
     Enum *enum_orig;
@@ -301,6 +354,14 @@ static int check_phases(array *phases, struct Info *info) {
             } else {
                 smap_insert(info->action_prefix, cur_phase->prefix, cur_phase->prefix);
             }
+        } else {
+            char *pref = gen_prefix_from_string(cur_phase->id, info);
+            if (pref == NULL) {
+                print_user_error("CCN", "Could not create prefix");
+                exit(1);
+            }
+            cur_phase->prefix = pref;
+            smap_insert(info->action_prefix, cur_phase->prefix, cur_phase->prefix);
         }
     }
 
@@ -339,6 +400,14 @@ static int check_passes(array *passes, struct Info *info) {
             } else {
                 smap_insert(info->action_prefix, cur_pass->prefix, cur_pass->prefix);
             }
+        } else {
+            char *pref = gen_prefix_from_string(cur_pass->id, info);
+            if (pref == NULL) {
+                print_user_error("CCN", "Could not create prefix");
+                exit(1);
+            }
+            cur_pass->prefix = pref;
+            smap_insert(info->action_prefix, cur_pass->prefix, cur_pass->prefix);
         }
     }
     return error;
@@ -370,6 +439,14 @@ static int check_traversals(array *traversals, struct Info *info) {
             } else {
                 smap_insert(info->action_prefix, cur_traversal->prefix, cur_traversal->prefix);
             }
+        } else {
+            char *pref = gen_prefix_from_string(cur_traversal->id, info);
+            if (pref == NULL) {
+                print_user_error("CCN", "Could not create prefix");
+                exit(1);
+            }
+            cur_traversal->prefix = pref;
+            smap_insert(info->action_prefix, cur_traversal->prefix, cur_traversal->prefix);
         }
 
     }
@@ -572,7 +649,7 @@ static int check_traversal(Traversal *traversal, struct Info *info) {
             smap_insert(node_name_expanded, node, node);
         } else if (traversal_nodeset) {
 
-            // Add every node in the nodeset to the expanded node list
+            // Adds every node in the nodeset to the expanded node list
             for (int j = 0; j < array_size(traversal_nodeset->nodes); j++) {
                 Node *nodeset_node = array_get(traversal_nodeset->nodes, j);
                 if (smap_retrieve(node_name_expanded, nodeset_node->id) ==
@@ -602,16 +679,20 @@ static int check_traversal(Traversal *traversal, struct Info *info) {
 static int check_pass(Pass *pass, struct Info *info) {
 
     int error = 0;
-
-    // TODO: check collission of func
-
+    if (pass->func != NULL) {
+        if (ccn_set_contains(info->functions, pass->func)) {
+            error = 1;
+            print_error(pass->func, "Function already used in another pass.");
+        } else {
+            ccn_set_insert(info->functions, pass->func);
+        }
+    }
     return error;
 }
 
 static inline void add_required_root_to_phase(Phase *phase, char *root) {
     if (!phase->root_owner) {
         ccn_set_insert(phase->original_ref->roots, ccn_str_cpy(root));
-
     } else {
         ccn_set_insert(phase->roots, ccn_str_cpy(root));
     }
@@ -621,7 +702,7 @@ static int check_phase(Phase *phase, struct Info *info, smap_t *phase_order) {
     int error = 0;
 
     if (phase->start) {
-        if (info->root_phase != NULL) { // TODO: renamte root_phase to start_phase in info struct.
+        if (info->root_phase != NULL) { // TODO: rename root_phase to start_phase in info struct.
             print_error(phase->id, "Double declaration of start phase");
             print_note(info->root_phase->id, "Previously declared here");
             error = 1;
@@ -631,26 +712,52 @@ static int check_phase(Phase *phase, struct Info *info, smap_t *phase_order) {
         }
     }
 
-    for (int i = 0; i < array_size(phase->actions); ++i) {
-        Action *action = array_get(phase->actions, i);
-        if (action->type == ACTION_PHASE && phase->root != NULL) {
-            add_required_root_to_phase((Phase *)action->action, phase->root);
-        }
-
-    }
     smap_insert(phase_order, phase->id, phase);
 
     return error;
 }
 
-// TODO: handle cyclic dependencies. IF A depends on B and B on A this will go
-// on forever.... Need to throw an error then.
-static void evaluate_set_expr(SetExpr *expr, struct Info *info, int *error) {
+void print_cyclic_error(array *vals, SetExpr *to_add) {
+    print_error(to_add, "Element creates a cyclic dependency.");
+    print_note_no_loc("Dependency chain:");
+    for (int i = 0; i < array_size(vals); ++i) {
+        char *val = array_get(vals, i);
+        printf("%s->", val);;
+    }
+    printf("%s\n", to_add->ref_id);
+}
+
+bool is_cyclic_dependency(array *vals, char *new_to_add) {
+    for (int i = 0; i < array_size(vals); ++i) {
+        char *val = array_get(vals, i);
+        if (ccn_str_equal(val, new_to_add)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static void evaluate_set_expr(SetExpr *expr, struct Info *info, int *error, array *merged_sets, bool report) {
     ccn_set_t *new_set = NULL;
     if (expr->type == SET_REFERENCE) {
+        if (is_cyclic_dependency(merged_sets, expr->ref_id)) {
+            (*error)++;
+            if (report) {
+                print_cyclic_error(merged_sets, expr);
+            }
+            return;
+        } else {
+            array_append(merged_sets, expr->ref_id);
+        }
         Nodeset *target = smap_retrieve(info->nodeset_name, expr->ref_id);
-        evaluate_set_expr(target->expr, info, error);
-
+        if (target == NULL) {
+            exit(EXIT_FAILURE);
+        }
+        evaluate_set_expr(target->expr, info, error, merged_sets, report);
+        if (*error) {
+            return;
+        }
+        array_pop(merged_sets);
         assert(target->expr->type == SET_LITERAL);
 
         new_set = ccn_set_copy(target->expr->id_set);
@@ -659,8 +766,11 @@ static void evaluate_set_expr(SetExpr *expr, struct Info *info, int *error) {
         expr->type = SET_LITERAL;
         expr->id_set = new_set;
     } else if (expr->type == SET_OPERATION) {
-        evaluate_set_expr(expr->operation->left_child, info, error);
-        evaluate_set_expr(expr->operation->right_child, info, error);
+        evaluate_set_expr(expr->operation->left_child, info, error, merged_sets, report);
+        evaluate_set_expr(expr->operation->right_child, info, error, merged_sets, report);
+        if (*error) {
+            return;
+        }
         ccn_set_t *left = expr->operation->left_child->id_set;
         ccn_set_t *right = expr->operation->right_child->id_set;
 
@@ -685,6 +795,7 @@ static void evaluate_set_expr(SetExpr *expr, struct Info *info, int *error) {
     }
 }
 
+// TODO: move this??
 static array *set_to_array(ccn_set_t *set) {
     assert(set != NULL);
     array *values = smap_values(set->hash_map);
@@ -695,24 +806,40 @@ static array *set_to_array(ccn_set_t *set) {
 
 static int evaluate_nodesets_expr(array *nodesets, struct Info *info) {
     int error = 0;
-
+    array *merged_sets = create_array();
     for (int i = 0; i < array_size(nodesets); ++i) {
         Nodeset *nodeset = (Nodeset *)array_get(nodesets, i);
-        evaluate_set_expr(nodeset->expr, info, &error);
+        array_append(merged_sets, nodeset->id);
+        evaluate_set_expr(nodeset->expr, info, &error, merged_sets, true);
+        if (error) {
+            goto cleanup;
+        }
+        array_clear(merged_sets);
     }
 
+cleanup:
+    array_cleanup(merged_sets, NULL);
     return error;
 }
 
 static int evaluate_traversals_expr(array *traversals, struct Info *info) {
     int error = 0;
+    array *merged_sets = create_array();
     for (int i = 0; i < array_size(traversals); i++) {
         Traversal *trav = (Traversal *)array_get(traversals, i);
         if (trav->expr == NULL)
             continue;
-        evaluate_set_expr(trav->expr, info, &error);
+        evaluate_set_expr(trav->expr, info, &error, merged_sets, false);
+
+        if (error) {
+            goto cleanup;
+        }
+
+        array_clear(merged_sets);
     }
 
+cleanup:
+    array_cleanup(merged_sets, NULL);
     return error;
 }
 
@@ -757,6 +884,10 @@ static void unwrap_all_actions(array *phases, struct Info *info) {
             Action *action = array_get(phase->actions, j);
             switch (action->type) {
             case ACTION_PASS:
+                if (phase->root != NULL) {
+                    Pass *pass = action->action;
+                    ccn_set_insert(pass->roots, ccn_str_cpy(phase->root));
+                }
                 array_append(info->config->passes, (Pass *)action->action);
                 break;
             case ACTION_TRAVERSAL:
@@ -764,6 +895,9 @@ static void unwrap_all_actions(array *phases, struct Info *info) {
                 break;
             case ACTION_PHASE:
                 array_append(new_phases, (Phase *)action->action);
+                if (phase->root != NULL) {
+                    add_required_root_to_phase(action->action, phase->root);
+                }
                 break;
             default:
                 break;
@@ -792,15 +926,11 @@ bool name_is_action(char *name, struct Info *info) {
     return false;
 }
 
-static bool check_action_reached(Action *action, char *id) {
-    return ccn_str_equal(action->id, id);
-}
-
-char *get_current_namespace(Range_spec_t *spec) {
+static char *get_current_namespace(Range_spec_t *spec) {
     return array_get(spec->ids, spec->id_index);
 }
 
-bool is_last_namespace(Range_spec_t *spec) {
+static bool is_last_namespace(Range_spec_t *spec) {
     return array_size(spec->ids) - 1 == spec->id_index;
 }
 
@@ -812,7 +942,8 @@ int insert_active_spec(smap_t *active_specs, Range_spec_t *curr_spec) {
         return 0;
     }
     if (old->life_type != curr_spec->life_type) {
-        print_error(curr_spec, "Conflicting lifetimes.");
+        print_error(curr_spec->owner, "Lifetime conflicts with already present lifetime.");
+        print_note(old->owner, "Lifetime that is being conflicted with.");
         return 1;
     }
     return 0;
@@ -827,6 +958,7 @@ static void action_add_lifetime_spec(Action *action, Range_spec_t *curr_spec, in
         *error = insert_active_spec(action->active_specs, curr_spec) == 0 ? *error : 1;
         break;
     case ACTION_PASS:
+        *error = insert_active_spec(action->active_specs, curr_spec) == 0 ? *error : 1;
         break;
     case ACTION_PHASE:
         *error = insert_active_spec(((Phase *)action->action)->active_specs, curr_spec) == 0 ? *error : 1;
@@ -857,6 +989,8 @@ void last_action_found(Action *action, Range_spec_t *spec, bool active) {
     if (action->type == ACTION_PHASE) {
         if ((active && spec->inclusive) || (!active && !spec->inclusive)) {
             spec->action_counter_id = get_last_action_id(action->action);
+        } else {
+            spec->action_counter_id = action->id_counter;
         }
     } else {
         spec->action_counter_id = action->id_counter;
@@ -899,10 +1033,10 @@ bool find_lifetime_spec(Lifetime_t *lifetime, struct Info *info, Phase *phase, b
             } else {
                 if (action->type == ACTION_PHASE) {
                     spec->id_index++;
-                    bool cont = find_lifetime_spec(lifetime, info, action->action, active, found);
+                    find_lifetime_spec(lifetime, info, action->action, active, found); // Must be found in this phase.
                 }
             }
-            return false;
+            return false; // Either last namespace found or checked in namespace action, so never continue.
         }
         if (action->type == ACTION_PHASE) {
             bool cont = find_lifetime_spec(lifetime, info, action->action, active, found);
@@ -940,14 +1074,11 @@ bool check_lifetime_spec_root(Lifetime_t *lifetime, struct Info *info, bool acti
         }
         spec->id_index++;
     }
-    bool cont = find_lifetime_spec(lifetime, info, root, active, &found);
+    find_lifetime_spec(lifetime, info, root, active, &found);
     return found;
 }
 
-// TODO, create a function that construct a range spec based of a lifetime?
-// Either way, there are multiple points where a lifetime gets constucted
-// or populated. Need to have this in one/two functions(1 for create, 1 for population).
-// Now it is messy.
+// TODO: possible rewrite.
 static int check_lifetime_reach(Lifetime_t *lifetime, struct Info *info) {
     // TODO: refactor this into a function, not DRY!
     if (lifetime->start == NULL) {
@@ -962,6 +1093,7 @@ static int check_lifetime_reach(Lifetime_t *lifetime, struct Info *info) {
         } else {
             lifetime->start->type = ccn_str_cpy("CCN_CHK_MANDATORY");
         }
+        lifetime->start->owner = lifetime;
     }
     if (lifetime->end == NULL) {
         array *ids = array_init(1);
@@ -975,7 +1107,7 @@ static int check_lifetime_reach(Lifetime_t *lifetime, struct Info *info) {
         } else {
             lifetime->end->type = ccn_str_cpy("CCN_CHK_MANDATORY");
         }
-
+        lifetime->end->owner = lifetime;
     }
 
     if (lifetime->values != NULL) {
@@ -997,8 +1129,6 @@ static int check_lifetime_reach(Lifetime_t *lifetime, struct Info *info) {
             return 1;
         }
     }
-    bool active = false;
-    int error = 0;
 
     bool found = check_lifetime_spec_root(lifetime, info, false, root_phase);
     if (!found) {
@@ -1011,11 +1141,13 @@ static int check_lifetime_reach(Lifetime_t *lifetime, struct Info *info) {
         print_error(lifetime->end, "Specification could not be reached. Recheck your ranges.");
         return 1;
     }
-
+    if (lifetime->end->action_counter_id < lifetime->start->action_counter_id) {
+        print_error(lifetime->end, "Specification could not be reached from specified starting action. Recheck your ranges.");
+        return 1;
+    }
     return 0;
 }
 
-// TODO: allow prefix to namespace into phases.
 static int check_lifetime(Lifetime_t *lifetime, struct Info *info) {
     int error = 0;
 
@@ -1047,7 +1179,6 @@ static int check_lifetimes_array(array *lifetimes, struct Info *info) {
     return error;
 }
 
-// TODO move to generic location.
 static Enum *find_enum(array *enums, char *id) {
     for (int i = 0; i < array_size(enums); ++i) {
         Enum *e = array_get(enums, i);
@@ -1102,6 +1233,7 @@ static int check_lifetimes(struct Info *info) {
             Child *child = array_get(node->children, j);
             error += check_lifetimes_array(child->lifetimes, info);
         }
+
         for (int j = 0; j < array_size(node->attrs); ++j) {
             Attr *attr = array_get(node->attrs, j);
 
@@ -1120,6 +1252,11 @@ static int check_lifetimes(struct Info *info) {
     return error;
 }
 
+/* The user can leave range open in the lifetimes, here we fill them up,
+ * this allows to process all lifetimes the same. We also populate the 
+ * type in string form, as this is required for code generation. The string
+ * form corresponds to the enum value that is generated.
+ */
 static void fill_lifetime(Lifetime_t *lifetime, char *key) {
     if (lifetime->type == LIFETIME_DISALLOWED) {
             if (lifetime->start != NULL) {
@@ -1231,6 +1368,9 @@ void unpack_lifetime_value(array *new_lifetimes, Lifetime_t *lifetime) {
     lifetime->key = key;
 }
 
+/* This maps a lifetime with multiple values in a list of lifetimes.
+ * This allows to check conflicting lifetimes easier.
+ */
 void unpack_lifetime_values(struct Info *info, Attr *attr) {
     array *new_lifetimes = create_array();
     for (int i = 0; i < array_size(attr->lifetimes); ++i) {
@@ -1279,15 +1419,19 @@ int check_config(Config *config) {
         config->root_node = info->root_node;
     }
 
-    //generate_sub_root_traversals(config);
     success += check_traversals(config->traversals, info);
     success += check_passes(config->passes, info);
     success += check_phases(config->phases, info);
 
     subtree_generate_traversals(config);
+
     // Transform setExpr to array of node ptrs.
     success += evaluate_nodesets_expr(config->nodesets, info);
     success += evaluate_traversals_expr(config->traversals, info);
+
+    if (success) {
+        return success;
+    }
 
     // Transform all nodeset expressions to arrays.
     success += nodesets_expr_to_array(config->nodesets, info);
@@ -1326,12 +1470,17 @@ int check_config(Config *config) {
             phase_errors = true;
     }
 
+    if (phase_errors) {
+        success++;
+    }
 
-    if (info->root_phase == NULL) {
+    if (!start_phase_seen) {
         print_error_no_loc("No start phase specified.");
         success++;
     }
 
+
+    // Lifetime setup and processing.
     assign_id_to_action(info);
     create_lifetime_funcs(info);
     unpack_lifetime_attrb_values(info);

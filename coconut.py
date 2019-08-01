@@ -47,8 +47,8 @@ class CoconutParser(object):
             str(self.source),
             "--header-dir",
             str(self.include),
-            "--consistency-checks",
             "--breakpoints"])
+            #"--consistency-checks",
 
 
     def init(self):

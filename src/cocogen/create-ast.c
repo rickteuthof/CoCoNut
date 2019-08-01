@@ -30,6 +30,9 @@ Config *create_config(array *phases, array *passes, array *traversals,
     c->enums = enums;
     c->nodesets = nodesets;
     c->nodes = nodes;
+    c->header_dir = NULL;
+    c->source_dir = NULL;
+    c->sub_root_pairs = create_array();
 
     c->common_info = create_commoninfo();
     return c;
@@ -69,6 +72,7 @@ Pass *create_pass(char *id, char *func, char *prefix) {
     p->func = func;
     p->info = NULL;
     p->prefix = prefix;
+    p->roots = ccn_set_string_create(5);
 
     p->common_info = create_commoninfo();
     return p;
@@ -199,11 +203,15 @@ Lifetime_t *create_lifetime(Range_spec_t *start, Range_spec_t *end,
                             enum LifetimeType type, array *values) {
     Lifetime_t *lifetime = mem_alloc(sizeof(Lifetime_t));
     lifetime->start = start;
-    if (lifetime->start != NULL)
+    if (lifetime->start != NULL) {
         lifetime->start->push = true;
+        lifetime->start->owner = lifetime;
+    }
     lifetime->end = end;
-    if (lifetime->end != NULL)
+    if (lifetime->end != NULL) {
         lifetime->end->push = false;
+        lifetime->end->owner = lifetime;
+    }
     lifetime->type = type;
     lifetime->key = NULL;
     lifetime->values = values;

@@ -454,10 +454,10 @@ static void *free_int_index_string(char *key, void *value) {
     return NULL;
 }
 
-static void *free_int_index_int(void *key, void *value) {
+/* static void *free_int_index_int(void *key, void *value) {
     mem_free(value);
     return NULL;
-}
+}*/
 
 static void generate_file_header_write_function(Config *config, FILE *fp) {
     out("void _serialization_write_file_header(FILE *fp) {\n");
@@ -498,7 +498,7 @@ static void generate_static_string_pool_write_function(Config *config,
 static void generate_enum_pool_write_function(Config *config, FILE *fp) {
 
     out("void _serialization_write_enum_pool(FILE *fp) {\n");
-    out("    const uint16_t enum_pool_count = %d;\n",
+    out("    const uint16_t enum_pool_count = %lu;\n",
         array_size(config->enums));
     out("    WRITE(2, enum_pool_count);\n");
 
@@ -514,7 +514,7 @@ static void generate_enum_pool_write_function(Config *config, FILE *fp) {
             *((int *)smap_retrieve(string_pool_indices, e->id)));
         out("    prefix_index = %d;\n",
             *((int *)smap_retrieve(string_pool_indices, e->prefix)));
-        out("    values_count = %d;\n", array_size(e->values));
+        out("    values_count = %lu;\n", array_size(e->values));
 
         out("    WRITE(4, name_index);\n");
         out("    WRITE(4, prefix_index);\n");
@@ -716,7 +716,7 @@ void generate_binary_serialization_util(Config *config, FILE *fp) {
         "               fflush(fp); \\\n"
         "              } while(0)\n\n");
 
-    out("#define STRING_POOL_STATIC_SIZE %d\n\n",
+    out("#define STRING_POOL_STATIC_SIZE %lu\n\n",
         array_size(string_pool_constants));
 
     out("array *string_attrs = NULL;\n");
@@ -765,7 +765,7 @@ void generate_binary_serialization_node(Config *config, FILE *fp, Node *node) {
         "               fflush(fp); \\\n"
         "              } while(0)\n\n");
 
-    out("#define STRING_POOL_STATIC_SIZE %d\n\n",
+    out("#define STRING_POOL_STATIC_SIZE %lu\n\n",
         array_size(string_pool_constants));
 
     smap_t *node_types = smap_init(32);
@@ -829,7 +829,7 @@ void generate_binary_serialization_nodeset(Config *config, FILE *fp,
         "               fflush(fp); \\\n"
         "              } while(0)\n\n");
 
-    out("#define STRING_POOL_STATIC_SIZE %d\n\n",
+    out("#define STRING_POOL_STATIC_SIZE %lu\n\n",
         array_size(string_pool_constants));
 
     // Generate declarations

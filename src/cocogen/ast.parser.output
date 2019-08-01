@@ -1,0 +1,3186 @@
+Terminals unused in grammar
+
+   "char value"
+   "passes"
+   "phases"
+   "subphases"
+   "to"
+
+
+Grammar
+
+    0 $accept: root "End-of-file (EOF)"
+
+    1 root: entries
+
+    2 entries: entry ';' entries
+    3        | entry
+    4        | %empty
+
+    5 entry: phase
+    6      | pass
+    7      | traversal
+    8      | enum
+    9      | nodeset
+   10      | node
+
+   11 prefix: "prefix" '=' "identifier"
+
+   12 phase: phaseheader '{' prefix ',' "gate" ',' actionsbody '}'
+   13      | phaseheader '{' prefix ',' "root" '=' "identifier" ',' actionsbody '}'
+   14      | phaseheader '{' prefix ',' actionsbody '}'
+   15      | phaseheader '{' prefix ',' "root" '=' "identifier" ',' "gate" ',' actionsbody '}'
+   16      | phaseheader '{' prefix ',' "root" '=' "identifier" ',' "gate" '=' "string value" ',' actionsbody '}'
+   17      | phaseheader '{' prefix ',' "gate" '=' "string value" ',' actionsbody '}'
+   18      | phaseheader '{' "gate" '=' "string value" ',' actionsbody '}'
+   19      | phaseheader '{' "gate" ',' actionsbody '}'
+
+   20 actionsbody: "actions" '{' actions '}'
+
+   21 actions: actions action ';'
+   22        | action ';'
+
+   23 action: traversal
+   24       | pass
+   25       | phase
+   26       | "identifier"
+
+   27 phaseheader: "phase" "identifier"
+   28            | "cycle" "identifier"
+   29            | "start" "phase" "identifier"
+   30            | "start" "cycle" "identifier"
+
+   31 pass: "pass" "identifier" '{' prefix ',' "func" '=' "identifier" '}'
+   32     | "pass" "identifier" '{' info ',' prefix ',' "func" '=' "identifier" '}'
+   33     | "pass" "identifier" '{' info ',' prefix '}'
+   34     | "pass" "identifier"
+   35     | "pass" "identifier" '=' "identifier"
+
+   36 traversal: "traversal" "identifier"
+   37          | "traversal" "identifier" '{' prefix ',' func '}'
+   38          | "traversal" "identifier" '{' prefix ',' func ',' traversalnodes '}'
+   39          | "traversal" "identifier" '{' prefix ',' traversalnodes '}'
+   40          | "traversal" "identifier" '{' info ',' prefix '}'
+   41          | "traversal" "identifier" '{' info ',' prefix ',' func '}'
+   42          | "traversal" "identifier" '{' info ',' prefix ',' func ',' traversalnodes '}'
+   43          | "traversal" "identifier" '{' info ',' prefix ',' traversalnodes '}'
+   44          | "traversal" "identifier" '=' setexpr
+
+   45 func: "func" '=' "identifier"
+
+   46 traversalnodes: "nodes" '=' setexpr
+
+   47 enum: "enum" "identifier" '{' "prefix" '=' "identifier" ',' enumvalues '}'
+   48     | "enum" "identifier" '{' enumvalues ',' "prefix" '=' "identifier" '}'
+   49     | "enum" "identifier" '{' info ',' "prefix" '=' "identifier" ',' enumvalues '}'
+   50     | "enum" "identifier" '{' info ',' enumvalues ',' "prefix" '=' "identifier" '}'
+
+   51 $@1: %empty
+
+   52 enumvalues: "values" '=' '{' $@1 idlist '}'
+
+   53 nodeset: "nodeset" "identifier" '{' "nodes" '=' setexpr '}'
+   54        | "nodeset" "identifier" '{' info ',' "nodes" '=' setexpr '}'
+   55        | "nodeset" "identifier" '=' setexpr
+
+   56 setexpr: setoperation
+   57        | '(' setoperation ')'
+   58        | '{' idlist '}'
+   59        | "identifier"
+
+   60 setoperation: setexpr '|' setexpr
+   61             | setexpr '&' setexpr
+   62             | setexpr '-' setexpr
+
+   63 node: "node" "identifier" '{' nodebody '}'
+   64     | "root" "node" "identifier" '{' nodebody '}'
+   65     | "node" "identifier" '{' nodebody "lifetime" '{' lifetimelist '}' '}'
+
+   66 nodebody: children ',' attrs
+   67         | children
+   68         | attrs
+   69         | info ',' children ',' attrs
+   70         | info ',' children
+   71         | info ',' attrs
+
+   72 lifetimelistwithvalues: lifetimelistwithvalues ',' lifetimewithvalues
+   73                       | lifetimewithvalues
+
+   74 lifetimewithvalues: "disallowed" rangespec_start "->" rangespec_end '=' '{' idlist '}'
+   75                   | lifetime
+   76                   | "disallowed" '=' '{' idlist '}'
+
+   77 lifetimelist: lifetimelist ',' lifetime
+   78             | lifetime
+
+   79 lifetime: "disallowed" rangespec_start "->" rangespec_end
+   80         | "disallowed"
+   81         | "mandatory" rangespec_start "->" rangespec_end
+   82         | "mandatory"
+
+   83 namespacelist: namespacelist '.' "identifier"
+   84              | "identifier"
+
+   85 rangespec_start: '(' namespacelist
+   86                | '('
+   87                | '[' namespacelist
+
+   88 rangespec_end: namespacelist ')'
+   89              | ')'
+   90              | namespacelist ']'
+
+   91 children: "children" '{' childlist '}'
+
+   92 childlist: childlist ',' child
+   93          | child
+
+   94 child: "identifier" "identifier"
+   95      | "identifier" "identifier" '{' "construct" ',' lifetimelist '}'
+   96      | "identifier" "identifier" '{' lifetimelist ',' "construct" '}'
+   97      | "identifier" "identifier" '{' "construct" '}'
+   98      | "identifier" "identifier" '{' lifetimelist '}'
+
+   99 attrs: "attributes" '{' attrlist '}'
+
+  100 attrlist: attrlist ',' attr
+  101         | attr
+
+  102 attr: attrhead '{' "construct" ',' lifetimelistwithvalues '}'
+  103     | attrhead '{' "construct" '}'
+  104     | attrhead '=' attrval
+
+  105 attrhead: attrprimitivetype "identifier"
+  106         | "identifier" "identifier"
+
+  107 attrprimitivetype: "int"
+  108                  | "int8"
+  109                  | "int16"
+  110                  | "int32"
+  111                  | "int64"
+  112                  | "uint"
+  113                  | "uint8"
+  114                  | "uint16"
+  115                  | "uint32"
+  116                  | "uint64"
+  117                  | "float"
+  118                  | "double"
+  119                  | "bool"
+  120                  | "string"
+
+  121 attrval: "string value"
+  122        | "integer value"
+  123        | "unsigned integer value"
+  124        | "float value"
+  125        | "identifier"
+  126        | "true"
+  127        | "false"
+  128        | "NULL"
+
+  129 idlist: idlist ',' "identifier"
+  130       | "identifier"
+
+  131 info: "info" '=' "string value"
+
+
+Terminals, with rules where they appear
+
+"End-of-file (EOF)" (0) 0
+'&' (38) 61
+'(' (40) 57 85 86
+')' (41) 57 88 89
+',' (44) 12 13 14 15 16 17 18 19 31 32 33 37 38 39 40 41 42 43 47 48
+    49 50 54 66 69 70 71 72 77 92 95 96 100 102 129
+'-' (45) 62
+'.' (46) 83
+';' (59) 2 21 22
+'=' (61) 11 13 15 16 17 18 31 32 35 44 45 46 47 48 49 50 52 53 54 55
+    74 76 104 131
+'[' (91) 87
+']' (93) 90
+'{' (123) 12 13 14 15 16 17 18 19 20 31 32 33 37 38 39 40 41 42 43
+    47 48 49 50 52 53 54 58 63 64 65 74 76 91 95 96 97 98 99 102 103
+'|' (124) 60
+'}' (125) 12 13 14 15 16 17 18 19 20 31 32 33 37 38 39 40 41 42 43
+    47 48 49 50 52 53 54 58 63 64 65 74 76 91 95 96 97 98 99 102 103
+error (256)
+"integer value" <intval> (258) 122
+"unsigned integer value" <uintval> (259) 123
+"float value" <fval> (260) 124
+"char value" <string> (261)
+"string value" <string> (262) 16 17 18 121 131
+"identifier" <string> (263) 11 13 15 16 26 27 28 29 30 31 32 33 34
+    35 36 37 38 39 40 41 42 43 44 45 47 48 49 50 53 54 55 59 63 64
+    65 83 84 94 95 96 97 98 105 106 125 129 130
+"int" (264) 107
+"uint" (265) 112
+"int8" (266) 108
+"int16" (267) 109
+"int32" (268) 110
+"int64" (269) 111
+"uint8" (270) 113
+"uint16" (271) 114
+"uint32" (272) 115
+"uint64" (273) 116
+"bool" (274) 119
+"true" (275) 126
+"false" (276) 127
+"attributes" (277) 99
+"children" (278) 91
+"construct" (279) 95 96 97 102 103
+"cycle" (280) 28 30
+"enum" (281) 47 48 49 50
+"mandatory" (282) 81 82
+"node" (283) 63 64 65
+"nodes" (284) 46 53 54
+"nodeset" (285) 53 54 55
+"pass" (286) 31 32 33 34 35
+"passes" (287)
+"phase" (288) 27 29
+"phases" (289)
+"actions" (290) 20
+"prefix" (291) 11 47 48 49 50
+"info" (292) 131
+"func" (293) 31 32 45
+"root" (294) 13 15 16 64
+"start" (295) 29 30
+"subphases" (296)
+"to" (297)
+"traversal" (298) 36 37 38 39 40 41 42 43 44
+"float" (299) 117
+"double" (300) 118
+"string" (301) 120
+"values" (302) 52
+"NULL" (303) 128
+"lifetime" (304) 65
+"disallowed" (305) 74 76 79 80
+"gate" (306) 12 15 16 17 18 19
+"->" (307) 74 79 81
+
+
+Nonterminals, with rules where they appear
+
+$accept (66)
+    on left: 0
+root <config> (67)
+    on left: 1, on right: 0
+entries (68)
+    on left: 2 3 4, on right: 1 2
+entry (69)
+    on left: 5 6 7 8 9 10, on right: 2 3
+prefix <string> (70)
+    on left: 11, on right: 12 13 14 15 16 17 31 32 33 37 38 39 40 41
+    42 43
+phase <phase> (71)
+    on left: 12 13 14 15 16 17 18 19, on right: 5 25
+actionsbody <array> (72)
+    on left: 20, on right: 12 13 14 15 16 17 18 19
+actions <array> (73)
+    on left: 21 22, on right: 20 21
+action <action> (74)
+    on left: 23 24 25 26, on right: 21 22
+phaseheader <phase> (75)
+    on left: 27 28 29 30, on right: 12 13 14 15 16 17 18 19
+pass <pass> (76)
+    on left: 31 32 33 34 35, on right: 6 24
+traversal <traversal> (77)
+    on left: 36 37 38 39 40 41 42 43 44, on right: 7 23
+func <string> (78)
+    on left: 45, on right: 37 38 41 42
+traversalnodes <setexpr> (79)
+    on left: 46, on right: 38 39 42 43
+enum <attr_enum> (80)
+    on left: 47 48 49 50, on right: 8
+enumvalues <array> (81)
+    on left: 52, on right: 47 48 49 50
+$@1 (82)
+    on left: 51, on right: 52
+nodeset <nodeset> (83)
+    on left: 53 54 55, on right: 9
+setexpr <setexpr> (84)
+    on left: 56 57 58 59, on right: 44 46 53 54 55 60 61 62
+setoperation <setoperation> (85)
+    on left: 60 61 62, on right: 56 57
+node <node> (86)
+    on left: 63 64 65, on right: 10
+nodebody <node> (87)
+    on left: 66 67 68 69 70 71, on right: 63 64 65
+lifetimelistwithvalues <array> (88)
+    on left: 72 73, on right: 72 102
+lifetimewithvalues <lifetime> (89)
+    on left: 74 75 76, on right: 72 73
+lifetimelist <array> (90)
+    on left: 77 78, on right: 65 77 95 96 98
+lifetime <lifetime> (91)
+    on left: 79 80 81 82, on right: 75 77 78
+namespacelist <array> (92)
+    on left: 83 84, on right: 83 85 87 88 90
+rangespec_start <range_spec> (93)
+    on left: 85 86 87, on right: 74 79 81
+rangespec_end <range_spec> (94)
+    on left: 88 89 90, on right: 74 79 81
+children <array> (95)
+    on left: 91, on right: 66 67 69 70
+childlist <array> (96)
+    on left: 92 93, on right: 91 92
+child <child> (97)
+    on left: 94 95 96 97 98, on right: 92 93
+attrs <array> (98)
+    on left: 99, on right: 66 68 69 71
+attrlist <array> (99)
+    on left: 100 101, on right: 99 100
+attr <attr> (100)
+    on left: 102 103 104, on right: 100 101
+attrhead <attr> (101)
+    on left: 105 106, on right: 102 103 104
+attrprimitivetype <attrtype> (102)
+    on left: 107 108 109 110 111 112 113 114 115 116 117 118 119 120,
+    on right: 105
+attrval <attrval> (103)
+    on left: 121 122 123 124 125 126 127 128, on right: 104
+idlist <array> (104)
+    on left: 129 130, on right: 52 58 74 76 129
+info <string> (105)
+    on left: 131, on right: 32 33 40 41 42 43 49 50 54 69 70 71
+
+
+State 0
+
+    0 $accept: . root "End-of-file (EOF)"
+
+    "cycle"      shift, and go to state 1
+    "enum"       shift, and go to state 2
+    "node"       shift, and go to state 3
+    "nodeset"    shift, and go to state 4
+    "pass"       shift, and go to state 5
+    "phase"      shift, and go to state 6
+    "root"       shift, and go to state 7
+    "start"      shift, and go to state 8
+    "traversal"  shift, and go to state 9
+
+    $default  reduce using rule 4 (entries)
+
+    root         go to state 10
+    entries      go to state 11
+    entry        go to state 12
+    phase        go to state 13
+    phaseheader  go to state 14
+    pass         go to state 15
+    traversal    go to state 16
+    enum         go to state 17
+    nodeset      go to state 18
+    node         go to state 19
+
+
+State 1
+
+   28 phaseheader: "cycle" . "identifier"
+
+    "identifier"  shift, and go to state 20
+
+
+State 2
+
+   47 enum: "enum" . "identifier" '{' "prefix" '=' "identifier" ',' enumvalues '}'
+   48     | "enum" . "identifier" '{' enumvalues ',' "prefix" '=' "identifier" '}'
+   49     | "enum" . "identifier" '{' info ',' "prefix" '=' "identifier" ',' enumvalues '}'
+   50     | "enum" . "identifier" '{' info ',' enumvalues ',' "prefix" '=' "identifier" '}'
+
+    "identifier"  shift, and go to state 21
+
+
+State 3
+
+   63 node: "node" . "identifier" '{' nodebody '}'
+   65     | "node" . "identifier" '{' nodebody "lifetime" '{' lifetimelist '}' '}'
+
+    "identifier"  shift, and go to state 22
+
+
+State 4
+
+   53 nodeset: "nodeset" . "identifier" '{' "nodes" '=' setexpr '}'
+   54        | "nodeset" . "identifier" '{' info ',' "nodes" '=' setexpr '}'
+   55        | "nodeset" . "identifier" '=' setexpr
+
+    "identifier"  shift, and go to state 23
+
+
+State 5
+
+   31 pass: "pass" . "identifier" '{' prefix ',' "func" '=' "identifier" '}'
+   32     | "pass" . "identifier" '{' info ',' prefix ',' "func" '=' "identifier" '}'
+   33     | "pass" . "identifier" '{' info ',' prefix '}'
+   34     | "pass" . "identifier"
+   35     | "pass" . "identifier" '=' "identifier"
+
+    "identifier"  shift, and go to state 24
+
+
+State 6
+
+   27 phaseheader: "phase" . "identifier"
+
+    "identifier"  shift, and go to state 25
+
+
+State 7
+
+   64 node: "root" . "node" "identifier" '{' nodebody '}'
+
+    "node"  shift, and go to state 26
+
+
+State 8
+
+   29 phaseheader: "start" . "phase" "identifier"
+   30            | "start" . "cycle" "identifier"
+
+    "cycle"  shift, and go to state 27
+    "phase"  shift, and go to state 28
+
+
+State 9
+
+   36 traversal: "traversal" . "identifier"
+   37          | "traversal" . "identifier" '{' prefix ',' func '}'
+   38          | "traversal" . "identifier" '{' prefix ',' func ',' traversalnodes '}'
+   39          | "traversal" . "identifier" '{' prefix ',' traversalnodes '}'
+   40          | "traversal" . "identifier" '{' info ',' prefix '}'
+   41          | "traversal" . "identifier" '{' info ',' prefix ',' func '}'
+   42          | "traversal" . "identifier" '{' info ',' prefix ',' func ',' traversalnodes '}'
+   43          | "traversal" . "identifier" '{' info ',' prefix ',' traversalnodes '}'
+   44          | "traversal" . "identifier" '=' setexpr
+
+    "identifier"  shift, and go to state 29
+
+
+State 10
+
+    0 $accept: root . "End-of-file (EOF)"
+
+    "End-of-file (EOF)"  shift, and go to state 30
+
+
+State 11
+
+    1 root: entries .
+
+    $default  reduce using rule 1 (root)
+
+
+State 12
+
+    2 entries: entry . ';' entries
+    3        | entry .
+
+    ';'  shift, and go to state 31
+
+    $default  reduce using rule 3 (entries)
+
+
+State 13
+
+    5 entry: phase .
+
+    $default  reduce using rule 5 (entry)
+
+
+State 14
+
+   12 phase: phaseheader . '{' prefix ',' "gate" ',' actionsbody '}'
+   13      | phaseheader . '{' prefix ',' "root" '=' "identifier" ',' actionsbody '}'
+   14      | phaseheader . '{' prefix ',' actionsbody '}'
+   15      | phaseheader . '{' prefix ',' "root" '=' "identifier" ',' "gate" ',' actionsbody '}'
+   16      | phaseheader . '{' prefix ',' "root" '=' "identifier" ',' "gate" '=' "string value" ',' actionsbody '}'
+   17      | phaseheader . '{' prefix ',' "gate" '=' "string value" ',' actionsbody '}'
+   18      | phaseheader . '{' "gate" '=' "string value" ',' actionsbody '}'
+   19      | phaseheader . '{' "gate" ',' actionsbody '}'
+
+    '{'  shift, and go to state 32
+
+
+State 15
+
+    6 entry: pass .
+
+    $default  reduce using rule 6 (entry)
+
+
+State 16
+
+    7 entry: traversal .
+
+    $default  reduce using rule 7 (entry)
+
+
+State 17
+
+    8 entry: enum .
+
+    $default  reduce using rule 8 (entry)
+
+
+State 18
+
+    9 entry: nodeset .
+
+    $default  reduce using rule 9 (entry)
+
+
+State 19
+
+   10 entry: node .
+
+    $default  reduce using rule 10 (entry)
+
+
+State 20
+
+   28 phaseheader: "cycle" "identifier" .
+
+    $default  reduce using rule 28 (phaseheader)
+
+
+State 21
+
+   47 enum: "enum" "identifier" . '{' "prefix" '=' "identifier" ',' enumvalues '}'
+   48     | "enum" "identifier" . '{' enumvalues ',' "prefix" '=' "identifier" '}'
+   49     | "enum" "identifier" . '{' info ',' "prefix" '=' "identifier" ',' enumvalues '}'
+   50     | "enum" "identifier" . '{' info ',' enumvalues ',' "prefix" '=' "identifier" '}'
+
+    '{'  shift, and go to state 33
+
+
+State 22
+
+   63 node: "node" "identifier" . '{' nodebody '}'
+   65     | "node" "identifier" . '{' nodebody "lifetime" '{' lifetimelist '}' '}'
+
+    '{'  shift, and go to state 34
+
+
+State 23
+
+   53 nodeset: "nodeset" "identifier" . '{' "nodes" '=' setexpr '}'
+   54        | "nodeset" "identifier" . '{' info ',' "nodes" '=' setexpr '}'
+   55        | "nodeset" "identifier" . '=' setexpr
+
+    '='  shift, and go to state 35
+    '{'  shift, and go to state 36
+
+
+State 24
+
+   31 pass: "pass" "identifier" . '{' prefix ',' "func" '=' "identifier" '}'
+   32     | "pass" "identifier" . '{' info ',' prefix ',' "func" '=' "identifier" '}'
+   33     | "pass" "identifier" . '{' info ',' prefix '}'
+   34     | "pass" "identifier" .
+   35     | "pass" "identifier" . '=' "identifier"
+
+    '='  shift, and go to state 37
+    '{'  shift, and go to state 38
+
+    $default  reduce using rule 34 (pass)
+
+
+State 25
+
+   27 phaseheader: "phase" "identifier" .
+
+    $default  reduce using rule 27 (phaseheader)
+
+
+State 26
+
+   64 node: "root" "node" . "identifier" '{' nodebody '}'
+
+    "identifier"  shift, and go to state 39
+
+
+State 27
+
+   30 phaseheader: "start" "cycle" . "identifier"
+
+    "identifier"  shift, and go to state 40
+
+
+State 28
+
+   29 phaseheader: "start" "phase" . "identifier"
+
+    "identifier"  shift, and go to state 41
+
+
+State 29
+
+   36 traversal: "traversal" "identifier" .
+   37          | "traversal" "identifier" . '{' prefix ',' func '}'
+   38          | "traversal" "identifier" . '{' prefix ',' func ',' traversalnodes '}'
+   39          | "traversal" "identifier" . '{' prefix ',' traversalnodes '}'
+   40          | "traversal" "identifier" . '{' info ',' prefix '}'
+   41          | "traversal" "identifier" . '{' info ',' prefix ',' func '}'
+   42          | "traversal" "identifier" . '{' info ',' prefix ',' func ',' traversalnodes '}'
+   43          | "traversal" "identifier" . '{' info ',' prefix ',' traversalnodes '}'
+   44          | "traversal" "identifier" . '=' setexpr
+
+    '='  shift, and go to state 42
+    '{'  shift, and go to state 43
+
+    $default  reduce using rule 36 (traversal)
+
+
+State 30
+
+    0 $accept: root "End-of-file (EOF)" .
+
+    $default  accept
+
+
+State 31
+
+    2 entries: entry ';' . entries
+
+    "cycle"      shift, and go to state 1
+    "enum"       shift, and go to state 2
+    "node"       shift, and go to state 3
+    "nodeset"    shift, and go to state 4
+    "pass"       shift, and go to state 5
+    "phase"      shift, and go to state 6
+    "root"       shift, and go to state 7
+    "start"      shift, and go to state 8
+    "traversal"  shift, and go to state 9
+
+    $default  reduce using rule 4 (entries)
+
+    entries      go to state 44
+    entry        go to state 12
+    phase        go to state 13
+    phaseheader  go to state 14
+    pass         go to state 15
+    traversal    go to state 16
+    enum         go to state 17
+    nodeset      go to state 18
+    node         go to state 19
+
+
+State 32
+
+   12 phase: phaseheader '{' . prefix ',' "gate" ',' actionsbody '}'
+   13      | phaseheader '{' . prefix ',' "root" '=' "identifier" ',' actionsbody '}'
+   14      | phaseheader '{' . prefix ',' actionsbody '}'
+   15      | phaseheader '{' . prefix ',' "root" '=' "identifier" ',' "gate" ',' actionsbody '}'
+   16      | phaseheader '{' . prefix ',' "root" '=' "identifier" ',' "gate" '=' "string value" ',' actionsbody '}'
+   17      | phaseheader '{' . prefix ',' "gate" '=' "string value" ',' actionsbody '}'
+   18      | phaseheader '{' . "gate" '=' "string value" ',' actionsbody '}'
+   19      | phaseheader '{' . "gate" ',' actionsbody '}'
+
+    "prefix"  shift, and go to state 45
+    "gate"    shift, and go to state 46
+
+    prefix  go to state 47
+
+
+State 33
+
+   47 enum: "enum" "identifier" '{' . "prefix" '=' "identifier" ',' enumvalues '}'
+   48     | "enum" "identifier" '{' . enumvalues ',' "prefix" '=' "identifier" '}'
+   49     | "enum" "identifier" '{' . info ',' "prefix" '=' "identifier" ',' enumvalues '}'
+   50     | "enum" "identifier" '{' . info ',' enumvalues ',' "prefix" '=' "identifier" '}'
+
+    "prefix"  shift, and go to state 48
+    "info"    shift, and go to state 49
+    "values"  shift, and go to state 50
+
+    enumvalues  go to state 51
+    info        go to state 52
+
+
+State 34
+
+   63 node: "node" "identifier" '{' . nodebody '}'
+   65     | "node" "identifier" '{' . nodebody "lifetime" '{' lifetimelist '}' '}'
+
+    "attributes"  shift, and go to state 53
+    "children"    shift, and go to state 54
+    "info"        shift, and go to state 49
+
+    nodebody  go to state 55
+    children  go to state 56
+    attrs     go to state 57
+    info      go to state 58
+
+
+State 35
+
+   55 nodeset: "nodeset" "identifier" '=' . setexpr
+
+    "identifier"  shift, and go to state 59
+    '{'           shift, and go to state 60
+    '('           shift, and go to state 61
+
+    setexpr       go to state 62
+    setoperation  go to state 63
+
+
+State 36
+
+   53 nodeset: "nodeset" "identifier" '{' . "nodes" '=' setexpr '}'
+   54        | "nodeset" "identifier" '{' . info ',' "nodes" '=' setexpr '}'
+
+    "nodes"  shift, and go to state 64
+    "info"   shift, and go to state 49
+
+    info  go to state 65
+
+
+State 37
+
+   35 pass: "pass" "identifier" '=' . "identifier"
+
+    "identifier"  shift, and go to state 66
+
+
+State 38
+
+   31 pass: "pass" "identifier" '{' . prefix ',' "func" '=' "identifier" '}'
+   32     | "pass" "identifier" '{' . info ',' prefix ',' "func" '=' "identifier" '}'
+   33     | "pass" "identifier" '{' . info ',' prefix '}'
+
+    "prefix"  shift, and go to state 45
+    "info"    shift, and go to state 49
+
+    prefix  go to state 67
+    info    go to state 68
+
+
+State 39
+
+   64 node: "root" "node" "identifier" . '{' nodebody '}'
+
+    '{'  shift, and go to state 69
+
+
+State 40
+
+   30 phaseheader: "start" "cycle" "identifier" .
+
+    $default  reduce using rule 30 (phaseheader)
+
+
+State 41
+
+   29 phaseheader: "start" "phase" "identifier" .
+
+    $default  reduce using rule 29 (phaseheader)
+
+
+State 42
+
+   44 traversal: "traversal" "identifier" '=' . setexpr
+
+    "identifier"  shift, and go to state 59
+    '{'           shift, and go to state 60
+    '('           shift, and go to state 61
+
+    setexpr       go to state 70
+    setoperation  go to state 63
+
+
+State 43
+
+   37 traversal: "traversal" "identifier" '{' . prefix ',' func '}'
+   38          | "traversal" "identifier" '{' . prefix ',' func ',' traversalnodes '}'
+   39          | "traversal" "identifier" '{' . prefix ',' traversalnodes '}'
+   40          | "traversal" "identifier" '{' . info ',' prefix '}'
+   41          | "traversal" "identifier" '{' . info ',' prefix ',' func '}'
+   42          | "traversal" "identifier" '{' . info ',' prefix ',' func ',' traversalnodes '}'
+   43          | "traversal" "identifier" '{' . info ',' prefix ',' traversalnodes '}'
+
+    "prefix"  shift, and go to state 45
+    "info"    shift, and go to state 49
+
+    prefix  go to state 71
+    info    go to state 72
+
+
+State 44
+
+    2 entries: entry ';' entries .
+
+    $default  reduce using rule 2 (entries)
+
+
+State 45
+
+   11 prefix: "prefix" . '=' "identifier"
+
+    '='  shift, and go to state 73
+
+
+State 46
+
+   18 phase: phaseheader '{' "gate" . '=' "string value" ',' actionsbody '}'
+   19      | phaseheader '{' "gate" . ',' actionsbody '}'
+
+    '='  shift, and go to state 74
+    ','  shift, and go to state 75
+
+
+State 47
+
+   12 phase: phaseheader '{' prefix . ',' "gate" ',' actionsbody '}'
+   13      | phaseheader '{' prefix . ',' "root" '=' "identifier" ',' actionsbody '}'
+   14      | phaseheader '{' prefix . ',' actionsbody '}'
+   15      | phaseheader '{' prefix . ',' "root" '=' "identifier" ',' "gate" ',' actionsbody '}'
+   16      | phaseheader '{' prefix . ',' "root" '=' "identifier" ',' "gate" '=' "string value" ',' actionsbody '}'
+   17      | phaseheader '{' prefix . ',' "gate" '=' "string value" ',' actionsbody '}'
+
+    ','  shift, and go to state 76
+
+
+State 48
+
+   47 enum: "enum" "identifier" '{' "prefix" . '=' "identifier" ',' enumvalues '}'
+
+    '='  shift, and go to state 77
+
+
+State 49
+
+  131 info: "info" . '=' "string value"
+
+    '='  shift, and go to state 78
+
+
+State 50
+
+   52 enumvalues: "values" . '=' '{' $@1 idlist '}'
+
+    '='  shift, and go to state 79
+
+
+State 51
+
+   48 enum: "enum" "identifier" '{' enumvalues . ',' "prefix" '=' "identifier" '}'
+
+    ','  shift, and go to state 80
+
+
+State 52
+
+   49 enum: "enum" "identifier" '{' info . ',' "prefix" '=' "identifier" ',' enumvalues '}'
+   50     | "enum" "identifier" '{' info . ',' enumvalues ',' "prefix" '=' "identifier" '}'
+
+    ','  shift, and go to state 81
+
+
+State 53
+
+   99 attrs: "attributes" . '{' attrlist '}'
+
+    '{'  shift, and go to state 82
+
+
+State 54
+
+   91 children: "children" . '{' childlist '}'
+
+    '{'  shift, and go to state 83
+
+
+State 55
+
+   63 node: "node" "identifier" '{' nodebody . '}'
+   65     | "node" "identifier" '{' nodebody . "lifetime" '{' lifetimelist '}' '}'
+
+    "lifetime"  shift, and go to state 84
+    '}'         shift, and go to state 85
+
+
+State 56
+
+   66 nodebody: children . ',' attrs
+   67         | children .
+
+    ','  shift, and go to state 86
+
+    $default  reduce using rule 67 (nodebody)
+
+
+State 57
+
+   68 nodebody: attrs .
+
+    $default  reduce using rule 68 (nodebody)
+
+
+State 58
+
+   69 nodebody: info . ',' children ',' attrs
+   70         | info . ',' children
+   71         | info . ',' attrs
+
+    ','  shift, and go to state 87
+
+
+State 59
+
+   59 setexpr: "identifier" .
+
+    $default  reduce using rule 59 (setexpr)
+
+
+State 60
+
+   58 setexpr: '{' . idlist '}'
+
+    "identifier"  shift, and go to state 88
+
+    idlist  go to state 89
+
+
+State 61
+
+   57 setexpr: '(' . setoperation ')'
+
+    "identifier"  shift, and go to state 59
+    '{'           shift, and go to state 60
+    '('           shift, and go to state 61
+
+    setexpr       go to state 90
+    setoperation  go to state 91
+
+
+State 62
+
+   55 nodeset: "nodeset" "identifier" '=' setexpr .
+   60 setoperation: setexpr . '|' setexpr
+   61             | setexpr . '&' setexpr
+   62             | setexpr . '-' setexpr
+
+    '&'  shift, and go to state 92
+    '-'  shift, and go to state 93
+    '|'  shift, and go to state 94
+
+    $default  reduce using rule 55 (nodeset)
+
+
+State 63
+
+   56 setexpr: setoperation .
+
+    $default  reduce using rule 56 (setexpr)
+
+
+State 64
+
+   53 nodeset: "nodeset" "identifier" '{' "nodes" . '=' setexpr '}'
+
+    '='  shift, and go to state 95
+
+
+State 65
+
+   54 nodeset: "nodeset" "identifier" '{' info . ',' "nodes" '=' setexpr '}'
+
+    ','  shift, and go to state 96
+
+
+State 66
+
+   35 pass: "pass" "identifier" '=' "identifier" .
+
+    $default  reduce using rule 35 (pass)
+
+
+State 67
+
+   31 pass: "pass" "identifier" '{' prefix . ',' "func" '=' "identifier" '}'
+
+    ','  shift, and go to state 97
+
+
+State 68
+
+   32 pass: "pass" "identifier" '{' info . ',' prefix ',' "func" '=' "identifier" '}'
+   33     | "pass" "identifier" '{' info . ',' prefix '}'
+
+    ','  shift, and go to state 98
+
+
+State 69
+
+   64 node: "root" "node" "identifier" '{' . nodebody '}'
+
+    "attributes"  shift, and go to state 53
+    "children"    shift, and go to state 54
+    "info"        shift, and go to state 49
+
+    nodebody  go to state 99
+    children  go to state 56
+    attrs     go to state 57
+    info      go to state 58
+
+
+State 70
+
+   44 traversal: "traversal" "identifier" '=' setexpr .
+   60 setoperation: setexpr . '|' setexpr
+   61             | setexpr . '&' setexpr
+   62             | setexpr . '-' setexpr
+
+    '&'  shift, and go to state 92
+    '-'  shift, and go to state 93
+    '|'  shift, and go to state 94
+
+    $default  reduce using rule 44 (traversal)
+
+
+State 71
+
+   37 traversal: "traversal" "identifier" '{' prefix . ',' func '}'
+   38          | "traversal" "identifier" '{' prefix . ',' func ',' traversalnodes '}'
+   39          | "traversal" "identifier" '{' prefix . ',' traversalnodes '}'
+
+    ','  shift, and go to state 100
+
+
+State 72
+
+   40 traversal: "traversal" "identifier" '{' info . ',' prefix '}'
+   41          | "traversal" "identifier" '{' info . ',' prefix ',' func '}'
+   42          | "traversal" "identifier" '{' info . ',' prefix ',' func ',' traversalnodes '}'
+   43          | "traversal" "identifier" '{' info . ',' prefix ',' traversalnodes '}'
+
+    ','  shift, and go to state 101
+
+
+State 73
+
+   11 prefix: "prefix" '=' . "identifier"
+
+    "identifier"  shift, and go to state 102
+
+
+State 74
+
+   18 phase: phaseheader '{' "gate" '=' . "string value" ',' actionsbody '}'
+
+    "string value"  shift, and go to state 103
+
+
+State 75
+
+   19 phase: phaseheader '{' "gate" ',' . actionsbody '}'
+
+    "actions"  shift, and go to state 104
+
+    actionsbody  go to state 105
+
+
+State 76
+
+   12 phase: phaseheader '{' prefix ',' . "gate" ',' actionsbody '}'
+   13      | phaseheader '{' prefix ',' . "root" '=' "identifier" ',' actionsbody '}'
+   14      | phaseheader '{' prefix ',' . actionsbody '}'
+   15      | phaseheader '{' prefix ',' . "root" '=' "identifier" ',' "gate" ',' actionsbody '}'
+   16      | phaseheader '{' prefix ',' . "root" '=' "identifier" ',' "gate" '=' "string value" ',' actionsbody '}'
+   17      | phaseheader '{' prefix ',' . "gate" '=' "string value" ',' actionsbody '}'
+
+    "actions"  shift, and go to state 104
+    "root"     shift, and go to state 106
+    "gate"     shift, and go to state 107
+
+    actionsbody  go to state 108
+
+
+State 77
+
+   47 enum: "enum" "identifier" '{' "prefix" '=' . "identifier" ',' enumvalues '}'
+
+    "identifier"  shift, and go to state 109
+
+
+State 78
+
+  131 info: "info" '=' . "string value"
+
+    "string value"  shift, and go to state 110
+
+
+State 79
+
+   52 enumvalues: "values" '=' . '{' $@1 idlist '}'
+
+    '{'  shift, and go to state 111
+
+
+State 80
+
+   48 enum: "enum" "identifier" '{' enumvalues ',' . "prefix" '=' "identifier" '}'
+
+    "prefix"  shift, and go to state 112
+
+
+State 81
+
+   49 enum: "enum" "identifier" '{' info ',' . "prefix" '=' "identifier" ',' enumvalues '}'
+   50     | "enum" "identifier" '{' info ',' . enumvalues ',' "prefix" '=' "identifier" '}'
+
+    "prefix"  shift, and go to state 113
+    "values"  shift, and go to state 50
+
+    enumvalues  go to state 114
+
+
+State 82
+
+   99 attrs: "attributes" '{' . attrlist '}'
+
+    "identifier"  shift, and go to state 115
+    "int"         shift, and go to state 116
+    "uint"        shift, and go to state 117
+    "int8"        shift, and go to state 118
+    "int16"       shift, and go to state 119
+    "int32"       shift, and go to state 120
+    "int64"       shift, and go to state 121
+    "uint8"       shift, and go to state 122
+    "uint16"      shift, and go to state 123
+    "uint32"      shift, and go to state 124
+    "uint64"      shift, and go to state 125
+    "bool"        shift, and go to state 126
+    "float"       shift, and go to state 127
+    "double"      shift, and go to state 128
+    "string"      shift, and go to state 129
+
+    attrlist           go to state 130
+    attr               go to state 131
+    attrhead           go to state 132
+    attrprimitivetype  go to state 133
+
+
+State 83
+
+   91 children: "children" '{' . childlist '}'
+
+    "identifier"  shift, and go to state 134
+
+    childlist  go to state 135
+    child      go to state 136
+
+
+State 84
+
+   65 node: "node" "identifier" '{' nodebody "lifetime" . '{' lifetimelist '}' '}'
+
+    '{'  shift, and go to state 137
+
+
+State 85
+
+   63 node: "node" "identifier" '{' nodebody '}' .
+
+    $default  reduce using rule 63 (node)
+
+
+State 86
+
+   66 nodebody: children ',' . attrs
+
+    "attributes"  shift, and go to state 53
+
+    attrs  go to state 138
+
+
+State 87
+
+   69 nodebody: info ',' . children ',' attrs
+   70         | info ',' . children
+   71         | info ',' . attrs
+
+    "attributes"  shift, and go to state 53
+    "children"    shift, and go to state 54
+
+    children  go to state 139
+    attrs     go to state 140
+
+
+State 88
+
+  130 idlist: "identifier" .
+
+    $default  reduce using rule 130 (idlist)
+
+
+State 89
+
+   58 setexpr: '{' idlist . '}'
+  129 idlist: idlist . ',' "identifier"
+
+    ','  shift, and go to state 141
+    '}'  shift, and go to state 142
+
+
+State 90
+
+   60 setoperation: setexpr . '|' setexpr
+   61             | setexpr . '&' setexpr
+   62             | setexpr . '-' setexpr
+
+    '&'  shift, and go to state 92
+    '-'  shift, and go to state 93
+    '|'  shift, and go to state 94
+
+
+State 91
+
+   56 setexpr: setoperation .
+   57        | '(' setoperation . ')'
+
+    ')'  shift, and go to state 143
+
+    $default  reduce using rule 56 (setexpr)
+
+
+State 92
+
+   61 setoperation: setexpr '&' . setexpr
+
+    "identifier"  shift, and go to state 59
+    '{'           shift, and go to state 60
+    '('           shift, and go to state 61
+
+    setexpr       go to state 144
+    setoperation  go to state 63
+
+
+State 93
+
+   62 setoperation: setexpr '-' . setexpr
+
+    "identifier"  shift, and go to state 59
+    '{'           shift, and go to state 60
+    '('           shift, and go to state 61
+
+    setexpr       go to state 145
+    setoperation  go to state 63
+
+
+State 94
+
+   60 setoperation: setexpr '|' . setexpr
+
+    "identifier"  shift, and go to state 59
+    '{'           shift, and go to state 60
+    '('           shift, and go to state 61
+
+    setexpr       go to state 146
+    setoperation  go to state 63
+
+
+State 95
+
+   53 nodeset: "nodeset" "identifier" '{' "nodes" '=' . setexpr '}'
+
+    "identifier"  shift, and go to state 59
+    '{'           shift, and go to state 60
+    '('           shift, and go to state 61
+
+    setexpr       go to state 147
+    setoperation  go to state 63
+
+
+State 96
+
+   54 nodeset: "nodeset" "identifier" '{' info ',' . "nodes" '=' setexpr '}'
+
+    "nodes"  shift, and go to state 148
+
+
+State 97
+
+   31 pass: "pass" "identifier" '{' prefix ',' . "func" '=' "identifier" '}'
+
+    "func"  shift, and go to state 149
+
+
+State 98
+
+   32 pass: "pass" "identifier" '{' info ',' . prefix ',' "func" '=' "identifier" '}'
+   33     | "pass" "identifier" '{' info ',' . prefix '}'
+
+    "prefix"  shift, and go to state 45
+
+    prefix  go to state 150
+
+
+State 99
+
+   64 node: "root" "node" "identifier" '{' nodebody . '}'
+
+    '}'  shift, and go to state 151
+
+
+State 100
+
+   37 traversal: "traversal" "identifier" '{' prefix ',' . func '}'
+   38          | "traversal" "identifier" '{' prefix ',' . func ',' traversalnodes '}'
+   39          | "traversal" "identifier" '{' prefix ',' . traversalnodes '}'
+
+    "nodes"  shift, and go to state 152
+    "func"   shift, and go to state 153
+
+    func            go to state 154
+    traversalnodes  go to state 155
+
+
+State 101
+
+   40 traversal: "traversal" "identifier" '{' info ',' . prefix '}'
+   41          | "traversal" "identifier" '{' info ',' . prefix ',' func '}'
+   42          | "traversal" "identifier" '{' info ',' . prefix ',' func ',' traversalnodes '}'
+   43          | "traversal" "identifier" '{' info ',' . prefix ',' traversalnodes '}'
+
+    "prefix"  shift, and go to state 45
+
+    prefix  go to state 156
+
+
+State 102
+
+   11 prefix: "prefix" '=' "identifier" .
+
+    $default  reduce using rule 11 (prefix)
+
+
+State 103
+
+   18 phase: phaseheader '{' "gate" '=' "string value" . ',' actionsbody '}'
+
+    ','  shift, and go to state 157
+
+
+State 104
+
+   20 actionsbody: "actions" . '{' actions '}'
+
+    '{'  shift, and go to state 158
+
+
+State 105
+
+   19 phase: phaseheader '{' "gate" ',' actionsbody . '}'
+
+    '}'  shift, and go to state 159
+
+
+State 106
+
+   13 phase: phaseheader '{' prefix ',' "root" . '=' "identifier" ',' actionsbody '}'
+   15      | phaseheader '{' prefix ',' "root" . '=' "identifier" ',' "gate" ',' actionsbody '}'
+   16      | phaseheader '{' prefix ',' "root" . '=' "identifier" ',' "gate" '=' "string value" ',' actionsbody '}'
+
+    '='  shift, and go to state 160
+
+
+State 107
+
+   12 phase: phaseheader '{' prefix ',' "gate" . ',' actionsbody '}'
+   17      | phaseheader '{' prefix ',' "gate" . '=' "string value" ',' actionsbody '}'
+
+    '='  shift, and go to state 161
+    ','  shift, and go to state 162
+
+
+State 108
+
+   14 phase: phaseheader '{' prefix ',' actionsbody . '}'
+
+    '}'  shift, and go to state 163
+
+
+State 109
+
+   47 enum: "enum" "identifier" '{' "prefix" '=' "identifier" . ',' enumvalues '}'
+
+    ','  shift, and go to state 164
+
+
+State 110
+
+  131 info: "info" '=' "string value" .
+
+    $default  reduce using rule 131 (info)
+
+
+State 111
+
+   52 enumvalues: "values" '=' '{' . $@1 idlist '}'
+
+    $default  reduce using rule 51 ($@1)
+
+    $@1  go to state 165
+
+
+State 112
+
+   48 enum: "enum" "identifier" '{' enumvalues ',' "prefix" . '=' "identifier" '}'
+
+    '='  shift, and go to state 166
+
+
+State 113
+
+   49 enum: "enum" "identifier" '{' info ',' "prefix" . '=' "identifier" ',' enumvalues '}'
+
+    '='  shift, and go to state 167
+
+
+State 114
+
+   50 enum: "enum" "identifier" '{' info ',' enumvalues . ',' "prefix" '=' "identifier" '}'
+
+    ','  shift, and go to state 168
+
+
+State 115
+
+  106 attrhead: "identifier" . "identifier"
+
+    "identifier"  shift, and go to state 169
+
+
+State 116
+
+  107 attrprimitivetype: "int" .
+
+    $default  reduce using rule 107 (attrprimitivetype)
+
+
+State 117
+
+  112 attrprimitivetype: "uint" .
+
+    $default  reduce using rule 112 (attrprimitivetype)
+
+
+State 118
+
+  108 attrprimitivetype: "int8" .
+
+    $default  reduce using rule 108 (attrprimitivetype)
+
+
+State 119
+
+  109 attrprimitivetype: "int16" .
+
+    $default  reduce using rule 109 (attrprimitivetype)
+
+
+State 120
+
+  110 attrprimitivetype: "int32" .
+
+    $default  reduce using rule 110 (attrprimitivetype)
+
+
+State 121
+
+  111 attrprimitivetype: "int64" .
+
+    $default  reduce using rule 111 (attrprimitivetype)
+
+
+State 122
+
+  113 attrprimitivetype: "uint8" .
+
+    $default  reduce using rule 113 (attrprimitivetype)
+
+
+State 123
+
+  114 attrprimitivetype: "uint16" .
+
+    $default  reduce using rule 114 (attrprimitivetype)
+
+
+State 124
+
+  115 attrprimitivetype: "uint32" .
+
+    $default  reduce using rule 115 (attrprimitivetype)
+
+
+State 125
+
+  116 attrprimitivetype: "uint64" .
+
+    $default  reduce using rule 116 (attrprimitivetype)
+
+
+State 126
+
+  119 attrprimitivetype: "bool" .
+
+    $default  reduce using rule 119 (attrprimitivetype)
+
+
+State 127
+
+  117 attrprimitivetype: "float" .
+
+    $default  reduce using rule 117 (attrprimitivetype)
+
+
+State 128
+
+  118 attrprimitivetype: "double" .
+
+    $default  reduce using rule 118 (attrprimitivetype)
+
+
+State 129
+
+  120 attrprimitivetype: "string" .
+
+    $default  reduce using rule 120 (attrprimitivetype)
+
+
+State 130
+
+   99 attrs: "attributes" '{' attrlist . '}'
+  100 attrlist: attrlist . ',' attr
+
+    ','  shift, and go to state 170
+    '}'  shift, and go to state 171
+
+
+State 131
+
+  101 attrlist: attr .
+
+    $default  reduce using rule 101 (attrlist)
+
+
+State 132
+
+  102 attr: attrhead . '{' "construct" ',' lifetimelistwithvalues '}'
+  103     | attrhead . '{' "construct" '}'
+  104     | attrhead . '=' attrval
+
+    '='  shift, and go to state 172
+    '{'  shift, and go to state 173
+
+
+State 133
+
+  105 attrhead: attrprimitivetype . "identifier"
+
+    "identifier"  shift, and go to state 174
+
+
+State 134
+
+   94 child: "identifier" . "identifier"
+   95      | "identifier" . "identifier" '{' "construct" ',' lifetimelist '}'
+   96      | "identifier" . "identifier" '{' lifetimelist ',' "construct" '}'
+   97      | "identifier" . "identifier" '{' "construct" '}'
+   98      | "identifier" . "identifier" '{' lifetimelist '}'
+
+    "identifier"  shift, and go to state 175
+
+
+State 135
+
+   91 children: "children" '{' childlist . '}'
+   92 childlist: childlist . ',' child
+
+    ','  shift, and go to state 176
+    '}'  shift, and go to state 177
+
+
+State 136
+
+   93 childlist: child .
+
+    $default  reduce using rule 93 (childlist)
+
+
+State 137
+
+   65 node: "node" "identifier" '{' nodebody "lifetime" '{' . lifetimelist '}' '}'
+
+    "mandatory"   shift, and go to state 178
+    "disallowed"  shift, and go to state 179
+
+    lifetimelist  go to state 180
+    lifetime      go to state 181
+
+
+State 138
+
+   66 nodebody: children ',' attrs .
+
+    $default  reduce using rule 66 (nodebody)
+
+
+State 139
+
+   69 nodebody: info ',' children . ',' attrs
+   70         | info ',' children .
+
+    ','  shift, and go to state 182
+
+    $default  reduce using rule 70 (nodebody)
+
+
+State 140
+
+   71 nodebody: info ',' attrs .
+
+    $default  reduce using rule 71 (nodebody)
+
+
+State 141
+
+  129 idlist: idlist ',' . "identifier"
+
+    "identifier"  shift, and go to state 183
+
+
+State 142
+
+   58 setexpr: '{' idlist '}' .
+
+    $default  reduce using rule 58 (setexpr)
+
+
+State 143
+
+   57 setexpr: '(' setoperation ')' .
+
+    $default  reduce using rule 57 (setexpr)
+
+
+State 144
+
+   60 setoperation: setexpr . '|' setexpr
+   61             | setexpr . '&' setexpr
+   61             | setexpr '&' setexpr .
+   62             | setexpr . '-' setexpr
+
+    $default  reduce using rule 61 (setoperation)
+
+
+State 145
+
+   60 setoperation: setexpr . '|' setexpr
+   61             | setexpr . '&' setexpr
+   62             | setexpr . '-' setexpr
+   62             | setexpr '-' setexpr .
+
+    $default  reduce using rule 62 (setoperation)
+
+
+State 146
+
+   60 setoperation: setexpr . '|' setexpr
+   60             | setexpr '|' setexpr .
+   61             | setexpr . '&' setexpr
+   62             | setexpr . '-' setexpr
+
+    $default  reduce using rule 60 (setoperation)
+
+
+State 147
+
+   53 nodeset: "nodeset" "identifier" '{' "nodes" '=' setexpr . '}'
+   60 setoperation: setexpr . '|' setexpr
+   61             | setexpr . '&' setexpr
+   62             | setexpr . '-' setexpr
+
+    '&'  shift, and go to state 92
+    '-'  shift, and go to state 93
+    '|'  shift, and go to state 94
+    '}'  shift, and go to state 184
+
+
+State 148
+
+   54 nodeset: "nodeset" "identifier" '{' info ',' "nodes" . '=' setexpr '}'
+
+    '='  shift, and go to state 185
+
+
+State 149
+
+   31 pass: "pass" "identifier" '{' prefix ',' "func" . '=' "identifier" '}'
+
+    '='  shift, and go to state 186
+
+
+State 150
+
+   32 pass: "pass" "identifier" '{' info ',' prefix . ',' "func" '=' "identifier" '}'
+   33     | "pass" "identifier" '{' info ',' prefix . '}'
+
+    ','  shift, and go to state 187
+    '}'  shift, and go to state 188
+
+
+State 151
+
+   64 node: "root" "node" "identifier" '{' nodebody '}' .
+
+    $default  reduce using rule 64 (node)
+
+
+State 152
+
+   46 traversalnodes: "nodes" . '=' setexpr
+
+    '='  shift, and go to state 189
+
+
+State 153
+
+   45 func: "func" . '=' "identifier"
+
+    '='  shift, and go to state 190
+
+
+State 154
+
+   37 traversal: "traversal" "identifier" '{' prefix ',' func . '}'
+   38          | "traversal" "identifier" '{' prefix ',' func . ',' traversalnodes '}'
+
+    ','  shift, and go to state 191
+    '}'  shift, and go to state 192
+
+
+State 155
+
+   39 traversal: "traversal" "identifier" '{' prefix ',' traversalnodes . '}'
+
+    '}'  shift, and go to state 193
+
+
+State 156
+
+   40 traversal: "traversal" "identifier" '{' info ',' prefix . '}'
+   41          | "traversal" "identifier" '{' info ',' prefix . ',' func '}'
+   42          | "traversal" "identifier" '{' info ',' prefix . ',' func ',' traversalnodes '}'
+   43          | "traversal" "identifier" '{' info ',' prefix . ',' traversalnodes '}'
+
+    ','  shift, and go to state 194
+    '}'  shift, and go to state 195
+
+
+State 157
+
+   18 phase: phaseheader '{' "gate" '=' "string value" ',' . actionsbody '}'
+
+    "actions"  shift, and go to state 104
+
+    actionsbody  go to state 196
+
+
+State 158
+
+   20 actionsbody: "actions" '{' . actions '}'
+
+    "identifier"  shift, and go to state 197
+    "cycle"       shift, and go to state 1
+    "pass"        shift, and go to state 5
+    "phase"       shift, and go to state 6
+    "start"       shift, and go to state 8
+    "traversal"   shift, and go to state 9
+
+    phase        go to state 198
+    actions      go to state 199
+    action       go to state 200
+    phaseheader  go to state 14
+    pass         go to state 201
+    traversal    go to state 202
+
+
+State 159
+
+   19 phase: phaseheader '{' "gate" ',' actionsbody '}' .
+
+    $default  reduce using rule 19 (phase)
+
+
+State 160
+
+   13 phase: phaseheader '{' prefix ',' "root" '=' . "identifier" ',' actionsbody '}'
+   15      | phaseheader '{' prefix ',' "root" '=' . "identifier" ',' "gate" ',' actionsbody '}'
+   16      | phaseheader '{' prefix ',' "root" '=' . "identifier" ',' "gate" '=' "string value" ',' actionsbody '}'
+
+    "identifier"  shift, and go to state 203
+
+
+State 161
+
+   17 phase: phaseheader '{' prefix ',' "gate" '=' . "string value" ',' actionsbody '}'
+
+    "string value"  shift, and go to state 204
+
+
+State 162
+
+   12 phase: phaseheader '{' prefix ',' "gate" ',' . actionsbody '}'
+
+    "actions"  shift, and go to state 104
+
+    actionsbody  go to state 205
+
+
+State 163
+
+   14 phase: phaseheader '{' prefix ',' actionsbody '}' .
+
+    $default  reduce using rule 14 (phase)
+
+
+State 164
+
+   47 enum: "enum" "identifier" '{' "prefix" '=' "identifier" ',' . enumvalues '}'
+
+    "values"  shift, and go to state 50
+
+    enumvalues  go to state 206
+
+
+State 165
+
+   52 enumvalues: "values" '=' '{' $@1 . idlist '}'
+
+    "identifier"  shift, and go to state 88
+
+    idlist  go to state 207
+
+
+State 166
+
+   48 enum: "enum" "identifier" '{' enumvalues ',' "prefix" '=' . "identifier" '}'
+
+    "identifier"  shift, and go to state 208
+
+
+State 167
+
+   49 enum: "enum" "identifier" '{' info ',' "prefix" '=' . "identifier" ',' enumvalues '}'
+
+    "identifier"  shift, and go to state 209
+
+
+State 168
+
+   50 enum: "enum" "identifier" '{' info ',' enumvalues ',' . "prefix" '=' "identifier" '}'
+
+    "prefix"  shift, and go to state 210
+
+
+State 169
+
+  106 attrhead: "identifier" "identifier" .
+
+    $default  reduce using rule 106 (attrhead)
+
+
+State 170
+
+  100 attrlist: attrlist ',' . attr
+
+    "identifier"  shift, and go to state 115
+    "int"         shift, and go to state 116
+    "uint"        shift, and go to state 117
+    "int8"        shift, and go to state 118
+    "int16"       shift, and go to state 119
+    "int32"       shift, and go to state 120
+    "int64"       shift, and go to state 121
+    "uint8"       shift, and go to state 122
+    "uint16"      shift, and go to state 123
+    "uint32"      shift, and go to state 124
+    "uint64"      shift, and go to state 125
+    "bool"        shift, and go to state 126
+    "float"       shift, and go to state 127
+    "double"      shift, and go to state 128
+    "string"      shift, and go to state 129
+
+    attr               go to state 211
+    attrhead           go to state 132
+    attrprimitivetype  go to state 133
+
+
+State 171
+
+   99 attrs: "attributes" '{' attrlist '}' .
+
+    $default  reduce using rule 99 (attrs)
+
+
+State 172
+
+  104 attr: attrhead '=' . attrval
+
+    "integer value"           shift, and go to state 212
+    "unsigned integer value"  shift, and go to state 213
+    "float value"             shift, and go to state 214
+    "string value"            shift, and go to state 215
+    "identifier"              shift, and go to state 216
+    "true"                    shift, and go to state 217
+    "false"                   shift, and go to state 218
+    "NULL"                    shift, and go to state 219
+
+    attrval  go to state 220
+
+
+State 173
+
+  102 attr: attrhead '{' . "construct" ',' lifetimelistwithvalues '}'
+  103     | attrhead '{' . "construct" '}'
+
+    "construct"  shift, and go to state 221
+
+
+State 174
+
+  105 attrhead: attrprimitivetype "identifier" .
+
+    $default  reduce using rule 105 (attrhead)
+
+
+State 175
+
+   94 child: "identifier" "identifier" .
+   95      | "identifier" "identifier" . '{' "construct" ',' lifetimelist '}'
+   96      | "identifier" "identifier" . '{' lifetimelist ',' "construct" '}'
+   97      | "identifier" "identifier" . '{' "construct" '}'
+   98      | "identifier" "identifier" . '{' lifetimelist '}'
+
+    '{'  shift, and go to state 222
+
+    $default  reduce using rule 94 (child)
+
+
+State 176
+
+   92 childlist: childlist ',' . child
+
+    "identifier"  shift, and go to state 134
+
+    child  go to state 223
+
+
+State 177
+
+   91 children: "children" '{' childlist '}' .
+
+    $default  reduce using rule 91 (children)
+
+
+State 178
+
+   81 lifetime: "mandatory" . rangespec_start "->" rangespec_end
+   82         | "mandatory" .
+
+    '('  shift, and go to state 224
+    '['  shift, and go to state 225
+
+    $default  reduce using rule 82 (lifetime)
+
+    rangespec_start  go to state 226
+
+
+State 179
+
+   79 lifetime: "disallowed" . rangespec_start "->" rangespec_end
+   80         | "disallowed" .
+
+    '('  shift, and go to state 224
+    '['  shift, and go to state 225
+
+    $default  reduce using rule 80 (lifetime)
+
+    rangespec_start  go to state 227
+
+
+State 180
+
+   65 node: "node" "identifier" '{' nodebody "lifetime" '{' lifetimelist . '}' '}'
+   77 lifetimelist: lifetimelist . ',' lifetime
+
+    ','  shift, and go to state 228
+    '}'  shift, and go to state 229
+
+
+State 181
+
+   78 lifetimelist: lifetime .
+
+    $default  reduce using rule 78 (lifetimelist)
+
+
+State 182
+
+   69 nodebody: info ',' children ',' . attrs
+
+    "attributes"  shift, and go to state 53
+
+    attrs  go to state 230
+
+
+State 183
+
+  129 idlist: idlist ',' "identifier" .
+
+    $default  reduce using rule 129 (idlist)
+
+
+State 184
+
+   53 nodeset: "nodeset" "identifier" '{' "nodes" '=' setexpr '}' .
+
+    $default  reduce using rule 53 (nodeset)
+
+
+State 185
+
+   54 nodeset: "nodeset" "identifier" '{' info ',' "nodes" '=' . setexpr '}'
+
+    "identifier"  shift, and go to state 59
+    '{'           shift, and go to state 60
+    '('           shift, and go to state 61
+
+    setexpr       go to state 231
+    setoperation  go to state 63
+
+
+State 186
+
+   31 pass: "pass" "identifier" '{' prefix ',' "func" '=' . "identifier" '}'
+
+    "identifier"  shift, and go to state 232
+
+
+State 187
+
+   32 pass: "pass" "identifier" '{' info ',' prefix ',' . "func" '=' "identifier" '}'
+
+    "func"  shift, and go to state 233
+
+
+State 188
+
+   33 pass: "pass" "identifier" '{' info ',' prefix '}' .
+
+    $default  reduce using rule 33 (pass)
+
+
+State 189
+
+   46 traversalnodes: "nodes" '=' . setexpr
+
+    "identifier"  shift, and go to state 59
+    '{'           shift, and go to state 60
+    '('           shift, and go to state 61
+
+    setexpr       go to state 234
+    setoperation  go to state 63
+
+
+State 190
+
+   45 func: "func" '=' . "identifier"
+
+    "identifier"  shift, and go to state 235
+
+
+State 191
+
+   38 traversal: "traversal" "identifier" '{' prefix ',' func ',' . traversalnodes '}'
+
+    "nodes"  shift, and go to state 152
+
+    traversalnodes  go to state 236
+
+
+State 192
+
+   37 traversal: "traversal" "identifier" '{' prefix ',' func '}' .
+
+    $default  reduce using rule 37 (traversal)
+
+
+State 193
+
+   39 traversal: "traversal" "identifier" '{' prefix ',' traversalnodes '}' .
+
+    $default  reduce using rule 39 (traversal)
+
+
+State 194
+
+   41 traversal: "traversal" "identifier" '{' info ',' prefix ',' . func '}'
+   42          | "traversal" "identifier" '{' info ',' prefix ',' . func ',' traversalnodes '}'
+   43          | "traversal" "identifier" '{' info ',' prefix ',' . traversalnodes '}'
+
+    "nodes"  shift, and go to state 152
+    "func"   shift, and go to state 153
+
+    func            go to state 237
+    traversalnodes  go to state 238
+
+
+State 195
+
+   40 traversal: "traversal" "identifier" '{' info ',' prefix '}' .
+
+    $default  reduce using rule 40 (traversal)
+
+
+State 196
+
+   18 phase: phaseheader '{' "gate" '=' "string value" ',' actionsbody . '}'
+
+    '}'  shift, and go to state 239
+
+
+State 197
+
+   26 action: "identifier" .
+
+    $default  reduce using rule 26 (action)
+
+
+State 198
+
+   25 action: phase .
+
+    $default  reduce using rule 25 (action)
+
+
+State 199
+
+   20 actionsbody: "actions" '{' actions . '}'
+   21 actions: actions . action ';'
+
+    "identifier"  shift, and go to state 197
+    "cycle"       shift, and go to state 1
+    "pass"        shift, and go to state 5
+    "phase"       shift, and go to state 6
+    "start"       shift, and go to state 8
+    "traversal"   shift, and go to state 9
+    '}'           shift, and go to state 240
+
+    phase        go to state 198
+    action       go to state 241
+    phaseheader  go to state 14
+    pass         go to state 201
+    traversal    go to state 202
+
+
+State 200
+
+   22 actions: action . ';'
+
+    ';'  shift, and go to state 242
+
+
+State 201
+
+   24 action: pass .
+
+    $default  reduce using rule 24 (action)
+
+
+State 202
+
+   23 action: traversal .
+
+    $default  reduce using rule 23 (action)
+
+
+State 203
+
+   13 phase: phaseheader '{' prefix ',' "root" '=' "identifier" . ',' actionsbody '}'
+   15      | phaseheader '{' prefix ',' "root" '=' "identifier" . ',' "gate" ',' actionsbody '}'
+   16      | phaseheader '{' prefix ',' "root" '=' "identifier" . ',' "gate" '=' "string value" ',' actionsbody '}'
+
+    ','  shift, and go to state 243
+
+
+State 204
+
+   17 phase: phaseheader '{' prefix ',' "gate" '=' "string value" . ',' actionsbody '}'
+
+    ','  shift, and go to state 244
+
+
+State 205
+
+   12 phase: phaseheader '{' prefix ',' "gate" ',' actionsbody . '}'
+
+    '}'  shift, and go to state 245
+
+
+State 206
+
+   47 enum: "enum" "identifier" '{' "prefix" '=' "identifier" ',' enumvalues . '}'
+
+    '}'  shift, and go to state 246
+
+
+State 207
+
+   52 enumvalues: "values" '=' '{' $@1 idlist . '}'
+  129 idlist: idlist . ',' "identifier"
+
+    ','  shift, and go to state 141
+    '}'  shift, and go to state 247
+
+
+State 208
+
+   48 enum: "enum" "identifier" '{' enumvalues ',' "prefix" '=' "identifier" . '}'
+
+    '}'  shift, and go to state 248
+
+
+State 209
+
+   49 enum: "enum" "identifier" '{' info ',' "prefix" '=' "identifier" . ',' enumvalues '}'
+
+    ','  shift, and go to state 249
+
+
+State 210
+
+   50 enum: "enum" "identifier" '{' info ',' enumvalues ',' "prefix" . '=' "identifier" '}'
+
+    '='  shift, and go to state 250
+
+
+State 211
+
+  100 attrlist: attrlist ',' attr .
+
+    $default  reduce using rule 100 (attrlist)
+
+
+State 212
+
+  122 attrval: "integer value" .
+
+    $default  reduce using rule 122 (attrval)
+
+
+State 213
+
+  123 attrval: "unsigned integer value" .
+
+    $default  reduce using rule 123 (attrval)
+
+
+State 214
+
+  124 attrval: "float value" .
+
+    $default  reduce using rule 124 (attrval)
+
+
+State 215
+
+  121 attrval: "string value" .
+
+    $default  reduce using rule 121 (attrval)
+
+
+State 216
+
+  125 attrval: "identifier" .
+
+    $default  reduce using rule 125 (attrval)
+
+
+State 217
+
+  126 attrval: "true" .
+
+    $default  reduce using rule 126 (attrval)
+
+
+State 218
+
+  127 attrval: "false" .
+
+    $default  reduce using rule 127 (attrval)
+
+
+State 219
+
+  128 attrval: "NULL" .
+
+    $default  reduce using rule 128 (attrval)
+
+
+State 220
+
+  104 attr: attrhead '=' attrval .
+
+    $default  reduce using rule 104 (attr)
+
+
+State 221
+
+  102 attr: attrhead '{' "construct" . ',' lifetimelistwithvalues '}'
+  103     | attrhead '{' "construct" . '}'
+
+    ','  shift, and go to state 251
+    '}'  shift, and go to state 252
+
+
+State 222
+
+   95 child: "identifier" "identifier" '{' . "construct" ',' lifetimelist '}'
+   96      | "identifier" "identifier" '{' . lifetimelist ',' "construct" '}'
+   97      | "identifier" "identifier" '{' . "construct" '}'
+   98      | "identifier" "identifier" '{' . lifetimelist '}'
+
+    "construct"   shift, and go to state 253
+    "mandatory"   shift, and go to state 178
+    "disallowed"  shift, and go to state 179
+
+    lifetimelist  go to state 254
+    lifetime      go to state 181
+
+
+State 223
+
+   92 childlist: childlist ',' child .
+
+    $default  reduce using rule 92 (childlist)
+
+
+State 224
+
+   85 rangespec_start: '(' . namespacelist
+   86                | '(' .
+
+    "identifier"  shift, and go to state 255
+
+    $default  reduce using rule 86 (rangespec_start)
+
+    namespacelist  go to state 256
+
+
+State 225
+
+   87 rangespec_start: '[' . namespacelist
+
+    "identifier"  shift, and go to state 255
+
+    namespacelist  go to state 257
+
+
+State 226
+
+   81 lifetime: "mandatory" rangespec_start . "->" rangespec_end
+
+    "->"  shift, and go to state 258
+
+
+State 227
+
+   79 lifetime: "disallowed" rangespec_start . "->" rangespec_end
+
+    "->"  shift, and go to state 259
+
+
+State 228
+
+   77 lifetimelist: lifetimelist ',' . lifetime
+
+    "mandatory"   shift, and go to state 178
+    "disallowed"  shift, and go to state 179
+
+    lifetime  go to state 260
+
+
+State 229
+
+   65 node: "node" "identifier" '{' nodebody "lifetime" '{' lifetimelist '}' . '}'
+
+    '}'  shift, and go to state 261
+
+
+State 230
+
+   69 nodebody: info ',' children ',' attrs .
+
+    $default  reduce using rule 69 (nodebody)
+
+
+State 231
+
+   54 nodeset: "nodeset" "identifier" '{' info ',' "nodes" '=' setexpr . '}'
+   60 setoperation: setexpr . '|' setexpr
+   61             | setexpr . '&' setexpr
+   62             | setexpr . '-' setexpr
+
+    '&'  shift, and go to state 92
+    '-'  shift, and go to state 93
+    '|'  shift, and go to state 94
+    '}'  shift, and go to state 262
+
+
+State 232
+
+   31 pass: "pass" "identifier" '{' prefix ',' "func" '=' "identifier" . '}'
+
+    '}'  shift, and go to state 263
+
+
+State 233
+
+   32 pass: "pass" "identifier" '{' info ',' prefix ',' "func" . '=' "identifier" '}'
+
+    '='  shift, and go to state 264
+
+
+State 234
+
+   46 traversalnodes: "nodes" '=' setexpr .
+   60 setoperation: setexpr . '|' setexpr
+   61             | setexpr . '&' setexpr
+   62             | setexpr . '-' setexpr
+
+    '&'  shift, and go to state 92
+    '-'  shift, and go to state 93
+    '|'  shift, and go to state 94
+
+    $default  reduce using rule 46 (traversalnodes)
+
+
+State 235
+
+   45 func: "func" '=' "identifier" .
+
+    $default  reduce using rule 45 (func)
+
+
+State 236
+
+   38 traversal: "traversal" "identifier" '{' prefix ',' func ',' traversalnodes . '}'
+
+    '}'  shift, and go to state 265
+
+
+State 237
+
+   41 traversal: "traversal" "identifier" '{' info ',' prefix ',' func . '}'
+   42          | "traversal" "identifier" '{' info ',' prefix ',' func . ',' traversalnodes '}'
+
+    ','  shift, and go to state 266
+    '}'  shift, and go to state 267
+
+
+State 238
+
+   43 traversal: "traversal" "identifier" '{' info ',' prefix ',' traversalnodes . '}'
+
+    '}'  shift, and go to state 268
+
+
+State 239
+
+   18 phase: phaseheader '{' "gate" '=' "string value" ',' actionsbody '}' .
+
+    $default  reduce using rule 18 (phase)
+
+
+State 240
+
+   20 actionsbody: "actions" '{' actions '}' .
+
+    $default  reduce using rule 20 (actionsbody)
+
+
+State 241
+
+   21 actions: actions action . ';'
+
+    ';'  shift, and go to state 269
+
+
+State 242
+
+   22 actions: action ';' .
+
+    $default  reduce using rule 22 (actions)
+
+
+State 243
+
+   13 phase: phaseheader '{' prefix ',' "root" '=' "identifier" ',' . actionsbody '}'
+   15      | phaseheader '{' prefix ',' "root" '=' "identifier" ',' . "gate" ',' actionsbody '}'
+   16      | phaseheader '{' prefix ',' "root" '=' "identifier" ',' . "gate" '=' "string value" ',' actionsbody '}'
+
+    "actions"  shift, and go to state 104
+    "gate"     shift, and go to state 270
+
+    actionsbody  go to state 271
+
+
+State 244
+
+   17 phase: phaseheader '{' prefix ',' "gate" '=' "string value" ',' . actionsbody '}'
+
+    "actions"  shift, and go to state 104
+
+    actionsbody  go to state 272
+
+
+State 245
+
+   12 phase: phaseheader '{' prefix ',' "gate" ',' actionsbody '}' .
+
+    $default  reduce using rule 12 (phase)
+
+
+State 246
+
+   47 enum: "enum" "identifier" '{' "prefix" '=' "identifier" ',' enumvalues '}' .
+
+    $default  reduce using rule 47 (enum)
+
+
+State 247
+
+   52 enumvalues: "values" '=' '{' $@1 idlist '}' .
+
+    $default  reduce using rule 52 (enumvalues)
+
+
+State 248
+
+   48 enum: "enum" "identifier" '{' enumvalues ',' "prefix" '=' "identifier" '}' .
+
+    $default  reduce using rule 48 (enum)
+
+
+State 249
+
+   49 enum: "enum" "identifier" '{' info ',' "prefix" '=' "identifier" ',' . enumvalues '}'
+
+    "values"  shift, and go to state 50
+
+    enumvalues  go to state 273
+
+
+State 250
+
+   50 enum: "enum" "identifier" '{' info ',' enumvalues ',' "prefix" '=' . "identifier" '}'
+
+    "identifier"  shift, and go to state 274
+
+
+State 251
+
+  102 attr: attrhead '{' "construct" ',' . lifetimelistwithvalues '}'
+
+    "mandatory"   shift, and go to state 178
+    "disallowed"  shift, and go to state 275
+
+    lifetimelistwithvalues  go to state 276
+    lifetimewithvalues      go to state 277
+    lifetime                go to state 278
+
+
+State 252
+
+  103 attr: attrhead '{' "construct" '}' .
+
+    $default  reduce using rule 103 (attr)
+
+
+State 253
+
+   95 child: "identifier" "identifier" '{' "construct" . ',' lifetimelist '}'
+   97      | "identifier" "identifier" '{' "construct" . '}'
+
+    ','  shift, and go to state 279
+    '}'  shift, and go to state 280
+
+
+State 254
+
+   77 lifetimelist: lifetimelist . ',' lifetime
+   96 child: "identifier" "identifier" '{' lifetimelist . ',' "construct" '}'
+   98      | "identifier" "identifier" '{' lifetimelist . '}'
+
+    ','  shift, and go to state 281
+    '}'  shift, and go to state 282
+
+
+State 255
+
+   84 namespacelist: "identifier" .
+
+    $default  reduce using rule 84 (namespacelist)
+
+
+State 256
+
+   83 namespacelist: namespacelist . '.' "identifier"
+   85 rangespec_start: '(' namespacelist .
+
+    '.'  shift, and go to state 283
+
+    $default  reduce using rule 85 (rangespec_start)
+
+
+State 257
+
+   83 namespacelist: namespacelist . '.' "identifier"
+   87 rangespec_start: '[' namespacelist .
+
+    '.'  shift, and go to state 283
+
+    $default  reduce using rule 87 (rangespec_start)
+
+
+State 258
+
+   81 lifetime: "mandatory" rangespec_start "->" . rangespec_end
+
+    "identifier"  shift, and go to state 255
+    ')'           shift, and go to state 284
+
+    namespacelist  go to state 285
+    rangespec_end  go to state 286
+
+
+State 259
+
+   79 lifetime: "disallowed" rangespec_start "->" . rangespec_end
+
+    "identifier"  shift, and go to state 255
+    ')'           shift, and go to state 284
+
+    namespacelist  go to state 285
+    rangespec_end  go to state 287
+
+
+State 260
+
+   77 lifetimelist: lifetimelist ',' lifetime .
+
+    $default  reduce using rule 77 (lifetimelist)
+
+
+State 261
+
+   65 node: "node" "identifier" '{' nodebody "lifetime" '{' lifetimelist '}' '}' .
+
+    $default  reduce using rule 65 (node)
+
+
+State 262
+
+   54 nodeset: "nodeset" "identifier" '{' info ',' "nodes" '=' setexpr '}' .
+
+    $default  reduce using rule 54 (nodeset)
+
+
+State 263
+
+   31 pass: "pass" "identifier" '{' prefix ',' "func" '=' "identifier" '}' .
+
+    $default  reduce using rule 31 (pass)
+
+
+State 264
+
+   32 pass: "pass" "identifier" '{' info ',' prefix ',' "func" '=' . "identifier" '}'
+
+    "identifier"  shift, and go to state 288
+
+
+State 265
+
+   38 traversal: "traversal" "identifier" '{' prefix ',' func ',' traversalnodes '}' .
+
+    $default  reduce using rule 38 (traversal)
+
+
+State 266
+
+   42 traversal: "traversal" "identifier" '{' info ',' prefix ',' func ',' . traversalnodes '}'
+
+    "nodes"  shift, and go to state 152
+
+    traversalnodes  go to state 289
+
+
+State 267
+
+   41 traversal: "traversal" "identifier" '{' info ',' prefix ',' func '}' .
+
+    $default  reduce using rule 41 (traversal)
+
+
+State 268
+
+   43 traversal: "traversal" "identifier" '{' info ',' prefix ',' traversalnodes '}' .
+
+    $default  reduce using rule 43 (traversal)
+
+
+State 269
+
+   21 actions: actions action ';' .
+
+    $default  reduce using rule 21 (actions)
+
+
+State 270
+
+   15 phase: phaseheader '{' prefix ',' "root" '=' "identifier" ',' "gate" . ',' actionsbody '}'
+   16      | phaseheader '{' prefix ',' "root" '=' "identifier" ',' "gate" . '=' "string value" ',' actionsbody '}'
+
+    '='  shift, and go to state 290
+    ','  shift, and go to state 291
+
+
+State 271
+
+   13 phase: phaseheader '{' prefix ',' "root" '=' "identifier" ',' actionsbody . '}'
+
+    '}'  shift, and go to state 292
+
+
+State 272
+
+   17 phase: phaseheader '{' prefix ',' "gate" '=' "string value" ',' actionsbody . '}'
+
+    '}'  shift, and go to state 293
+
+
+State 273
+
+   49 enum: "enum" "identifier" '{' info ',' "prefix" '=' "identifier" ',' enumvalues . '}'
+
+    '}'  shift, and go to state 294
+
+
+State 274
+
+   50 enum: "enum" "identifier" '{' info ',' enumvalues ',' "prefix" '=' "identifier" . '}'
+
+    '}'  shift, and go to state 295
+
+
+State 275
+
+   74 lifetimewithvalues: "disallowed" . rangespec_start "->" rangespec_end '=' '{' idlist '}'
+   76                   | "disallowed" . '=' '{' idlist '}'
+   79 lifetime: "disallowed" . rangespec_start "->" rangespec_end
+   80         | "disallowed" .
+
+    '='  shift, and go to state 296
+    '('  shift, and go to state 224
+    '['  shift, and go to state 225
+
+    $default  reduce using rule 80 (lifetime)
+
+    rangespec_start  go to state 297
+
+
+State 276
+
+   72 lifetimelistwithvalues: lifetimelistwithvalues . ',' lifetimewithvalues
+  102 attr: attrhead '{' "construct" ',' lifetimelistwithvalues . '}'
+
+    ','  shift, and go to state 298
+    '}'  shift, and go to state 299
+
+
+State 277
+
+   73 lifetimelistwithvalues: lifetimewithvalues .
+
+    $default  reduce using rule 73 (lifetimelistwithvalues)
+
+
+State 278
+
+   75 lifetimewithvalues: lifetime .
+
+    $default  reduce using rule 75 (lifetimewithvalues)
+
+
+State 279
+
+   95 child: "identifier" "identifier" '{' "construct" ',' . lifetimelist '}'
+
+    "mandatory"   shift, and go to state 178
+    "disallowed"  shift, and go to state 179
+
+    lifetimelist  go to state 300
+    lifetime      go to state 181
+
+
+State 280
+
+   97 child: "identifier" "identifier" '{' "construct" '}' .
+
+    $default  reduce using rule 97 (child)
+
+
+State 281
+
+   77 lifetimelist: lifetimelist ',' . lifetime
+   96 child: "identifier" "identifier" '{' lifetimelist ',' . "construct" '}'
+
+    "construct"   shift, and go to state 301
+    "mandatory"   shift, and go to state 178
+    "disallowed"  shift, and go to state 179
+
+    lifetime  go to state 260
+
+
+State 282
+
+   98 child: "identifier" "identifier" '{' lifetimelist '}' .
+
+    $default  reduce using rule 98 (child)
+
+
+State 283
+
+   83 namespacelist: namespacelist '.' . "identifier"
+
+    "identifier"  shift, and go to state 302
+
+
+State 284
+
+   89 rangespec_end: ')' .
+
+    $default  reduce using rule 89 (rangespec_end)
+
+
+State 285
+
+   83 namespacelist: namespacelist . '.' "identifier"
+   88 rangespec_end: namespacelist . ')'
+   90              | namespacelist . ']'
+
+    ')'  shift, and go to state 303
+    '.'  shift, and go to state 283
+    ']'  shift, and go to state 304
+
+
+State 286
+
+   81 lifetime: "mandatory" rangespec_start "->" rangespec_end .
+
+    $default  reduce using rule 81 (lifetime)
+
+
+State 287
+
+   79 lifetime: "disallowed" rangespec_start "->" rangespec_end .
+
+    $default  reduce using rule 79 (lifetime)
+
+
+State 288
+
+   32 pass: "pass" "identifier" '{' info ',' prefix ',' "func" '=' "identifier" . '}'
+
+    '}'  shift, and go to state 305
+
+
+State 289
+
+   42 traversal: "traversal" "identifier" '{' info ',' prefix ',' func ',' traversalnodes . '}'
+
+    '}'  shift, and go to state 306
+
+
+State 290
+
+   16 phase: phaseheader '{' prefix ',' "root" '=' "identifier" ',' "gate" '=' . "string value" ',' actionsbody '}'
+
+    "string value"  shift, and go to state 307
+
+
+State 291
+
+   15 phase: phaseheader '{' prefix ',' "root" '=' "identifier" ',' "gate" ',' . actionsbody '}'
+
+    "actions"  shift, and go to state 104
+
+    actionsbody  go to state 308
+
+
+State 292
+
+   13 phase: phaseheader '{' prefix ',' "root" '=' "identifier" ',' actionsbody '}' .
+
+    $default  reduce using rule 13 (phase)
+
+
+State 293
+
+   17 phase: phaseheader '{' prefix ',' "gate" '=' "string value" ',' actionsbody '}' .
+
+    $default  reduce using rule 17 (phase)
+
+
+State 294
+
+   49 enum: "enum" "identifier" '{' info ',' "prefix" '=' "identifier" ',' enumvalues '}' .
+
+    $default  reduce using rule 49 (enum)
+
+
+State 295
+
+   50 enum: "enum" "identifier" '{' info ',' enumvalues ',' "prefix" '=' "identifier" '}' .
+
+    $default  reduce using rule 50 (enum)
+
+
+State 296
+
+   76 lifetimewithvalues: "disallowed" '=' . '{' idlist '}'
+
+    '{'  shift, and go to state 309
+
+
+State 297
+
+   74 lifetimewithvalues: "disallowed" rangespec_start . "->" rangespec_end '=' '{' idlist '}'
+   79 lifetime: "disallowed" rangespec_start . "->" rangespec_end
+
+    "->"  shift, and go to state 310
+
+
+State 298
+
+   72 lifetimelistwithvalues: lifetimelistwithvalues ',' . lifetimewithvalues
+
+    "mandatory"   shift, and go to state 178
+    "disallowed"  shift, and go to state 275
+
+    lifetimewithvalues  go to state 311
+    lifetime            go to state 278
+
+
+State 299
+
+  102 attr: attrhead '{' "construct" ',' lifetimelistwithvalues '}' .
+
+    $default  reduce using rule 102 (attr)
+
+
+State 300
+
+   77 lifetimelist: lifetimelist . ',' lifetime
+   95 child: "identifier" "identifier" '{' "construct" ',' lifetimelist . '}'
+
+    ','  shift, and go to state 228
+    '}'  shift, and go to state 312
+
+
+State 301
+
+   96 child: "identifier" "identifier" '{' lifetimelist ',' "construct" . '}'
+
+    '}'  shift, and go to state 313
+
+
+State 302
+
+   83 namespacelist: namespacelist '.' "identifier" .
+
+    $default  reduce using rule 83 (namespacelist)
+
+
+State 303
+
+   88 rangespec_end: namespacelist ')' .
+
+    $default  reduce using rule 88 (rangespec_end)
+
+
+State 304
+
+   90 rangespec_end: namespacelist ']' .
+
+    $default  reduce using rule 90 (rangespec_end)
+
+
+State 305
+
+   32 pass: "pass" "identifier" '{' info ',' prefix ',' "func" '=' "identifier" '}' .
+
+    $default  reduce using rule 32 (pass)
+
+
+State 306
+
+   42 traversal: "traversal" "identifier" '{' info ',' prefix ',' func ',' traversalnodes '}' .
+
+    $default  reduce using rule 42 (traversal)
+
+
+State 307
+
+   16 phase: phaseheader '{' prefix ',' "root" '=' "identifier" ',' "gate" '=' "string value" . ',' actionsbody '}'
+
+    ','  shift, and go to state 314
+
+
+State 308
+
+   15 phase: phaseheader '{' prefix ',' "root" '=' "identifier" ',' "gate" ',' actionsbody . '}'
+
+    '}'  shift, and go to state 315
+
+
+State 309
+
+   76 lifetimewithvalues: "disallowed" '=' '{' . idlist '}'
+
+    "identifier"  shift, and go to state 88
+
+    idlist  go to state 316
+
+
+State 310
+
+   74 lifetimewithvalues: "disallowed" rangespec_start "->" . rangespec_end '=' '{' idlist '}'
+   79 lifetime: "disallowed" rangespec_start "->" . rangespec_end
+
+    "identifier"  shift, and go to state 255
+    ')'           shift, and go to state 284
+
+    namespacelist  go to state 285
+    rangespec_end  go to state 317
+
+
+State 311
+
+   72 lifetimelistwithvalues: lifetimelistwithvalues ',' lifetimewithvalues .
+
+    $default  reduce using rule 72 (lifetimelistwithvalues)
+
+
+State 312
+
+   95 child: "identifier" "identifier" '{' "construct" ',' lifetimelist '}' .
+
+    $default  reduce using rule 95 (child)
+
+
+State 313
+
+   96 child: "identifier" "identifier" '{' lifetimelist ',' "construct" '}' .
+
+    $default  reduce using rule 96 (child)
+
+
+State 314
+
+   16 phase: phaseheader '{' prefix ',' "root" '=' "identifier" ',' "gate" '=' "string value" ',' . actionsbody '}'
+
+    "actions"  shift, and go to state 104
+
+    actionsbody  go to state 318
+
+
+State 315
+
+   15 phase: phaseheader '{' prefix ',' "root" '=' "identifier" ',' "gate" ',' actionsbody '}' .
+
+    $default  reduce using rule 15 (phase)
+
+
+State 316
+
+   76 lifetimewithvalues: "disallowed" '=' '{' idlist . '}'
+  129 idlist: idlist . ',' "identifier"
+
+    ','  shift, and go to state 141
+    '}'  shift, and go to state 319
+
+
+State 317
+
+   74 lifetimewithvalues: "disallowed" rangespec_start "->" rangespec_end . '=' '{' idlist '}'
+   79 lifetime: "disallowed" rangespec_start "->" rangespec_end .
+
+    '='  shift, and go to state 320
+
+    $default  reduce using rule 79 (lifetime)
+
+
+State 318
+
+   16 phase: phaseheader '{' prefix ',' "root" '=' "identifier" ',' "gate" '=' "string value" ',' actionsbody . '}'
+
+    '}'  shift, and go to state 321
+
+
+State 319
+
+   76 lifetimewithvalues: "disallowed" '=' '{' idlist '}' .
+
+    $default  reduce using rule 76 (lifetimewithvalues)
+
+
+State 320
+
+   74 lifetimewithvalues: "disallowed" rangespec_start "->" rangespec_end '=' . '{' idlist '}'
+
+    '{'  shift, and go to state 322
+
+
+State 321
+
+   16 phase: phaseheader '{' prefix ',' "root" '=' "identifier" ',' "gate" '=' "string value" ',' actionsbody '}' .
+
+    $default  reduce using rule 16 (phase)
+
+
+State 322
+
+   74 lifetimewithvalues: "disallowed" rangespec_start "->" rangespec_end '=' '{' . idlist '}'
+
+    "identifier"  shift, and go to state 88
+
+    idlist  go to state 323
+
+
+State 323
+
+   74 lifetimewithvalues: "disallowed" rangespec_start "->" rangespec_end '=' '{' idlist . '}'
+  129 idlist: idlist . ',' "identifier"
+
+    ','  shift, and go to state 141
+    '}'  shift, and go to state 324
+
+
+State 324
+
+   74 lifetimewithvalues: "disallowed" rangespec_start "->" rangespec_end '=' '{' idlist '}' .
+
+    $default  reduce using rule 74 (lifetimewithvalues)

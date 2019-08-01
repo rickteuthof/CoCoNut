@@ -76,6 +76,14 @@ enum LifetimeType {
     LIFETIME_MANDATORY
 };
 
+typedef struct ccn_sub_root_pair {
+    char *from;
+    char *to;
+} ccn_sub_root_pair;
+
+typedef struct Phase Phase;
+typedef struct Lifetime Lifetime_t;
+
 typedef struct Range_spec {
     array *ids; // Ids of the action this spec starts or end, with namespacing.
     unsigned int id_index;
@@ -86,9 +94,10 @@ typedef struct Range_spec {
     enum LifetimeType life_type;
     uint32_t action_counter_id;
     array *values; // Non owning, lifetime is owner.
+    Lifetime_t *owner;
 } Range_spec_t;
 
-typedef struct Lifetime {
+struct Lifetime {
     Range_spec_t *start;
     Range_spec_t *end;
     enum LifetimeType type;
@@ -96,7 +105,7 @@ typedef struct Lifetime {
     bool owner;
     array *values;
 
-} Lifetime_t;
+};
 
 typedef struct Config {
     array *phases;
@@ -105,6 +114,9 @@ typedef struct Config {
     array *enums;
     array *nodesets;
     array *nodes;
+    array *sub_root_pairs;
+    char *header_dir;
+    char *source_dir;
 
     struct Node *root_node;
     struct Phase *start_phase;
@@ -112,7 +124,6 @@ typedef struct Config {
     struct NodeCommonInfo *common_info;
 } Config;
 
-typedef struct Phase Phase;
 
 struct Phase {
     char *id;
@@ -133,20 +144,13 @@ struct Phase {
     struct NodeCommonInfo *common_info;
 };
 
-typedef struct PhaseLeaf {
-    // enum PhaseLeafType type;
-    union {
-        struct Pass *pass;
-        struct Traversal *traversal;
-    } value;
-} PhaseLeaf;
-
 typedef struct Pass {
     char *id;
     char *info;
     char *prefix;
     char *func;
     struct NodeCommonInfo *common_info;
+    ccn_set_t *roots;
 } Pass;
 
 typedef struct Traversal {

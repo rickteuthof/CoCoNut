@@ -86,7 +86,7 @@ static void new_location(void *ptr, struct ParserLocation *loc);
     struct AttrValue *attrval;
 }
 
-%error-verbose
+%define parse.error verbose
 %locations
 
 %token<intval> T_INTVAL "integer value"
@@ -164,6 +164,9 @@ static void new_location(void *ptr, struct ParserLocation *loc);
 %type<action> action
 %type<lifetime> lifetime lifetimewithvalues
 %type<range_spec> rangespec_start rangespec_end
+
+%left '&' '-' '|'
+
 %start root
 
 %%
@@ -192,7 +195,7 @@ entry: phase { array_append(config_phases, $1); }
      | node { array_append(config_nodes, $1);  }
      ;
 
-prefix: T_PREFIX '=' T_STRINGVAL
+prefix: T_PREFIX '=' T_ID
       {
           $$ = $3;
           new_location($$, &@$);
@@ -247,12 +250,12 @@ actionsbody: T_ACTIONS '{' actions '}'
      }
      ;
 
-actions: actions ',' action
+actions: actions  action ';'
        {
-           array_append($1, $3);
+           array_append($1, $2);
            $$ = $1;
        }
-       | action
+       | action ';'
        {
            array *tmp = create_array();
            array_append(tmp, $1);
@@ -334,6 +337,10 @@ pass: T_PASS T_ID '{' prefix ',' T_FUNC '=' T_ID '}'
         new_location($$, &@$);
         new_location($2, &@2);
     }
+    | T_PASS T_ID '=' T_ID
+    {
+        $$ = create_pass($2, $4, NULL);
+    }
     ;
 
 
@@ -389,6 +396,12 @@ traversal: T_TRAVERSAL T_ID
              new_location($$, &@$);
              new_location($2, &@2);
          }
+         | T_TRAVERSAL T_ID '=' setexpr
+         {
+            $$ = create_traversal($2, NULL, NULL, $4);
+            new_location($$, &@$);
+            new_location($2, &@2);
+         }  
          ;
 
 func: T_FUNC '=' T_ID
@@ -461,19 +474,33 @@ nodeset: T_NODESET T_ID '{' T_NODES '=' setexpr '}'
            new_location($$, &@$);
            new_location($2, &@2);
        }
+       | T_NODESET T_ID '=' setexpr
+       {
+           $$ = create_nodeset($2, $4);
+           new_location($$, &@$);
+           new_location($2, &@2);
+       }
        ;
 
 setexpr: setoperation
        {
            $$ = create_set_expr(SET_OPERATION, $1);
+           new_location($$, &@$);
+       }
+       | '(' setoperation ')'
+       {
+           $$ = create_set_expr(SET_OPERATION, $2);
+           new_location($$, &@$);
        }
        | '{' idlist '}'
        {
            $$ = create_set_expr(SET_LITERAL, $2);
+           new_location($$, &@$);
        }
        | T_ID
        {
            $$ = create_set_expr(SET_REFERENCE, $1);
+           new_location($$, &@$);
        }
        ;
 
@@ -565,14 +592,17 @@ lifetimelistwithvalues: lifetimelistwithvalues ',' lifetimewithvalues
 lifetimewithvalues: T_DISALLOWED rangespec_start T_ARROW rangespec_end '=' '{' idlist '}'
         {
             $$ = create_lifetime($2, $4, LIFETIME_DISALLOWED, $7);
+            new_location($$, &@$);
         }
         | lifetime
         {
             $$ = $1;
+
         }
         | T_DISALLOWED '=' '{' idlist '}'
         {
             $$ = create_lifetime(NULL, NULL, LIFETIME_DISALLOWED, $4);
+            new_location($$, &@$);
         }
         ;
 
@@ -584,23 +614,28 @@ lifetimelist: lifetimelist ',' lifetime
             {
                 $$ = array_init(2);
                 array_append($$, $1);
+                new_location($1, &@1);
             }
 
 lifetime: T_DISALLOWED rangespec_start T_ARROW rangespec_end
         {
             $$ = create_lifetime($2, $4, LIFETIME_DISALLOWED, NULL);
+            new_location($$, &@$);
         }
         | T_DISALLOWED
         {
             $$ = create_lifetime(NULL, NULL, LIFETIME_DISALLOWED, NULL);
+            new_location($$, &@$);
         }
         | T_MANDATORY rangespec_start T_ARROW rangespec_end
         {
             $$ = create_lifetime($2, $4, LIFETIME_MANDATORY, NULL);
+            new_location($$, &@$);
         }
         | T_MANDATORY
         {
             $$ = create_lifetime(NULL, NULL, LIFETIME_MANDATORY, NULL);
+            new_location($$, &@$);
         }
         ;
 

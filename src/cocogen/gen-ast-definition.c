@@ -45,7 +45,7 @@ static void generate_traversal_enum(Config *config, FILE *fp) {
             out("   " TRAV_FORMAT ",\n", t->id);
         }
     }
-
+    out("    " TRAV_FORMAT "\n", "NULL");
     out("} " TRAV_ENUM_NAME ";\n\n");
 }
 

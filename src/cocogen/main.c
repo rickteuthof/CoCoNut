@@ -9,6 +9,7 @@
 
 #include "lib/errors.h"
 #include "lib/print.h"
+#include "lib/str.h"
 
 #include "cocogen/ast.h"
 #include "cocogen/check-ast.h"
@@ -37,6 +38,7 @@
 #include "cocogen/gen-subtree-functions.h"
 #include "cocogen/breakpoint_generation.h"
 #include "cocogen/gen-gate-functions.h"
+#include "cocogen/gen-action-handling.h"
 
 #include "cocogen/command_opts.h"
 
@@ -45,6 +47,13 @@ extern Config *parse(FILE *fp);
 extern char *yy_filename;
 
 command_options_t global_options;
+
+static void set_global_options() {
+    global_options.break_inspect_points = false;
+    global_options.consistcheck = false;
+    global_options.profiling = false;
+    global_options.serialise = false;
+}
 
 static void usage(char *program) {
     char *program_bin = strrchr(program, '/');
@@ -108,9 +117,25 @@ void exit_compile_error(void) {
     exit(INVALID_CONFIG);
 }
 
+void generate_enables(Config *c, FILE *fp) {
+    if (global_options.break_inspect_points) {
+        out("#define CCN_ENABLE_POINTS 1\n");
+    } else {
+        out("#undef CCN_ENABLE_POINTS\n");
+    }
+
+    if (global_options.consistcheck) {
+        out("#define CCN_ENABLE_CHECKS 1\n");
+    } else {
+        out("#undef CCN_ENANLE_CHECKS\n");
+    }
+
+    out("\n");
+}
 
 
 int main(int argc, char *argv[]) {
+    set_global_options();
     int verbose_flag = 0;
     int list_gen_files_flag = 0;
     int ret = 0;
@@ -119,10 +144,6 @@ int main(int argc, char *argv[]) {
     char *header_dir = NULL;
     char *source_dir = NULL;
     char *dot_dir = NULL;
-
-    global_options.breakpoints = false;
-    global_options.consistcheck = false;
-    global_options.profiling = false;
 
     struct option long_options[] = {
         {"verbose", no_argument, &verbose_flag, 1},
@@ -133,8 +154,10 @@ int main(int argc, char *argv[]) {
         {"help", no_argument, 0, 'h'},
         {"version", no_argument, 0, 20},
         {"profiling", no_argument, 0, 24},
-        {"break-inspectpoints", no_argument, 0, 25},
+        {"breakpoints", no_argument, 0, 25},
         {"consistency-checks", no_argument, 0, 26},
+        {"serialise", no_argument, 0, 27},
+        {"inspectpoints", no_argument, 0, 28},
         {0, 0, 0, 0}};
 
     while (1) {
@@ -164,10 +187,16 @@ int main(int argc, char *argv[]) {
             global_options.profiling = true;
             break;
         case 25:
-            global_options.breakpoints = true;
+            global_options.break_inspect_points = true;
             break;
         case 26:
             global_options.consistcheck = true;
+            break;
+        case 27:
+            global_options.serialise = true;
+            break;
+        case 28:
+            global_options.break_inspect_points = true;
             break;
         case 'h':
             usage(argv[0]);
@@ -186,19 +215,42 @@ int main(int argc, char *argv[]) {
     }
 
     if (header_dir == NULL)
-        header_dir = "include/generated/";
+        header_dir = strdup("include/");
     if (source_dir == NULL)
-        source_dir = "src/generated/";
+        source_dir = strdup("src/");
+
+    init_tracking_data(2);
+
+    if (header_dir[strlen(header_dir) - 1] != '/') {
+        header_dir = ccn_str_cat(header_dir, "/");
+    }
+    if (source_dir[strlen(source_dir) - 1] != '/') {
+        source_dir = ccn_str_cat(source_dir, "/");
+    }
+    header_dir = ccn_str_cat(header_dir, "generated/");
+    source_dir = ccn_str_cat(source_dir, "generated/");
+
+    add_directory_to_tracked_dirs(header_dir);
+    add_directory_to_tracked_dirs(source_dir);
+
 
     FILE *f = open_input_file(yy_filename);
     Config *parse_result = parse(f);
     fclose(f);
 
+    parse_result->source_dir = ccn_str_cpy(source_dir);
+    parse_result->header_dir = ccn_str_cpy(header_dir);
+
+
+
     if (check_config(parse_result)) {
         exit_compile_error();
     }
-    Traversal *consistency_check = create_traversal(strdup("_CCN_CHK"), NULL, strdup("_CHK"), NULL);
-    array_append(parse_result->traversals, consistency_check);
+
+    if (global_options.consistcheck) {
+        Traversal *consistency_check = create_traversal(strdup("_CCN_CHK"), NULL, strdup("_CHK"), NULL);
+        array_append(parse_result->traversals, consistency_check);
+    }
 
     // Sort to prevent changes in order of attributes trigger regeneration of
     // code.
@@ -217,8 +269,13 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
+    ensure_dir_exists(parse_result->header_dir, 0775);
+    ensure_dir_exists(parse_result->source_dir, 0775);
+    set_current_directory_to_be_tracked(parse_result->header_dir);
+
     // Generated all the header files.
-    filegen_dir(header_dir);
+    filegen_dir(parse_result->header_dir);
+    filegen_generate("ccn_enables.h", generate_enables);
     filegen_generate("enum.h", generate_enum_definitions);
     filegen_generate("ast.h", generate_ast_definitions);
     filegen_all_nodes("ast-%s.h", generate_ast_node_header);
@@ -242,35 +299,43 @@ int main(int argc, char *argv[]) {
     filegen_generate("trav-core.h", generate_trav_core_header);
     filegen_all_nodes("trav-%s.h", generate_trav_node_header);
 
-    filegen_generate("ccn_consistency_check.h", generate_consistency_headers);
-    filegen_generate("phase-driver.h", generate_phase_driver_header);
+    if (global_options.consistcheck) {
+        filegen_generate("ccn_consistency_check.h", generate_consistency_headers);
+    }
+    //filegen_generate("phase-driver.h", generate_phase_driver_header);
 
     filegen_all_traversals("traversal-%s.h", generate_user_trav_header);
     filegen_all_passes("pass-%s.h", generate_pass_header);
-    filegen_all_phases("phase-%s.h", generate_phase_function_declarations);
+    //filegen_all_phases("phase-%s.h", generate_phase_function_declarations);
 
-    filegen_generate("binary-serialization-util.h",
-                     generate_binary_serialization_util_header);
+    if (global_options.serialise) {
+        filegen_generate("binary-serialization-util.h",
+                        generate_binary_serialization_util_header);
 
-    filegen_all_nodes("serialization-%s.h",
-                      generate_binary_serialization_node_header);
+        filegen_all_nodes("serialization-%s.h",
+                        generate_binary_serialization_node_header);
 
-    filegen_all_nodesets("serialization-%s.h",
-                         generate_binary_serialization_nodeset_header);
+        filegen_all_nodesets("serialization-%s.h",
+                            generate_binary_serialization_nodeset_header);
 
-    filegen_generate("textual-serialization-util.h",
-                     generate_textual_serialization_util_header);
+        filegen_generate("textual-serialization-util.h",
+                        generate_textual_serialization_util_header);
 
-    filegen_generate("serialization-all.h",
-                     generate_binary_serialization_all_header);
+        filegen_generate("serialization-all.h",
+                        generate_binary_serialization_all_header);
+    }
 
-    filegen_generate("breakpoint-finder.h", generate_breakpoint);
+    if (global_options.break_inspect_points) {
+        filegen_generate("breakpoint-finder.h", generate_breakpoint);
+    }
+
     filegen_generate("gate_functions.h", generate_gate_functions);
+    filegen_generate("action_handlers.h", gen_action_array_h);
 
-    filegen_cleanup_old_files();
 
+    set_current_directory_to_be_tracked(parse_result->source_dir);
     // Genereate all the source files.
-    filegen_dir(source_dir);
+    filegen_dir(parse_result->source_dir);
 
     filegen_all_nodes("free-%s.c", generate_free_node_definitions);
     filegen_all_nodesets("free-%s.c", generate_free_nodeset_definitions);
@@ -281,52 +346,63 @@ int main(int argc, char *argv[]) {
     filegen_all_nodes("copy-%s.c", generate_copy_node_definitions);
     filegen_all_nodesets("copy-%s.c", generate_copy_nodeset_definitions);
 
-    /* filegen_generate("trav-ast.c", generate_trav_definitions); */
+    //filegen_generate("trav-ast.c", generate_trav_definitions);
     filegen_generate("trav-core.c", generate_trav_core_definitions);
     filegen_all_nodes("trav-%s.c", generate_trav_node_definitions);
-    filegen_generate("ccn_consistency_check.c", generate_consistency_definitions);
-    filegen_generate("phase-driver.c", generate_phase_driver_definitions);
-    filegen_all_phases("phase-%s.c", generate_phase_function_definitions);
-    filegen_phase_subtree(subtree_generate_phase_functions);
-    filegen_generate("traversal-ccn_consistency_check.c", generate_check_traversal);
+    if (global_options.consistcheck) {
+        filegen_generate("ccn_consistency_check.c", generate_consistency_definitions);
+    }
 
-    filegen_generate("binary-serialization-util.c",
-                     generate_binary_serialization_util);
-    filegen_all_nodes("binary-serialization-%s-write.c",
-                      generate_binary_serialization_node);
+    //filegen_generate("phase-driver.c", generate_phase_driver_definitions);
+    //filegen_all_phases("phase-%s.c", generate_phase_function_definitions);
+    filegen_phase_subtree(parse_result, subtree_generate_phase_functions);
 
-    filegen_all_nodesets("binary-serialization-%s-write.c",
-                         generate_binary_serialization_nodeset);
+    if (global_options.consistcheck) {
+        filegen_generate("traversal-ccn_consistency_check.c", generate_check_traversal);
+    }
 
-    filegen_all_nodes("binary-serialization-%s-read.c",
-                      generate_binary_serialization_read_node);
+    if (global_options.serialise) {
+        filegen_generate("binary-serialization-util.c",
+                        generate_binary_serialization_util);
+        filegen_all_nodes("binary-serialization-%s-write.c",
+                        generate_binary_serialization_node);
 
-    filegen_all_nodesets("binary-serialization-%s-read.c",
-                         generate_binary_serialization_read_nodeset);
+        filegen_all_nodesets("binary-serialization-%s-write.c",
+                            generate_binary_serialization_nodeset);
 
-    filegen_all_nodes("textual-serialization-%s-read.c",
-                      generate_textual_serialization_read_node);
+        filegen_all_nodes("binary-serialization-%s-read.c",
+                        generate_binary_serialization_read_node);
 
-    filegen_all_nodesets("textual-serialization-%s-read.c",
-                         generate_textual_serialization_read_nodeset);
+        filegen_all_nodesets("binary-serialization-%s-read.c",
+                            generate_binary_serialization_read_nodeset);
 
-    filegen_all_nodes("textual-serialization-%s-write.c",
-                      generate_textual_serialization_write_node);
+        filegen_all_nodes("textual-serialization-%s-read.c",
+                        generate_textual_serialization_read_node);
 
-    filegen_all_nodesets("textual-serialization-%s-write.c",
-                         generate_textual_serialization_write_nodeset);
+        filegen_all_nodesets("textual-serialization-%s-read.c",
+                            generate_textual_serialization_read_nodeset);
 
-    filegen_generate("textual-serialization-util.c",
-                     generate_textual_serialization_util);
+        filegen_all_nodes("textual-serialization-%s-write.c",
+                        generate_textual_serialization_write_node);
 
-    filegen_generate("breakpoints-finder.c", generate_breakpoint_body);
+        filegen_all_nodesets("textual-serialization-%s-write.c",
+                            generate_textual_serialization_write_nodeset);
 
-    filegen_cleanup_old_files();
+        filegen_generate("textual-serialization-util.c",
+                        generate_textual_serialization_util);
 
-    filegen_cleanup();
+    }
 
+    if (global_options.break_inspect_points) {
+        filegen_generate("breakpoints-finder.c", generate_breakpoint_body);
+    }
+
+    filegen_generate("action_handlers.c", gen_action_array_c);
+
+
+
+    clean_all_tracked_directories();
     free_config(parse_result);
-
 
     return ret;
 }

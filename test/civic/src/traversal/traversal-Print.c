@@ -48,9 +48,12 @@ static void print_basictype(BasicType type) {
         break;
     }
 }
-static int cycles = 2;
+static int cycles = 10;
 void Print_Root(Root *node, Info *info) {
-    //ccn_notify_error(CCN_ACTION_FATAL);
+	if (cycles > 0) {
+		ccn_cycle_notify();
+		cycles--;
+	}
     trav_Root_symbol(node, info);
     trav_Root_funsymbol(node, info);
     trav_Root_decls(node, info);

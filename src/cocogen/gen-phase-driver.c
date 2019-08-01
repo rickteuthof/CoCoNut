@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include "cocogen/command_opts.h"
 
 // TODO: maybe allow to print to multiple files at once.
 // We no go over the phases two or three times, which can be changed.
@@ -54,12 +55,16 @@ void generate_phase_driver_definitions(Config *config, FILE *fp) {
     out("void phasedriver_run(%s *root) {\n\t_initialize_phase_driver();", config->root_node->id);
     out("phase_driver_t *pd = _get_phase_driver();\n");
     out("pd->ast = root;\n");
+    out("set_allocators();\n");
     out("double start = 0.0, end = 0.0;\n");
     out("start = clock();\n");
     out("%s(root);\n", root_phase->id);
     out("end = clock();\n");
     out("pd->total_time = (end - start)/CLOCKS_PER_SEC;\n");
-    out(" _print_top_n_time(10);\n");
+    if (global_options.profiling) {
+        out(" _print_top_n_time();\n");
+    }
+    out("phase_driver_destroy();\n");
     out("}\n");
 }
 

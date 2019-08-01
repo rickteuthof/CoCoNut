@@ -1,4 +1,5 @@
 #include "generated/gate_functions.h"
+#include "core/globals.h"
 
 #include <stdbool.h>
 
@@ -12,4 +13,8 @@ bool SemanticAnalysis_gate() {
 
 bool Gate_CodeGen() {
     return true;
+}
+
+bool Optimisations_gate() {
+    return get_opt();
 }

@@ -124,22 +124,6 @@ static void free_nodeset(void *p) {
     mem_free(nodeset);
 }
 
-static void free_mandatory(void *p) {
-    MandatoryPhase *ph = p;
-
-    if (ph->type == MP_single) {
-        mem_free(ph->value.single);
-    } else {
-        mem_free(ph->value.range->start);
-        mem_free(ph->value.range->end);
-        mem_free(ph->value.range);
-    }
-
-    free_commoninfo(ph->common_info);
-    mem_free(ph);
-}
-
-
 static void free_child(void *p) {
     Child *c = p;
 
@@ -190,13 +174,6 @@ static void free_node(void *p) {
     mem_free(node->id);
     free_commoninfo(node->common_info);
     mem_free(node);
-}
-
-static void free_phase_tree(Phase *tree) {
-    if (tree == NULL)
-        return;
-
-    mem_free(tree);
 }
 
 void free_config(Config *config) {

@@ -14,7 +14,11 @@ static void generate_nodeset(Nodeset *nodeset, FILE *fp, bool header) {
     if (header) {
         out(";");
     } else {
+        int indent = 1;
         out(" {\n");
+        out_begin_if("nodeset == NULL");
+        out_statement("return");
+        out_end_if();
 
         out("    switch(nodeset->type) {\n");
         for (int i = 0; i < array_size(nodeset->nodes); ++i) {
@@ -34,8 +38,11 @@ static void generate_nodeset(Nodeset *nodeset, FILE *fp, bool header) {
     if (header) {
         out(";");
     } else {
+        int indent = 1;
         out(" {\n");
-
+        out_begin_if("nodeset == NULL");
+        out_statement("return");
+        out_end_if();
         out("    switch(nodeset->type) {\n");
         for (int i = 0; i < array_size(nodeset->nodes); ++i) {
             Node *node = (Node *)array_get(nodeset->nodes, i);
@@ -52,11 +59,14 @@ static void generate_nodeset(Nodeset *nodeset, FILE *fp, bool header) {
 
 static void generate_node(Node *node, FILE *fp, bool header) {
     out("void " FREE_TREE_FORMAT "(struct %s* node)", node->id, node->id);
-
+    int indent = 1;
     if (header) {
         out(";");
     } else {
         out(" {\n");
+        out_begin_if("node == NULL");
+        out_statement("return");
+        out_end_if();
 
         for (int i = 0; i < array_size(node->children); ++i) {
             Child *child = (Child *)array_get(node->children, i);

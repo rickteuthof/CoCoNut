@@ -56,7 +56,7 @@ void generate_headers(Config *c, FILE *fp) {
                 mem_free(key);
                 continue;
             }
-            //out("void ccn_chk_%svalues(%s *node, struct ccn_chk_frame *frame);\n", key, n->id, attr->type_id);
+
             for (int k = 0; k < array_size(enm->values); ++k) {
                 char *val = array_get(enm->values, k);
                 out("void ccn_chk_%s%s(%s *node, enum ccn_chk_types type);\n", key, val, n->id);
@@ -74,6 +74,7 @@ void generate_sources(Config *c, FILE *fp) {
     int indent = 0;
     array *nodes = c->nodes;
 
+    out("#include \"lib/print.h\"\n");
     out("#include \"generated/ast.h\"\n");
     out("#include \"generated/ccn_consistency_check.h\"\n");
     out("#include \"core/internal_phase_functions.h\"\n");
@@ -83,8 +84,7 @@ void generate_sources(Config *c, FILE *fp) {
         out_start_func("void ccn_chk_%s(%s *node, enum ccn_chk_types type)", n->id, n->id);
         out_statement("phase_driver_t *pd = _get_phase_driver()");
         out_begin_if("type == CCN_CHK_DISALLOWED && node != NULL");
-        out_statement("printf(\"[CCN CHK] error:\\n\")"); // Maybe color this?, probably exit as well.
-        out_statement("printf(\"Node %s disallowed but present in the AST.\\n\")", n->id);
+        out_statement("print_user_error(\"CCN CHK\", \"Node %s disallowed but present in the AST.\\n\")", n->id);
         out_statement("printf(\"Current action: %%s\\n\", pd->current_action)");
         out_statement("_print_path()");
         out_statement("exit(1)");
@@ -97,16 +97,14 @@ void generate_sources(Config *c, FILE *fp) {
             out_start_func("void ccn_chk_%s(%s *node, enum ccn_chk_types type)", key, n->id);
             out_statement("phase_driver_t *pd = _get_phase_driver()");
             out_begin_if("type == CCN_CHK_DISALLOWED && node != NULL && node->%s != NULL", child->id);
-            out_statement("printf(\"[CCN CHK] error:\\n\")");
-            out_statement("printf(\"Node %s has a child of type %s, but this type is disallowed.\\n\")", n->id, child->id);
+            out_statement("print_user_error(\"CCN CHK\", \"Node %s has a child of type %s, but is disallowed.\\n\")", n->id, child->id);
             out_statement("printf(\"Current action: %%s\\n\", pd->current_action)");
             out_statement("_print_path()");
             out_statement("exit(1)");
             out_statement("exit(1)");
             out_end_if();
             out_begin_if("type == CCN_CHK_MANDATORY && node != NULL && node->%s == NULL", child->id);
-            out_statement("printf(\"[CCN CHK] error:\\n\")");
-            out_statement("printf(\"Child %s is mandatory on node %s, however is not present.\\n\")", child->id, n->id);
+            out_statement("print_user_error(\"CCN CHK\", \"Child %s is mandatory on node %s, however, is not present.\\n\")", child->id, n->id);
             out_statement("printf(\"Current action: %%s\\n\", pd->current_action)");
             out_statement("_print_path()");
             out_statement("exit(1)");
@@ -126,11 +124,10 @@ void generate_sources(Config *c, FILE *fp) {
             out_start_func("void ccn_chk_%s(%s *node, enum ccn_chk_types type)", key, n->id);
             out_statement("phase_driver_t *pd = _get_phase_driver()");
             out_begin_if("type == CCN_CHK_DISALLOWED && node != NULL && node->%s != %s_NULL", attr->id, enm->prefix);
-            out_statement("printf(\"[CCN] CHK error: node %s has an attribute of type %s, but this type is disallowed.\\n\")", n->id, attr->type_id);
+            out_statement("print_user_error(\"CCN CHK\",\"node %s has an attribute of type %s, but this type is disallowed.\\n\")", n->id, attr->type_id);
             out_end_if();
             out_begin_if("type == CCN_CHK_MANDATORY && node != NULL && node->%s == %s_NULL", attr->id, enm->prefix);
-            out_statement("printf(\"[CCN CHK] error:\\n\")");
-            out_statement("printf(\"Attribute type %s is mandatory on node %s, however is not present.\\n\")", attr->type_id, n->id);
+            out_statement("print_user_error(\"CCN CHK\",\"Attribute type %s is mandatory on node %s, however, is not present.\\n\")", attr->type_id, n->id);
             out_statement("printf(\"Current action: %%s\\n\", pd->current_action)");
             out_statement("_print_path()");
             out_statement("exit(1)");
@@ -143,8 +140,7 @@ void generate_sources(Config *c, FILE *fp) {
                 out_start_func("void ccn_chk_%s%s(%s *node, enum ccn_chk_types type)", key, val, n->id);
                 out_statement("phase_driver_t *pd = _get_phase_driver()");
                 out_begin_if("type == CCN_CHK_DISALLOWED && node != NULL && node->%s == %s_%s", attr->id, enm->prefix, val);
-                out_statement("printf(\"[CCN CHK] error:\\n\")");
-                out_statement("printf(\"node: %s attribute type %s has value %s, which is disallowed.\\n\")", n->id, attr->type_id, val);
+                out_statement("print_user_error(\"CCN CHK\",\"node %s attribute type %s has value %s, which is disallowed\\n\")", n->id, attr->type_id, val);
                 out_statement("printf(\"Current action: %%s\\n\", pd->current_action)");
                 out_statement("_print_path()");
                 out_statement("exit(1)");
@@ -211,6 +207,28 @@ int generate_check_traversal_attributes(Node *n, int indent, FILE *fp) {
     return indent;
 }
 
+bool is_active_lifetime(Node *n) {
+    if (array_size(n->lifetimes) > 0) {
+        return true;
+    }
+
+    for (int i = 0; i < array_size(n->children); ++i) {
+        Child *c = array_get(n->children, i);
+        if (array_size(c->lifetimes) > 0) {
+            return true;
+        }
+    }
+
+    for (int i = 0; i < array_size(n->attrs); ++i) {
+        Attr *attr = array_get(n->attrs, i);
+        if (array_size(attr->lifetimes) > 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void generate_check_traversal(Config *c, FILE *fp) {
     int indent = 0;
     out("#include \"generated/ast.h\"\n");
@@ -231,13 +249,18 @@ void generate_check_traversal(Config *c, FILE *fp) {
     for (int i = 0; i < array_size(c->nodes); ++i) {
         Node *n = array_get(c->nodes, i);
         out_start_func("void _CCN_CHK_%s(%s *node, Info *info)", n->id, n->id);
-        out_statement("phase_driver_t *pd = _get_phase_driver()");
+        if (is_active_lifetime(n)) {
+            out_statement("phase_driver_t *pd = _get_phase_driver()");
+        }
         for (int j = 0; j < array_size(n->lifetimes); ++j) {
             Lifetime_t *lifetime = array_get(n->lifetimes, j);
             char *left_comp = lifetime->start->inclusive ? ">=" : ">";
             char *right_comp = lifetime->end->inclusive ? "<=" : "<";
             if (lifetime->start != NULL && lifetime->end != NULL) {
-                out_begin_if("pd->action_id %s %lu && pd->action_id %s %lu", left_comp, (unsigned long)lifetime->start->action_counter_id, right_comp, (unsigned long)lifetime->end->action_counter_id);
+                out_begin_if("pd->action_id %s %lu && pd->action_id %s %lu", left_comp, 
+                    (unsigned long)lifetime->start->action_counter_id, right_comp,
+                    (unsigned long)lifetime->end->action_counter_id);
+
                 out_statement("ccn_chk_%s(node, %s)", lifetime->key, lifetime->start->type);
                 out_end_if();
             }
@@ -249,6 +272,7 @@ void generate_check_traversal(Config *c, FILE *fp) {
             Child *child = array_get(n->children, j);
             out_statement("trav_%s_%s(node, info)", n->id, child->id);
         }
+        out_statement("return");
         out_end_func();
     }
 }

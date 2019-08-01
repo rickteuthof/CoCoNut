@@ -1,6 +1,9 @@
 #include "generated/traversal-ByteCode.h"
+#include "generated/trav-FunDef.h"
 #include "generated/ast.h"
+#include "generated/create-ast.h"
 #include "lib/memory.h"
+#include "lib/str.h"
 #include <stdio.h>
 struct Info {
     int a;
@@ -11,11 +14,25 @@ Info *ByteCode_createinfo(void) {
     return info;
 }
 
-void ByteCode_freeinfo(Info *info) {}
+void ByteCode_freeinfo(Info *info) {
+    mem_free(info);
+}
 void ByteCode_Root(Root *node, Info *info) {}
 void ByteCode_Decls(Decls *node, Info *info) {}
 void ByteCode_LocalFunDef(LocalFunDef *node, Info *info) {}
-void ByteCode_FunDef(FunDef *node, Info *info) {}
+void ByteCode_FunDef(FunDef *node, Info *info) {
+	if (ccn_str_equal(node->funheader->id, "main")) {
+		FunHeader *header = create_FunHeader(NULL, ccn_str_cpy("TEST"), BT_int);
+    	FunDef *mainfun =
+        	create_FunDef(create_FunBody(NULL, NULL, NULL),
+                      	header, NULL,
+                      	NULL, NULL, true, false);
+	mainfun->next = node->next;
+	replace_FunDef(mainfun);	
+	} else {
+
+	}
+}
 void ByteCode_FunHeader(FunHeader *node, Info *info) {}
 void ByteCode_Param(Param *node, Info *info) {}
 void ByteCode_GlobalDec(GlobalDec *node, Info *info) {}

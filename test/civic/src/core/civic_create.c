@@ -1,14 +1,15 @@
 #include "generated/ast.h"
 #include "generated/copy-ast.h"
 #include "generated/create-ast.h"
-#include "generated/free-ast.h"
-#include "generated/phase-driver.h"
+#include "generated/free-Root.h"
 #include "generated/trav-ast.h"
 #include "generated/enum.h"
 #include "core/internal_phase_functions.h"
+#include "core/action_handling.h"
+#include "generated/action_handlers.h"
 
-#include "generated/serialization-Root.h"
-#include "generated/traversal-_CCN_CHK.h"
+//#include "generated/serialization-Root.h"
+//#include "generated/traversal-_CCN_CHK.h"
 
 #include <time.h>
 #include <stdbool.h>
@@ -73,9 +74,10 @@ FunDef *make_fundef(char *name) {
     
     //VarLet *a1 = create_VarLet(create_Expr_FunCall("scanint"), strdup("a1"));
     //StmtList *stmtla1 = create_StmtList(NULL, create_Stmt_VarLet(a1));
+    FunHeader *header = create_FunHeader(NULL, strdup(name), BT_int);
     FunDef *mainfun =
         create_FunDef(create_FunBody(NULL, stmtla1, vda1),
-                      create_FunHeader(NULL, strdup(name), BT_int), NULL,
+                      header, NULL,
                       NULL, NULL, true, false);
     
     return mainfun;
@@ -101,30 +103,15 @@ int main() {
     FunDef *mainfun = create_n_fundefs(amount_of_funcs);
     Root *program = create_Root(
         create_Decls(create_Decl_FunDef(mainfun), NULL), NULL, NULL);
-   
+    
     _initialize_phase_driver();
-    //ccn_set_breakpoint("CodeGen:2=Print");
-    //ccn_set_breakpoint("CodeGen:1");
-    ccn_set_inspect_point("LoadProgram");
-    phasedriver_run(program);
-    /*for (int i = 0; i < 10; i++) {
-        start = clock();
-        //serialization_write_binfile_Root(program, "test-serialization.bin");
-        trav_start_Root(program, TRAV__CCN_CHK);
-        end = clock();
-        end = (end-start)/CLOCKS_PER_SEC;
-        total += end;
-    }*/
-    //printf("%d, %f\n", total_nodes, total / 10);
-    //FILE *fp;
-    //start = clock(); 
-    //serialization_write_binfile_Root(program, "test-serialization.bin");
-    //end = clock();
-    //printf("Time to hash %d nodes: %f seconds\n", total_nodes, (end-start)/CLOCKS_PER_SEC);
-    //Root *root_ser = serialization_read_binfile_Root("test-serialization.bin");
-    //phasedriver_run(program);
-    //trav_start_Root(program, TRAV_Print);
-    //phase_driver_t *pd = _get_phase_driver();
-    //printf("ID: %lu\n", (unsigned long)pd->action_id);
+    //ccn_set_breakpoint("Optimisations");
+    ccn_set_print_n(5);
+    init_action_array();
+    ccn_action_t *action = get_ccn_action_from_id(ACTION_ID_RootPhase);
+    ccn_dispatch_action(action, NT_Root, program);
+    free_Root_tree(program);
+
+    phase_driver_destroy();
     return 0;
 }

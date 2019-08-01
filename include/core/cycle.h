@@ -1,4 +1,4 @@
 #pragma once
-#include "generated/internal/_cycle.h"
+#include "generated/_cycle.h"
 
 extern void ccn_cycle_notify();

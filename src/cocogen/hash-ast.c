@@ -31,6 +31,19 @@ static void set_hash(NodeCommonInfo *info, bool config) {
     }
 }
 
+static void hash_range_spec(Range_spec_t *spec) {
+    hash(spec->inclusive ? "y" : "n", char);
+    hash(spec->type, char);
+}
+
+static void hash_lifetime(Lifetime_t *lifetime) {
+    hash_range_spec(lifetime->start);
+    hash_range_spec(lifetime->end);
+    for (int i = 0; i < array_size(lifetime->values); i++) {
+        hash(array_get(lifetime->values, i), char);
+    }
+}
+
 static void hash_node(Node *n) {
 
     td = mhash_init(MHASH_MD5);
@@ -50,6 +63,10 @@ static void hash_node(Node *n) {
         // Node children can change to different type without name changes.
         hash(child->node == NULL ? "y" : "n", char);
         hash(child->nodeset == NULL ? "y" : "n", char);
+
+        for (int j = 0; j < array_size(child->lifetimes); ++j) {
+            hash_lifetime(array_get(child->lifetimes, j));
+        }
     }
 
     for (int i = 0; i < array_size(n->attrs); ++i) {
@@ -85,8 +102,15 @@ static void hash_node(Node *n) {
                 break;
             }
         }
+        for (int j = 0; j < array_size(attr->lifetimes); j++) {
+            hash_lifetime(array_get(attr->lifetimes, j));
+        }
         if (attr->type == AT_link) mem_free(attr_type_string);
     }
+    for (int i = 0; i < array_size(n->lifetimes); ++i) {
+        hash_lifetime(array_get(n->lifetimes, i));
+    }
+
     mhash_deinit(td, hash);
     set_hash(n->common_info, false);
 }
@@ -143,17 +167,23 @@ static void hash_phase(Phase *phase) {
 
     for (int i = 0; i < array_size(phase->actions); ++i) {
         Action *action = array_get(phase->actions, i);
+        hash(action->action_owner ? "owner" : "not owner", char);
+
         switch (action->type) {
         case ACTION_PASS:
+            hash("Pass", char);
             hash(((Pass *)action->action)->id, char);
             break;
         case ACTION_TRAVERSAL:
+            hash("Trav", char);
             hash(((Traversal *)action->action)->id, char);
             break;
         case ACTION_PHASE:
+            hash("Phase", char);
             hash(((Phase *)action->action)->id, char);
             break;
         case ACTION_REFERENCE:
+            hash("Ref", char);
             hash(((char *)action->action), char);
             break;
         }
@@ -181,6 +211,13 @@ static void hash_pass(Pass *pass) {
     hash(pass->id, char);
     if (pass->func)
         hash(pass->func, char);
+
+    array *values = ccn_set_values(pass->roots);
+    for (int i = 0; i < array_size(values); ++i) {
+        char *root = array_get(values, i);
+        hash(root, char);
+    }
+    array_cleanup(values, NULL);
 
     mhash_deinit(td, hash);
     set_hash(pass->common_info, false);

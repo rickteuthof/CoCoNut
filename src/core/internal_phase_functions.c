@@ -1,19 +1,26 @@
+/**
+ * This module contains the functions used internally by the phase driver during compilation.
+ * This creates a bridge between the API functions for errors and cycles and command options.
+ * It is internal because the user should never include this file explicitly.
+ */
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <unistd.h>
-
+#include <malloc.h>
 #include "core/error.h"
 #include "core/internal_phase_functions.h"
 #include "lib/array.h"
 #include "lib/memory.h"
 #include "lib/str.h"
 #include "lib/print.h"
-#include "cocogen/filegen-util.h"
-#include "generated/breakpoint-finder.h"
-#include "generated/traversal-Print.h"
+#include "generated/trav-ast.h"
+#include "generated/enum.h"
 
+#define COLOR_GREEN "\033[1m\033[32m"
+#define COLOR_RESET "\033[0m"
 
 static phase_driver_t phase_driver;
 
@@ -28,7 +35,6 @@ void _push_chk_frame(char *key, enum ccn_chk_types type) {
         if (frame->type == type) {
             frame->ref_counter++;
         } else {
-            // Should never happen.
             assert(false);
         }
     }
@@ -85,7 +91,7 @@ phase_frame_t *_top_frame() {
     return array_last(phase_driver.phase_stack);
 }
 
-void _push_frame(char *id) {
+void _push_frame(char *id, NodeType root_type) {
     phase_frame_t *frame = mem_alloc(sizeof(phase_frame_t));
     frame->phase_id = id;
     frame->cycle_notified = false;
@@ -93,6 +99,7 @@ void _push_frame(char *id) {
     frame->marks = NULL;
     frame->cycles = 0;
     frame->phase_error = false;
+    frame->curr_root = root_type;
     array_append(phase_driver.phase_stack, frame);
 }
 
@@ -110,15 +117,21 @@ void _initialize_phase_driver() {
     phase_driver.phase_stack = create_array();
     phase_driver.passes_time_frames = array_init(20);
     phase_driver.cycles_time_frames = array_init(20);
+    phase_driver.action_mem_frames = array_init(20);
     phase_driver.consistency_map = smap_init(20);
     phase_driver.curr_sub_root = NULL;
     phase_driver.level = 0;
     phase_driver.action_id = 1; // We start at 1, as 0 states that its not set.
+#ifdef CCN_ENABLE_POINTS
     phase_driver.id_to_enum_map = create_enum_mapping();
     phase_driver.breakpoint = NULL;
+#endif
     phase_driver.ast = NULL;
     phase_driver.current_action = NULL;
     phase_driver.total_time = 0;
+    phase_driver.total_allocated = 0;
+    phase_driver.total_freed = 0;
+    phase_driver.print_n = 0;
 
 }
 
@@ -161,14 +174,14 @@ bool _ccn_mark_remove(void *item) {
 }
 
 // TODO: Nice way to print?
-void _ccn_start_phase(char *id) {
+void _ccn_start_phase(char *id, NodeType root_type) {
     printf(COLOR_GREEN "[CCN] " COLOR_RESET);
     for(int i = 0; i < phase_driver.level; i++) {
         printf("*");
     }
     phase_driver.level++;
     printf("%s\n", id);
-    _push_frame(id);
+    _push_frame(id, root_type);
 }
 
 void _ccn_end_phase(char *id) {
@@ -184,7 +197,6 @@ void _ccn_end_phase(char *id) {
 }
 
 void _ccn_new_phase_time_frame(char *id, double time_sec) {
-    phase_frame_t *top = _top_frame();
     time_frame_t *time_frame = mem_alloc(sizeof(time_frame_t));
     time_frame->id = id;
     time_frame->time_sec = time_sec;
@@ -194,7 +206,6 @@ void _ccn_new_phase_time_frame(char *id, double time_sec) {
 }
 
 void _ccn_new_pass_time_frame(char *id, double time_sec) {
-    phase_frame_t *top = _top_frame();
     time_frame_t *time_frame = mem_alloc(sizeof(time_frame_t));
     time_frame->id = id;
     time_frame->time_sec = time_sec;
@@ -224,7 +235,10 @@ void _ccn_print_time_frame(time_frame_t *time_frame) {
     printf("%% Time: %f\n\n" , (time_frame->time_sec / phase_driver.total_time) * 100);
 }
 
-void _print_top_n_time(int n) {
+void _print_top_n_time() {
+    size_t n = phase_driver.print_n;
+    if (n <= 0)
+        return;
     array *passes_times = phase_driver.passes_time_frames;
     array *cycles_times = phase_driver.cycles_time_frames;
     array_sort(passes_times, compare_time_frame_inverse);
@@ -254,8 +268,15 @@ void _print_top_n_time(int n) {
     printf("Total time: %f seconds\n", phase_driver.total_time);
     printf("---------------------------------------------------------------------------------\n\n");
 
+    /*
+    printf("\nMemory:\n");
+    printf("---------------------------\n");
+    printf("Total allocated: %lu bytes\n", phase_driver.total_allocated);
+    printf("Total freed: %lu bytes\n", phase_driver.total_freed);
+    */
 }
 
+#ifdef CCN_ENABLE_POINTS
 point_frame_t *_ccn_create_point_frame_from_string(char *target) {
     if (!phase_driver.initialized)
         return NULL;
@@ -284,36 +305,15 @@ point_frame_t *_ccn_create_point_frame_from_string(char *target) {
     frame->action = action;
     frame->ids = vals;
     frame->index = 0;
+
+    array_cleanup(actions, mem_free);
+    array_cleanup(cycle_counts, mem_free);
+
     return frame;
 }
+#endif
 
-bool ccn_set_breakpoint(char *breakpoint) {
-    if (!phase_driver.initialized || phase_driver.breakpoint != NULL)
-        return false;
-    point_frame_t *frame = _ccn_create_point_frame_from_string(breakpoint);
-    if (frame == NULL)
-        return false;
-
-    phase_driver.breakpoint = frame;
-    return true;
-}
-
-bool ccn_set_inspect_point(char *inspect) {
-    if (!phase_driver.initialized)
-        return false;
-
-    if (phase_driver.inspection_points == NULL) {
-        phase_driver.inspection_points = array_init(2);
-    }
-
-    point_frame_t *frame = _ccn_create_point_frame_from_string(inspect);
-    if (frame == NULL)
-        return false;
-
-    array_append(phase_driver.inspection_points, frame);
-    return true;
-}
-
+#ifdef CCN_ENABLE_POINTS
 bool _ccn_is_final_point(enum ACTION_IDS id, phase_frame_t *frame, point_frame_t *curr_point) {
     if (curr_point->current_id == id && curr_point->cycle_counter == frame->cycles) {
         if (curr_point->index == array_size(curr_point->ids) - 1) {
@@ -367,6 +367,7 @@ void _ccn_check_points(enum ACTION_IDS id, char *current_action) {
     _ccn_check_inspect_point(id, current_action);
     _ccn_check_breakpoint(id);
 }
+#endif
 
 // TODO: cache this in phase driver as an array.
 char *_ccn_get_path() {
@@ -404,4 +405,59 @@ void _print_path() {
 
     phase_frame_t *frame = array_get(phase_driver.phase_stack, array_size(phase_driver.phase_stack) - 1);
     printf("%s\n", frame->phase_id);
+}
+
+void *ccn_malloc(size_t size) {
+    phase_driver.total_allocated += size;
+    return malloc(size);
+}
+
+void ccn_free(void* item) {
+    phase_driver.total_freed += malloc_usable_size(item); // glib deps, so not crossplatform.
+    free(item);
+}
+
+void set_allocators() {
+    set_allocator(ccn_malloc);
+    set_deallocator(ccn_free);
+}
+
+void reset_allocators() {
+    set_allocator(malloc);
+    set_deallocator(free);
+}
+
+#ifdef CCN_ENABLE_POINTS
+void _ccn_destroy_points(void *item) {
+    point_frame_t *point = (point_frame_t*)item;
+    array_cleanup(point->ids, mem_free);
+    mem_free(point->action);
+    mem_free(point);
+}
+#endif
+
+void _ccn_destroy_time_frame(void *item) {
+    time_frame_t *frame = (time_frame_t*)item;
+    mem_free(frame->path);
+    mem_free(frame);
+}
+
+void phase_driver_destroy() {
+    array_cleanup(phase_driver.passes_time_frames, _ccn_destroy_time_frame);
+    array_cleanup(phase_driver.cycles_time_frames, _ccn_destroy_time_frame);
+#ifdef CCN_ENABLE_POINTS
+    array_cleanup(phase_driver.inspection_points, _ccn_destroy_points);
+#endif
+    reset_allocators();
+}
+
+void _ccn_destroy_sub_root() {
+    if (phase_driver.curr_sub_root != NULL) {
+        mem_free(phase_driver.curr_sub_root);
+        phase_driver.curr_sub_root = NULL;
+    }
+}
+
+void ccn_set_print_n(size_t n) {
+    phase_driver.print_n = n;
 }

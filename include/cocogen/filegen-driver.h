@@ -2,6 +2,18 @@
 #include "cocogen/ast.h"
 #include <stdio.h>
 
+bool add_filename_to_tracked(const char *filename);
+
+bool add_filename_to_tracked_specify_dir(const char *dir, const char *filename);
+bool add_filename_to_blacklist(const char *filename);
+bool add_filename_to_blacklist_specify_dir(const char *dir, const char *filename);
+bool clean_specific_tracked_directory(const char *dirpath);
+bool clean_current_tracked_directory();
+bool clean_all_tracked_directories();
+void set_current_directory_to_be_tracked(const char *dirname);
+void init_tracking_data(size_t num_of_dirs);
+bool add_directory_to_tracked_dirs(const char *dir);
+
 void filegen_init(Config *config, bool list_gen_files_flag);
 void filegen_dir(char *out_dir);
 FILE *get_fp(char *full_path, char *mode);
@@ -22,7 +34,7 @@ void filegen_all_passes(char *fileformatter,
 void filegen_all_phases(char *fileFormatter,
                         void (*func)(Config *, FILE *, Phase *));
 
-void filegen_phase_subtree(void (*func)(array *));
+void filegen_phase_subtree(Config *, void (*func)(Config *, array *));
 
 void filegen_delete_non_generated_filed(ccn_set_t *generated_files, array *directories, ccn_set_t *blacklist);
 void filegen_cleanup_old_files(void);
