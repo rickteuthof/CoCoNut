@@ -230,6 +230,9 @@ int main(int argc, char *argv[]) {
     header_dir = ccn_str_cat(header_dir, "generated/");
     source_dir = ccn_str_cat(source_dir, "generated/");
 
+    ensure_dir_exists(header_dir, 0755);
+    ensure_dir_exists(source_dir, 0755);
+
     add_directory_to_tracked_dirs(header_dir);
     add_directory_to_tracked_dirs(source_dir);
 
@@ -269,8 +272,6 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    ensure_dir_exists(parse_result->header_dir, 0775);
-    ensure_dir_exists(parse_result->source_dir, 0775);
     set_current_directory_to_be_tracked(parse_result->header_dir);
 
     // Generated all the header files.
