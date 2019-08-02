@@ -139,11 +139,10 @@ void gen_action_array_c(Config *c, FILE *fp) {
     }
     out_end_func();
 
-    out_start_func("ccn_action_t *make_trav_action(TraversalType trav_type, enum ACTION_IDS id, char *name)");
+    out_start_func("ccn_action_t *make_trav_action(ccn_action_t *action, TraversalType trav_type, enum ACTION_IDS id, char *name)");
     {
         out_statement("ccn_traversal_t *trav = mem_alloc(sizeof(ccn_traversal_t))");
         out_statement("trav->trav_type = trav_type");
-        out_statement("ccn_action_t *action = mem_alloc(sizeof(ccn_action_t))");
         out_statement("action->type = action_traversal");
         out_statement("action->traversal = trav");
         out_statement("action->action_id = id");
@@ -152,11 +151,10 @@ void gen_action_array_c(Config *c, FILE *fp) {
     }
     out_end_func();
 
-    out_start_func("ccn_action_t *make_pass_action(void *(*func)(void*, NodeType), enum ACTION_IDS id, char *name)");
+    out_start_func("ccn_action_t *make_pass_action(ccn_action_t* action, void *(*func)(void*, NodeType), enum ACTION_IDS id, char *name)");
     {
         out_statement("ccn_pass_t *pass = mem_alloc(sizeof(ccn_pass_t))");
         out_statement("pass->func = func");
-        out_statement("ccn_action_t *action = mem_alloc(sizeof(ccn_action_t))");
         out_statement("action->type = action_pass");
         out_statement("action->action_id = id");
         out_statement("action->pass = pass");
@@ -165,7 +163,7 @@ void gen_action_array_c(Config *c, FILE *fp) {
     }
     out_end_func();
 
-    out_start_func("ccn_action_t *make_phase_action(enum ACTION_IDS id, enum ACTION_IDS *id_table, bool (*gate)(void), char *name, bool is_cycle)");
+    out_start_func("ccn_action_t *make_phase_action(ccn_action_t* action, enum ACTION_IDS id, enum ACTION_IDS *id_table, bool (*gate)(void), char *name, bool is_cycle)");
     {
         out_statement("ccn_phase_t *phase = mem_alloc(sizeof(ccn_phase_t))");
         out_statement("phase->gate_func = NULL");
@@ -173,7 +171,6 @@ void gen_action_array_c(Config *c, FILE *fp) {
         out_statement("phase->is_cycle = is_cycle");
         out_statement("phase->action_id = id");
         out_statement("phase->root_type = NT_%s", c->root_node->id);
-        out_statement("ccn_action_t *action = mem_alloc(sizeof(ccn_action_t))");
         out_statement("action->type = action_phase");
         out_statement("action->action_id = id");
         out_statement("action->phase = phase");
@@ -188,13 +185,13 @@ void gen_action_array_c(Config *c, FILE *fp) {
         out_statement("action_array = mem_alloc(sizeof(ccn_action_t) * get_number_of_actions())");
         for (int i = 0; i < array_size(c->traversals); ++i) {
             Traversal *trav = array_get(c->traversals, i);
-            out_statement("action_array[ACTION_ID_%s] = make_trav_action(TRAV_%s, ACTION_ID_%s, \"%s\")",
+            out_statement("make_trav_action(action_array[ACTION_ID_%s], TRAV_%s, ACTION_ID_%s, \"%s\")",
                 trav->id, trav->id, trav->id, trav->id);
         }
 
         for (int i = 0; i < array_size(c->passes); ++i) {
             Pass *pass = array_get(c->passes, i);
-            out_statement("action_array[ACTION_ID_%s] = make_pass_action(&dispatch_pass_%s, ACTION_ID_%s, \"%s\")",
+            out_statement("make_pass_action(&action_array[ACTION_ID_%s], dispatch_pass_%s, ACTION_ID_%s, \"%s\")",
                 pass->id, pass->id, pass->id, pass->id);
         }
 
@@ -205,17 +202,17 @@ void gen_action_array_c(Config *c, FILE *fp) {
             }
             char *cycle = phase->cycle ? "true" : "false";
             if (phase->gate_func != NULL) {
-                out_statement("action_array[ACTION_ID_%s] = make_phase_action(ACTION_ID_%s, %s_ids_table, %s, \"%s\", %s)",
+                out_statement("make_phase_action(action_array[ACTION_ID_%s], ACTION_ID_%s, %s_ids_table, %s, \"%s\", %s)",
                     phase->id, phase->id, phase->id, phase->gate_func, phase->id, cycle);
             } else {
-                out_statement("action_array[ACTION_ID_%s] = make_phase_action(ACTION_ID_%s, %s_ids_table, NULL, \"%s\", %s)",
+                out_statement("make_phase_action(action_array[ACTION_ID_%s], ACTION_ID_%s, %s_ids_table, NULL, \"%s\", %s)",
                     phase->id, phase->id, phase->id, phase->id, cycle);
             }
             if (phase->root != NULL) {
                 out_statement("action_array[ACTION_ID_%s]->phase->root_type = NT_%s", phase->id, phase->root);
             }
         }
-        out_statement("action_array[ACTION_ID_NULL] = NULL");
+        out_statement("action_array[ACTION_ID_NULL]->type = action_NULL");
 
     }
     out_end_func();
@@ -275,11 +272,13 @@ void gen_action_array_c(Config *c, FILE *fp) {
     out_statement("if (action_array == NULL) return");
     out_statement("size_t index = 0");
     out_statement("ccn_action_t *action = action_array[index++]");
-    out_begin_while("action != NULL");
+    out_begin_while("action->type != action_NULL");
     out_statement("mem_free(action->name)");
     out_statement("mem_free(action)");
     out_statement("action = action_array[index++]");
     out_end_while();
+    out_statement("mem_free(action->name)");
+     out_statement("mem_free(action)");
     out_statement("action_array = NULL");
     out_end_func();
 }

@@ -8,7 +8,8 @@
 enum ACTION_TYPE {
     action_pass,
     action_phase,
-    action_traversal
+    action_traversal,
+    action_NULL
 };
 
 typedef struct ccn_pass {

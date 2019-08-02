@@ -453,7 +453,7 @@ void phase_driver_destroy() {
 #ifdef CCN_ENABLE_POINTS
     array_cleanup(phase_driver.inspection_points, _ccn_destroy_points);
 #endif
-    ccn_destroy_action_array() 
+    ccn_destroy_action_array(); 
     reset_allocators();
 
 }
