@@ -1,0 +1,11 @@
+- Add options to disallowed subset of children in lifetimes. 
+- Add pass checks. 
+- Fix TODO's in code. 
+- Make sure the coconut py works perfect. 
+- Fix include paths for user, they are terrible. 
+- Fix memory tracking.
+- Move internal allocs to a different function, so they are not tracked.
+- Make a max-heap for tracking of time and memory. 
+- Move internal functions to different file based on type and flags.
+- Rewrite the smap implementation or use stb?
+- Make sure that the total number of types stays below a 16 bit number? 16 should be enough, gives around 60000 types.

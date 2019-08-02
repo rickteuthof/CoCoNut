@@ -445,6 +445,9 @@ void _ccn_destroy_time_frame(void *item) {
 void phase_driver_destroy() {
     array_cleanup(phase_driver.passes_time_frames, _ccn_destroy_time_frame);
     array_cleanup(phase_driver.cycles_time_frames, _ccn_destroy_time_frame);
+    array_cleanup(phase_driver.phase_stack, NULL);
+    array_cleanup(phase_driver.action_mem_frames, NULL);
+    smap_free(phase_driver.consistency_map);
 #ifdef CCN_ENABLE_POINTS
     array_cleanup(phase_driver.inspection_points, _ccn_destroy_points);
 #endif

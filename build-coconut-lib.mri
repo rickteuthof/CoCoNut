@@ -1,0 +1,5 @@
+create bin/libcoconutlib.a
+addlib lib/CoCoNut-lib/bin/libcoconut.a
+addlib bin/libcoconutcore.a
+save
+end

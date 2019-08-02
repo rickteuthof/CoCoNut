@@ -38,6 +38,8 @@ void free_setExpr(SetExpr *expr) {
         mem_free(expr->ref_id);
         break;
     case SET_LITERAL:
+        if (expr->id_set == NULL)
+            break;
         ccn_set_free(expr->id_set);
         break;
     case SET_OPERATION:

@@ -1,20 +1,21 @@
-MODULES = src/framework src/core src/ccnstd
+MODULES = framework core ccnstd generated
 MKDIR = mkdir -p
-VPATH := $(MODULES)
+VPATH := src/
 
 CC ?= gcc
 
-BUILD_DIR = build/coconutlib
+BUILD_DIR = build
 BIN_DIR = bin
 
 AR := ar
 AR_FLAGS := rcs
 
-CFLAGS ?= --std=gnu11
+CFLAGS += --std=gnu11
 INCLUDE_DIRS = -Iinclude/framework -Iinclude
 
-SRC := $(foreach module, $(MODULES), $(notdir $(wildcard $(module)/*.c)))
+SRC := $(foreach module, $(MODULES), $(addprefix $(module)/, $(notdir $(wildcard src/$(module)/*.c))))
 SRC := $(sort $(SRC)) # Create reproducible builds.
+$(info $$SRC is [${SRC}])
 OBJS := $(SRC:.c=.o)
 OBJS := $(addprefix $(BUILD_DIR)/, $(OBJS))
 
@@ -28,6 +29,7 @@ $(OBJS): | $(BUILD_DIR) $(BIN_DIR)
 
 $(BUILD_DIR):
 	$(SILENCED)$(MKDIR) $(BUILD_DIR)
+	$(foreach module, $(MODULES), $(MKDIR) $(BUILD_DIR)/$(module))
 
 $(BIN_DIR):
 	$(SILENCED)$(MKDIR) $(BIN_DIR)

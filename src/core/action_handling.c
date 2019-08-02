@@ -150,6 +150,7 @@ void *ccn_dispatch_phase(ccn_phase_t *phase, NodeType root_type, void *node, cha
             array *marks = array_init(1);
             array_append(marks, _ccn_new_mark(node));
             ccn_cycle_mark_array(phase, marks, root_type, name);
+            array_cleanup(marks, mem_free);
         } else {
             node = ccn_run_phase_actions(phase, name, root_type, node);
         }
@@ -179,4 +180,13 @@ void *ccn_dispatch_action(ccn_action_t *action, NodeType root_type, void *node) 
 
     pd->action_id++;
     return node;
+}
+
+void ccn_destroy_action_array(array *actions) {
+    for (int i = 0; i < array_size(actions); ++i) {
+        ccn_action_t *action = array_get(actions, i);
+        mem_free(action->name);
+        mem_free(action);
+    }
+    array_cleanup(actions, NULL); 
 }
