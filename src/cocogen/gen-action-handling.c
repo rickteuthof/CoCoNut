@@ -50,6 +50,9 @@ void gen_action_array_h(Config *c, FILE *fp) {
         Pass *pass = array_get(c->passes, i);
         out_statement("void *dispatch_pass_%s(void *, NodeType)", pass->id);
     }
+
+    out_statement("void ccn_destroy_action_array()");
+
 }
 
 /* Gen the action handling and the creation of the action array .c file, */
@@ -212,6 +215,7 @@ void gen_action_array_c(Config *c, FILE *fp) {
                 out_statement("action_array[ACTION_ID_%s]->phase->root_type = NT_%s", phase->id, phase->root);
             }
         }
+        out_statement("action_array[ACTION_ID_NULL] = NULL");
 
     }
     out_end_func();
@@ -227,7 +231,6 @@ void gen_action_array_c(Config *c, FILE *fp) {
             out_end_case();
 
         }
-
 
         out_begin_default_case();
         out_statement("break");
@@ -266,5 +269,17 @@ void gen_action_array_c(Config *c, FILE *fp) {
     }
     ccn_set_free_with_func(to_values_already_processed, NULL);
     out_statement("return 0"); // TODO: Signal error here.
+    out_end_func();
+
+    out_start_func("void ccn_destroy_action_array()");
+    out_statement("if (action_array == NULL) return");
+    out_statement("size_t index = 0");
+    out_statement("ccn_action_t *action = action_array[index++]");
+    out_begin_while("action != NULL");
+    out_statement("mem_free(action->name)");
+    out_statement("mem_free(action)");
+    out_statement("action = action_array[index++]");
+    out_end_while();
+    out_statement("action_array = NULL");
     out_end_func();
 }

@@ -12,12 +12,14 @@
 #include <malloc.h>
 #include "core/error.h"
 #include "core/internal_phase_functions.h"
+#include "core/action_handling.h"
 #include "lib/array.h"
 #include "lib/memory.h"
 #include "lib/str.h"
 #include "lib/print.h"
 #include "generated/trav-ast.h"
 #include "generated/enum.h"
+#include "generated/action_handlers.h"
 
 #define COLOR_GREEN "\033[1m\033[32m"
 #define COLOR_RESET "\033[0m"
@@ -451,7 +453,9 @@ void phase_driver_destroy() {
 #ifdef CCN_ENABLE_POINTS
     array_cleanup(phase_driver.inspection_points, _ccn_destroy_points);
 #endif
+    ccn_destroy_action_array() 
     reset_allocators();
+
 }
 
 void _ccn_destroy_sub_root() {
