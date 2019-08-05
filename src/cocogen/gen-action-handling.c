@@ -44,7 +44,7 @@ void gen_action_array_h(Config *c, FILE *fp) {
     indent--;
     out("#ifndef CCN_NUM_OF_ACTIONS\n");
     out("#define CCN_NUM_OF_ACTIONS %lu\n", size);
-    out("#endif");
+    out("#endif\n");
 
     for (int i = 0; i < array_size(c->passes); ++i) {
         Pass *pass = array_get(c->passes, i);
@@ -111,7 +111,7 @@ void gen_action_array_c(Config *c, FILE *fp) {
         out("#include \"generated/pass-%s.h\"\n", pass->id);
     }
 
-    out_statement("static ccn_action_t action_array[CCN_NUM_OF_ACTIONS] = {{.type = actions_NULL}}");
+    out_statement("static ccn_action_t action_array[CCN_NUM_OF_ACTIONS] = {{.type = action_NULL}}");
 
     for (int i = 0; i < array_size(c->phases); ++i) {
         Phase *phase = array_get(c->phases, i);
@@ -134,7 +134,7 @@ void gen_action_array_c(Config *c, FILE *fp) {
 
     out_start_func("ccn_action_t *get_ccn_action_from_id(enum ACTION_IDS id)");
     {
-        out_statement("return action_array[id]");
+        out_statement("return &action_array[id]");
     }
     out_end_func();
 
@@ -181,16 +181,15 @@ void gen_action_array_c(Config *c, FILE *fp) {
 
     out_start_func("void init_action_array()");
     {
-        out_statement("action_array = mem_alloc(sizeof(ccn_action_t) * get_number_of_actions())");
         for (int i = 0; i < array_size(c->traversals); ++i) {
             Traversal *trav = array_get(c->traversals, i);
-            out_statement("make_trav_action(action_array[&ACTION_ID_%s], TRAV_%s, ACTION_ID_%s, \"%s\")",
+            out_statement("make_trav_action(&action_array[ACTION_ID_%s], TRAV_%s, ACTION_ID_%s, \"%s\")",
                 trav->id, trav->id, trav->id, trav->id);
         }
 
         for (int i = 0; i < array_size(c->passes); ++i) {
             Pass *pass = array_get(c->passes, i);
-            out_statement("make_pass_action(action_array[&ACTION_ID_%s], &dispatch_pass_%s, ACTION_ID_%s, \"%s\")",
+            out_statement("make_pass_action(&action_array[ACTION_ID_%s], &dispatch_pass_%s, ACTION_ID_%s, \"%s\")",
                 pass->id, pass->id, pass->id, pass->id);
         }
 
@@ -201,10 +200,10 @@ void gen_action_array_c(Config *c, FILE *fp) {
             }
             char *cycle = phase->cycle ? "true" : "false";
             if (phase->gate_func != NULL) {
-                out_statement("make_phase_action(action_array[&ACTION_ID_%s], ACTION_ID_%s, %s_ids_table, %s, \"%s\", %s)",
+                out_statement("make_phase_action(&action_array[ACTION_ID_%s], ACTION_ID_%s, %s_ids_table, %s, \"%s\", %s)",
                     phase->id, phase->id, phase->id, phase->gate_func, phase->id, cycle);
             } else {
-                out_statement("make_phase_action(action_array[&ACTION_ID_%s], ACTION_ID_%s, %s_ids_table, NULL, \"%s\", %s)",
+                out_statement("make_phase_action(&action_array[ACTION_ID_%s], ACTION_ID_%s, %s_ids_table, NULL, \"%s\", %s)",
                     phase->id, phase->id, phase->id, phase->id, cycle);
             }
             if (phase->root != NULL) {
@@ -277,17 +276,17 @@ void gen_action_array_c(Config *c, FILE *fp) {
     out_end_if();
     out_begin_if("action->type == action_phase");
     out_statement("mem_free(action->phase)");
+    out_end_if();
     out_end_func();
 
     out_start_func("void ccn_destroy_action_array()");
     out_statement("if (action_array[0].type == action_NULL) return");
     out_statement("size_t index = 0");
-    out_statement("ccn_action_t *action = 7action_array[index++]");
+    out_statement("ccn_action_t *action = &action_array[index++]");
     out_begin_while("action->type != action_NULL");
     out_statement("ccn_destroy_action(action)");
     out_statement("action = &action_array[index++]");
     out_end_while();
-    out_statement("ccn_destroy_action(action)");
     out_statement("action_array[0].type = action_NULL");
     out_end_func();
 }
