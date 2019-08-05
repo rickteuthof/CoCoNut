@@ -268,17 +268,28 @@ void gen_action_array_c(Config *c, FILE *fp) {
     out_statement("return 0"); // TODO: Signal error here.
     out_end_func();
 
+    out_start_func("void ccn_destroy_action()");
+    out_statement("mem_free(action->name)");
+    out_begin_if("action->type == action_traversal");
+    out_statement("mem_free(action->traversal)");
+    out_end_if();
+    out_begin_if("action->type == action_pass");
+    out_statement("mem_free(action->pass)");
+    out_end_if();
+    out_begin_if("action->type == action_phase");
+    out_statement("mem_free(action->phase)");
+    out_end_func();
+
     out_start_func("void ccn_destroy_action_array()");
     out_statement("if (action_array == NULL) return");
     out_statement("size_t index = 0");
     out_statement("ccn_action_t *action = action_array[index++]");
     out_begin_while("action->type != action_NULL");
-    out_statement("mem_free(action->name)");
-    out_statement("mem_free(action)");
+    out_statement("ccn_destroy_action(action)");
     out_statement("action = action_array[index++]");
     out_end_while();
-    out_statement("mem_free(action->name)");
-     out_statement("mem_free(action)");
+    out_statement("ccn_destroy_action(action)");
+    out_statement("mem_free(action_array)");
     out_statement("action_array = NULL");
     out_end_func();
 }
