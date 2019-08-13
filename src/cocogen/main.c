@@ -334,8 +334,8 @@ int main(int argc, char *argv[]) {
     filegen_generate("action_handlers.h", gen_action_array_h);
 
 
-    set_current_directory_to_be_tracked(parse_result->source_dir);
     // Genereate all the source files.
+    set_current_directory_to_be_tracked(parse_result->source_dir);
     filegen_dir(parse_result->source_dir);
 
     filegen_all_nodes("free-%s.c", generate_free_node_definitions);

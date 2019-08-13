@@ -110,7 +110,7 @@ void _exit_on_action_error();
 void _exit_on_phase_error();
 bool _is_cycle_notified();
 void _reset_cycle();
-void _initialize_phase_driver();
+void ccn_phase_driver_init();
 void _ccn_set_curr_mark(cycle_mark_t *mark);
 void _ccn_new_pass_time_frame(char *id, double time);
 void _ccn_new_phase_time_frame(char *id, double time);
@@ -123,7 +123,8 @@ void set_allocators();
 void set_deallocators();
 void *ccn_malloc(size_t);
 void ccn_free(void *);
-void phase_driver_destroy();
+void ccn_phase_driver_destroy();
+void ccn_phase_driver_run();
 void _ccn_destroy_sub_root();
 void ccn_set_print_n(size_t n);
 

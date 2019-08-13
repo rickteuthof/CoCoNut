@@ -39,11 +39,15 @@ void gen_action_array_h(Config *c, FILE *fp) {
             size++;
         }
     }
-
+    size++;
     out("    ACTION_ID_NULL\n};\n");
     indent--;
     out("#ifndef CCN_NUM_OF_ACTIONS\n");
     out("#define CCN_NUM_OF_ACTIONS %lu\n", size);
+    out("#endif\n");
+
+    out("#ifndef CCN_START_ACTION\n");
+    out("#define CCN_START_ACTION ACTION_ID_%s\n", c->start_phase->id);
     out("#endif\n");
 
     for (int i = 0; i < array_size(c->passes); ++i) {

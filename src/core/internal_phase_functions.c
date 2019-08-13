@@ -110,7 +110,7 @@ void _pop_frame() {
     mem_free(frame);
 }
 
-void _initialize_phase_driver() {
+void ccn_phase_driver_init() {
     if (phase_driver.initialized)
         return;
     phase_driver.initialized = true;
@@ -134,6 +134,7 @@ void _initialize_phase_driver() {
     phase_driver.total_allocated = 0;
     phase_driver.total_freed = 0;
     phase_driver.print_n = 0;
+    init_action_array();
 
 }
 
@@ -444,7 +445,7 @@ void _ccn_destroy_time_frame(void *item) {
     mem_free(frame);
 }
 
-void phase_driver_destroy() {
+void ccn_phase_driver_destroy() {
     array_cleanup(phase_driver.passes_time_frames, _ccn_destroy_time_frame);
     array_cleanup(phase_driver.cycles_time_frames, _ccn_destroy_time_frame);
     array_cleanup(phase_driver.phase_stack, NULL);
@@ -467,4 +468,9 @@ void _ccn_destroy_sub_root() {
 
 void ccn_set_print_n(size_t n) {
     phase_driver.print_n = n;
+}
+
+void ccn_phase_driver_run() {
+    ccn_action_t *start = get_ccn_action_from_id(CCN_START_ACTION);
+    ccn_dispatch_action(start);
 }

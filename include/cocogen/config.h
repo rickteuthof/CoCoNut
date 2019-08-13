@@ -17,10 +17,10 @@
 #define REPLACE_NODE_FUNC_PREFIX    "replace_"
 
 // Prefix of functions traversal related functions
-#define TRAV_PREFIX                 "trav_"
+#define TRAV_PREFIX                 "CCNtrav_"
 
 // Prefix of functions to start a new traversal
-#define TRAV_START_FUNC_PREFIX      "trav_start_"
+#define TRAV_START_FUNC_PREFIX      TRAV_PREFIX "start_"
 
 // Prefix of the functions of passes
 #define PASS_PREFIX                 "pass_"
@@ -98,6 +98,8 @@
 // Formats of entry function of a pass
 // arg1 = pass identifier
 #define PASS_ENTRY_FORMAT           PASS_PREFIX "%s_entry"
+
+#define NODE_TYPE                   "Node"
 
 // Formats for serialization functions
 // arg1 = node/nodeset identifier

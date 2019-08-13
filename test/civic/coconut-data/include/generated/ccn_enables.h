@@ -1,0 +1,4 @@
+#undef CCN_ENABLE_POINTS
+#undef CCN_ENANLE_CHECKS
+
+

@@ -1,87 +1,114 @@
-root phase RootPhase {
-    passes {
-        Print
+start phase RootPhase {
+    prefix = R,
+    actions {
+        LoadProgram;
+        SemanticAnalysis;
+        Optimisations;
+        CodeGen;
     }
 };
 
+phase LoadProgram {
+    prefix = LP, 
+    actions {
+        pass ScanAndParse;
+    }
+};
+
+cycle Optimisations {
+    gate,
+    actions {
+        pass Optimisation1;
+        pass Optimisation2;
+        pass Optimisation3;
+    }
+};
+
+phase SemanticAnalysis {
+    prefix = SA,
+    actions {
+        ByteCode;
+    }
+};
+
+phase CodeGen {
+    prefix = CG,
+    actions {
+        ByteCode;
+        Print;
+    }  
+};
+
+
 enum BasicType {
     prefix = BT,
-    values {
+    values = {
         int, float, bool, void
     }
 };
 
 enum MonOpEnum {
     prefix = MO,
-    values {
+    values = {
         neg, not
     }
 };
 
 enum BinOpEnum {
     prefix = BO,
-    values {
+    values = {
         mul, add, sub, div, mod, lt, leq, eq, gt, geq, neq, and, or
     }
 };
 
+pass Test;
+
 traversal Print;
 traversal ByteCode;
+
 traversal RenameFor {
-    nodes {
-        For, VarLet, Var
-    }
+    prefix = RFOR,
+    nodes = {For, VarLet, Var}
 };
 
 traversal Context {
-    nodes {
-        Root, GlobalDef, GlobalDec, FunDef, Param, For, VarDec, VarLet, Var, FunCall
-    }
+    prefix = CTX,
+    nodes = Decl | Vars | {Root, Param, For, FunCall}
 };
 
 traversal SplitInit {
-    nodes {
-        Root, GlobalDef, FunBody, VarDec
-    }
+    prefix = SIT,
+    nodes = {Root, GlobalDef, FunBody, VarDec}
 };
 
 traversal TypeCheck {
-    nodes {
-        FunDef, FunBody, Return, VarLet, For, DoWhile, While, IfElse, FunCall,
-        BinOp, MonOp, Cast, Var, IntConst, FloatConst, BoolConst
-    }
+    prefix = TCK,
+    nodes = Stmt | FunctionParts | Expr - {Ternary}
 };
 
 traversal Refactor {
-    nodes {
-        Cast, While, StmtList, BinOp, IntConst, FloatConst, BoolConst, Var,
-        FunCall
-    }
+    prefix = RAT,
+    nodes = {While, StmtList} | Expr - {MonOp, Ternary}
 };
 
 traversal Symbols {
-    nodes {
-        Root, FunDef, FunSymbol, Symbol
-    }
+    prefix = SOS,
+    nodes = {Root, FunDef, FunSymbol, Symbol}
 };
 
-nodeset Decl {
-    nodes {
-        FunDef, GlobalDef, GlobalDec
-    }
-};
+nodeset Constants = {FloatConst, BoolConst, IntConst};
 
-nodeset Expr {
-    nodes {
-        BinOp, MonOp, Cast, FunCall, Var, Ternary, IntConst, FloatConst, BoolConst
-    }
-};
+nodeset Operations = {BinOp, MonOp};
 
-nodeset Stmt {
-    nodes {
-        VarLet, FunCall, IfElse, While, DoWhile, For, Return
-    }
-};
+nodeset Decl = {GlobalDef, GlobalDec, FunDef};
+
+nodeset Vars = {VarDec, Var, VarLet};
+
+nodeset FunctionParts = {FunDef, FunHeader, Param, FunBody};
+
+nodeset Expr = {Cast, FunCall, Var, Ternary} | (Constants | Operations);
+
+nodeset Stmt = {VarLet, FunCall, IfElse, While, DoWhile, For, Return};
 
 root node Root {
     children {
@@ -110,6 +137,7 @@ node FunDef {
         FunHeader funheader { constructor, mandatory },
         FunBody funbody { constructor },
         FunSymbol funsymbol { constructor },
+        FunDef next { constructor },
         Symbol symbol { constructor }
     },
     attributes {
@@ -120,7 +148,7 @@ node FunDef {
 
 node FunHeader {
     children {
-        Param params { constructor, mandatory }
+        Param params { constructor }
     },
     attributes {
         BasicType rettype { constructor },
@@ -167,7 +195,7 @@ node FunBody {
 
 node VarDec {
     children {
-        Expr expr { constructor, mandatory },
+        Expr expr { constructor },
         VarDec next { constructor }
     },
     attributes {
@@ -254,11 +282,11 @@ node Return {
 
 node BinOp {
     children {
-        Expr left { constructor, mandatory },
+        Expr left { constructor, mandatory},
         Expr right { constructor, mandatory }
     },
     attributes {
-        BinOpEnum op { constructor }
+        BinOpEnum op { constructor, mandatory, disallowed = {and, or}}
     }
 };
 
