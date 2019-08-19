@@ -111,7 +111,8 @@ void gen_action_array_c(Config *c, FILE *fp) {
         out("#include \"generated/pass-%s.h\"\n", pass->id);
     }
 
-    out_statement("static ccn_action_t action_array[CCN_NUM_OF_ACTIONS] = {{.type = action_NULL}}");
+    // Here we do + 1 to allow for an NULL action in the array, which denotes the end.
+    out_statement("static ccn_action_t action_array[CCN_NUM_OF_ACTIONS + 1] = {{.type = action_NULL}}");
 
     for (int i = 0; i < array_size(c->phases); ++i) {
         Phase *phase = array_get(c->phases, i);
