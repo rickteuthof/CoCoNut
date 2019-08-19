@@ -1061,7 +1061,7 @@ bool check_lifetime_spec_root(Lifetime_t *lifetime, struct Info *info, bool acti
             int error = 0;
             error = insert_active_spec(root->active_specs, spec) == 0 ? error : 1;
             lifetime_phase_set_specs(root, spec, &error);
-            if (error) // Handle better.
+            if (error) // TODO: Handle better.
                 return false;
         }
         if (is_last_namespace(spec)) {
@@ -1095,6 +1095,7 @@ static int check_lifetime_reach(Lifetime_t *lifetime, struct Info *info) {
         }
         lifetime->start->owner = lifetime;
     }
+
     if (lifetime->end == NULL) {
         array *ids = array_init(1);
         array_append(ids, strdup(info->root_phase->id));
@@ -1114,6 +1115,7 @@ static int check_lifetime_reach(Lifetime_t *lifetime, struct Info *info) {
         lifetime->start->values = lifetime->values;
         lifetime->end->values = lifetime->values;
     }
+
     lifetime->start->push = true;
     lifetime->end->push = false;
 
@@ -1357,11 +1359,13 @@ void unpack_lifetime_value(array *new_lifetimes, Lifetime_t *lifetime) {
         char *val = array_get(lifetime->values, i);
         char *key = ccn_str_cat(lifetime->key, val);
         Lifetime_t *new = copy_lifetime(lifetime, key);
+        new->original_value = ccn_str_cpy(val);
         mem_free(key);
         array_append(new_lifetimes, new);
     }
     char *val = array_get(lifetime->values, array_size(lifetime->values) - 1);
     char *key = ccn_str_cat(lifetime->key, val);
+    lifetime->original_value = ccn_str_cpy(val);
     array_cleanup(lifetime->values, mem_free);
     lifetime->values = NULL;
     mem_free(lifetime->key);

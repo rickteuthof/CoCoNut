@@ -5,7 +5,7 @@
 
 #include "generated/ccn_enables.h"
 
-bool ccn_set_breakpoint(char *breakpoint) {
+bool _ccn_set_breakpoint(char *breakpoint) {
 #ifndef CCN_ENABLE_POINTS
     return false;
 #else
@@ -21,7 +21,7 @@ bool ccn_set_breakpoint(char *breakpoint) {
 #endif
 }
 
-bool ccn_set_inspect_point(char *inspect) {
+bool _ccn_set_inspect_point(char *inspect) {
 #ifndef CCN_ENABLE_POINTS
     return false;
 #else

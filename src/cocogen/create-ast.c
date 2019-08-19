@@ -163,10 +163,10 @@ SetExpr *create_set_expr(enum SetExprType type, void *value) {
         expr->operation = (SetOperation *)value;
         break;
     default:
-        // TODO better exit.
-        printf("No such type for a set expression.");
-        exit(1);
+        fprintf(stderr, "No such type for a set expression.");
+        exit(EXIT_FAILURE);
     }
+
     expr->common_info = create_commoninfo();
     return expr;
 }
@@ -191,11 +191,13 @@ Node *create_nodebody(array *children, array *attrs) {
 
 Range_spec_t *create_range_spec(bool inclusive, array *ids) {
     Range_spec_t *spec = mem_alloc(sizeof(Range_spec_t));
+
     spec->inclusive = inclusive;
     spec->ids = ids;
     spec->id_index = 0;
     spec->action_counter_id = 0;
     spec->values = NULL;
+
     return spec;
 }
 
@@ -207,15 +209,19 @@ Lifetime_t *create_lifetime(Range_spec_t *start, Range_spec_t *end,
         lifetime->start->push = true;
         lifetime->start->owner = lifetime;
     }
+
     lifetime->end = end;
     if (lifetime->end != NULL) {
         lifetime->end->push = false;
         lifetime->end->owner = lifetime;
     }
+
     lifetime->type = type;
     lifetime->key = NULL;
     lifetime->values = values;
     lifetime->owner = true;
+    lifetime->original_value = NULL;
+
     return lifetime;
 }
 
@@ -225,10 +231,10 @@ Child *create_child(int construct, array *lifetimes,
                     char *id, char *type) {
 
     Child *c = mem_alloc(sizeof(Child));
+
     c->construct = construct;
     c->id = id;
     c->type = type;
-
     c->lifetimes = lifetimes;
     c->node = NULL;
     c->nodeset = NULL;

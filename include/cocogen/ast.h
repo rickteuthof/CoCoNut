@@ -103,6 +103,7 @@ struct Lifetime {
     enum LifetimeType type;
     char *key;
     bool owner;
+    char *original_value;
     array *values;
 
 };

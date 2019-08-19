@@ -114,8 +114,6 @@ void _initialize_phase_driver();
 void _ccn_set_curr_mark(cycle_mark_t *mark);
 void _ccn_new_pass_time_frame(char *id, double time);
 void _ccn_new_phase_time_frame(char *id, double time);
-bool ccn_set_breakpoint(char *breakpoint);
-bool ccn_set_inspect_point(char *inspect);
 void _print_top_n_time();
 void _print_path();
 char *_ccn_get_path();

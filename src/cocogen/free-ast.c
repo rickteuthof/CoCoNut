@@ -25,6 +25,7 @@ static void free_lifetime(void *p) {
         free_range_spec(lifetime->start);
         free_range_spec(lifetime->end);
     }
+    mem_free(lifetime->original_value);
     mem_free(lifetime->key);
     mem_free(lifetime);
 

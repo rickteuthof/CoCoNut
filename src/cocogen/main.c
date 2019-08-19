@@ -10,6 +10,7 @@
 #include "lib/errors.h"
 #include "lib/print.h"
 #include "lib/str.h"
+#include "lib/color.h"
 
 #include "cocogen/ast.h"
 #include "cocogen/check-ast.h"

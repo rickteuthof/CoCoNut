@@ -45,8 +45,8 @@ void generate_headers(Config *c, FILE *fp) {
             if (attr->type != AT_enum)
                 continue;
             char *key = ccn_str_cat(n->id, attr->id);
-            out("void CCN%sDisallowed(%s *node, %s type);\n", key, n->id, attr->type_id);
-            out("void CCN%sMandatory(%s *node, %s type);\n", key, n->id, attr->type_id);
+            out("void ccn_%s_disallowed(%s *node, %s type);\n", key, n->id, attr->type_id);
+            out("void ccn_%s_mandatory(%s *node, %s type);\n", key, n->id, attr->type_id);
 
             mem_free(key);
         }
@@ -77,8 +77,8 @@ void generate_sources(Config *c, FILE *fp) {
             Enum *enm = find_enum(c->enums, attr->type_id);
             if (enm == NULL) continue;
             char *key = ccn_str_cat(n->id, attr->id);
-            out_start_func("void CCN%sDisallowed(%s *node, %s type)", key, n->id, enm->id);
-            out_statement("phase_driver_t *pd = _CCNgetPhaseDriver()");
+            out_start_func("void ccn_%s_disallowed(%s *node, %s type)", key, n->id, enm->id);
+            out_statement("phase_driver_t *pd = _get_phase_driver()");
             out_begin_if("type == %s_NULL", enm->prefix);
                 out_begin_if("node->%s != %s_NULL", attr->id, enm->prefix);
                     out_statement("print_user_error(\"CCN CHK\", \"Attribute %s of node type %s disallowed but present in tree.\")", attr->id, n->id);
@@ -93,8 +93,8 @@ void generate_sources(Config *c, FILE *fp) {
             out_end_else();
             out_end_func();
 
-            out_start_func("void CCN%sMandatory(%s *node, %s type)", key, n->id, enm->id);
-            out_statement("phase_driver_t *pd = _CCNgetPhaseDriver()");
+            out_start_func("void ccn_%s_mandatory(%s *node, %s type)", key, n->id, enm->id);
+            out_statement("phase_driver_t *pd = _get_phase_driver()");
             out_begin_if("type == %s_NULL", enm->prefix);
                 out_begin_if("node->%s == %s_NULL", attr->id, enm->prefix);
                     out_statement("print_user_error(\"CCN CHK\", \"Attribute %s of node type %s is mandatory but not present in tree.\")", attr->id, n->id);
@@ -134,9 +134,9 @@ static int generate_check_traversal_children(Node *n, int indent, FILE *fp) {
                              right_comp, (unsigned long)lifetime->end->action_counter_id);
                 
                 if (lifetime->type == LIFETIME_DISALLOWED) {
-                    out_statement("CCNcheckDisallowed(node, offsetof(%s, %s), \"%s\", \"%s\")", n->id, child->id, n->id, child->id);
+                    out_statement("ccn_check_disallowed(node, offsetof(%s, %s), \"%s\", \"%s\")", n->id, child->id, n->id, child->id);
                 } else {
-                    out_statement("CCNcheckMandatory(node, offsetof(%s, %s), \"%s\", \"%s\")", n->id, child->id, n->id, child->id);
+                    out_statement("ccn_check_mandatory(node, offsetof(%s, %s), \"%s\", \"%s\")", n->id, child->id, n->id, child->id);
                 }
 
                 out_end_if();
@@ -160,9 +160,9 @@ static int generate_check_traversal_attributes(Config *c, Node *n, int indent, F
 
                 if (attr->type == AT_link) {
                     if (lifetime->type == LIFETIME_DISALLOWED) {
-                        out_statement("CCNcheckDisallowed(node, offsetof(%s, %s), \"%s\", \"%s\")", n->id, attr->id, n->id, attr->id);
+                        out_statement("ccn_check_disallowed(node, offsetof(%s, %s), \"%s\", \"%s\")", n->id, attr->id, n->id, attr->id);
                     } else {
-                        out_statement("CCNcheckMandatory(node, offsetof(%s, %s), \"%s\", \"%s\")", n->id, attr->id, n->id, attr->id);
+                        out_statement("ccn_check_mandatory(node, offsetof(%s, %s), \"%s\", \"%s\")", n->id, attr->id, n->id, attr->id);
                     }
                 } else {
                     Enum *enm = find_enum(c->enums, attr->type_id);
@@ -171,9 +171,9 @@ static int generate_check_traversal_attributes(Config *c, Node *n, int indent, F
 
                     char *value = lifetime->original_value == NULL ? "NULL" : lifetime->original_value;
                     if (lifetime->type == LIFETIME_DISALLOWED) {
-                        out_statement("CCN%sDisallowed(node, %s_%s)", key, enm->prefix, value);
+                        out_statement("ccn_%s_disallowed(node, %s_%s)", key, enm->prefix, value);
                     } else {
-                        out_statement("CCN%sMandatory(node, %s_%s)", key, enm->prefix, value);
+                        out_statement("ccn_%s_mandatory(node, %s_%s)", key, enm->prefix, value);
                     }
                 }
                 out_end_if();
@@ -227,7 +227,7 @@ void generate_check_traversal(Config *c, FILE *fp) {
         Node *n = array_get(c->nodes, i);
         out_start_func("void _CCN_CHK_%s(%s *node, Info *info)", n->id, n->id);
         if (is_active_lifetime(n)) {
-            out_statement("phase_driver_t *pd = _CCNgetPhaseDriver()");
+            out_statement("phase_driver_t *pd = _get_phase_driver()");
         }
 
         for (int j = 0; j < array_size(n->lifetimes); ++j) {
@@ -239,7 +239,7 @@ void generate_check_traversal(Config *c, FILE *fp) {
                          (unsigned long)lifetime->end->action_counter_id);
             
             if (lifetime->type == LIFETIME_DISALLOWED) {
-                out_statement("CCNcheckDisallowed(node, 0, \"%s\", NULL)", n->id);
+                out_statement("ccn_check_disallowed(node, 0, \"%s\", NULL)", n->id);
             } 
             out_end_if();
         }
