@@ -450,7 +450,7 @@ enum: T_ENUM T_ID '{' T_PREFIX '=' T_ID ',' enumvalues '}'
     ;
 
 
-enumvalues: T_VALUES '{'
+enumvalues: T_VALUES '=' '{'
         {
             yy_lex_keywords = false;
         }
