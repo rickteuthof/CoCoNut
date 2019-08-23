@@ -42,7 +42,7 @@ release: cocogen
 debug: CFLAGS += -g -Og
 debug: cocogen
 
-cocogen: $(BIN_DIR)/cocogen
+cocogen: coconut_lib $(BIN_DIR)/cocogen
 
 $(BIN_DIR)/cocogen: $(OBJ)
 	$(SILENCED)$(CC) -o $@ $^ $(LFLAGS) $(LDFLAGS)
@@ -53,6 +53,7 @@ flexbison:
 
 $(OBJ): flexbison coconut_lib | $(BUILD_DIR) $(BIN_DIR)
 
+.PHONY += coconut_lib
 coconut_lib: 
 	$(MAKE) -C CoCoNut-lib/ CFLAGS="$(CFLAGS)"
 

@@ -1,7 +1,13 @@
 #!/bin/bash
 
-COCONUT_DIR=$1
-COCONUT_DATA_DIR=$2
+COCONUT_DIR=`dirname $0`
+
+echo "Give the location you want to place the CoCoNut artifact. [default = CoCoNut-artifact"
+read COCONUT_DATA_DIR
+if [ -z "$COCONUT_DATA_DIR" ]
+then
+	COCONUT_DATA_DIR=CoCoNut-artifact/
+fi
 
 make -C $COCONUT_DIR &&
 mkdir $COCONUT_DATA_DIR &&

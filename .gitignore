@@ -110,3 +110,6 @@ doc/doxygen-out
 
 ### VSCode ###
 .vscode
+
+### Tests ###
+test/
