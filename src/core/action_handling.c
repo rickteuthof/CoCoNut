@@ -143,7 +143,7 @@ void *handle_sub_root(ccn_phase_t *phase, void* node, NodeType root_type, char *
 void *ccn_dispatch_phase(ccn_phase_t *phase, NodeType root_type, void *node, char *name) {
     
     _ccn_start_phase(name, root_type);
-    if (phase->root_type != NT_Root) {
+    if (phase->root_type != CCN_ROOT_TYPE) {
         node = handle_sub_root(phase, node, root_type, name); 
     }  else {
         if (phase->is_cycle) {

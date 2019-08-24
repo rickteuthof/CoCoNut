@@ -3,7 +3,11 @@
 #include "generated/enum.h"
 #include "generated/action_handlers.h"
 #include "generated/ast.h"
+
 #include "lib/array.h"
+
+#include <stdbool.h>
+
 
 enum ACTION_TYPE {
     action_pass,

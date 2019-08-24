@@ -1,7 +1,10 @@
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 current_dir := $(dir $(mkfile_path))
 
-coconut_lflags := -L.$(current_dir)/bin/
-coconut_ldflags := -lcoconutlib
+LDFLAGS += -L.$(current_dir)/bin/
+LDLIBS += -lcoconutlib
 
-coconut_include := -I$(current_dir)include/ 
+COCONUT_INCLUDE := -I$(current_dir)include/ 
+COCONUT_HEADER_DIR := $(current_dir)include/
+COCONUT_SRC_DIR := $(current_dir)src/
+COCONUT_DIR := $(current_dir)
