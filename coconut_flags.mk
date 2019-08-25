@@ -6,5 +6,6 @@ LDLIBS += -lcoconutlib
 
 COCONUT_INCLUDE := -I$(current_dir)include/ 
 COCONUT_HEADER_DIR := $(current_dir)include/
-COCONUT_SRC_DIR := $(current_dir)src/
+COCONUT_SOURCE_DIR := $(current_dir)src/
 COCONUT_DIR := $(current_dir)
+COCONUT_LIB := $(current_dir)/bin/libcoconutlib.a
