@@ -1,11 +1,17 @@
 #!/bin/bash
 
 COCONUT_DIR=`dirname $0`
+USED_IN_SCRIPT=$1
 
-echo "Give the location you want to place the CoCoNut artifacts. [default = CoCoNut-artifacts]"
-read COCONUT_DATA_DIR
-if [ -z "$COCONUT_DATA_DIR" ]
+if [ -z "$USED_IN_SCRIPT" ]
 then
+	echo "Give the location you want to place the CoCoNut artifacts. [default = CoCoNut-artifacts]"
+	read COCONUT_DATA_DIR
+	if [ -z "$COCONUT_DATA_DIR" ]
+	then
+		COCONUT_DATA_DIR=CoCoNut-artifacts/
+	fi
+else
 	COCONUT_DATA_DIR=CoCoNut-artifacts/
 fi
 
