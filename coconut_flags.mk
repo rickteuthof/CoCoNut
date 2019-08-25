@@ -1,7 +1,7 @@
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 current_dir := $(dir $(mkfile_path))
 
-LDFLAGS += -L.$(current_dir)/bin/
+LDFLAGS += -L$(current_dir)/bin/
 LDLIBS += -lcoconutlib
 
 COCONUT_INCLUDE := -I$(current_dir)include/ 
