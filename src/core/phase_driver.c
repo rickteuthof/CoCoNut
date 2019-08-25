@@ -1,6 +1,5 @@
 #include "core/internal_phase_functions.h"
 #include "core/break_inspect_points.h"
-#include "generated/"
 
 void ccn_phase_driver_init() {
     return _initialize_phase_driver();
