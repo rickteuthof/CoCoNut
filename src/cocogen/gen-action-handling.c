@@ -53,9 +53,9 @@ void gen_action_array_h(Config *c, FILE *fp) {
 
     out_statement("void ccn_destroy_action_array()");
 
-    out("#ifndef CCN_ROOT_TYPE");
-    out("#define CCN_ROOT_TYPE NT_%s", c->root_node->id);
-    out("#endif");
+    out("#ifndef CCN_ROOT_TYPE\n");
+    out("#define CCN_ROOT_TYPE NT_%s\n", c->root_node->id);
+    out("#endif\n");
 }
 
 /* Gen the action handling and the creation of the action array .c file, */
