@@ -124,6 +124,7 @@ void ccn_free(void *);
 void phase_driver_destroy();
 void _ccn_destroy_sub_root();
 void ccn_set_print_n(size_t n);
+void _ccn_phase_driver_start();
 
 #ifdef CCN_ENABLE_POINTS
 void _ccn_check_points(enum ACTION_IDS id, char *curr_action);

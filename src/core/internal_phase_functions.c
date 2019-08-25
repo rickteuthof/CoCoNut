@@ -468,3 +468,8 @@ void _ccn_destroy_sub_root() {
 void ccn_set_print_n(size_t n) {
     phase_driver.print_n = n;
 }
+
+void _ccn_phase_driver_start() {
+    ccn_action_t *action = get_ccn_action_from_id(CCN_ROOT_ACTION); 
+    ccn_dispatch_action(action, CCN_ROOT_TYPE, NULL);
+}
