@@ -111,6 +111,9 @@ void subtree_generate_find_traversal_body(char *trav_name, char *target, Config 
 
 // TODO cleanup arguments, place in struct or so.
 void subtree_generate_find_traversal(Phase *phase, char *root, Node *original_root, Config *config, ccn_set_t *gen, ccn_set_t *funcs) {
+    if (original_root == NULL)
+	    exit(1); // TODO: place contract here.
+
     Node *target_root = NULL;
     for (int i = 0; i < array_size(config->nodes); ++i) {
         Node *node = array_get(config->nodes, i);

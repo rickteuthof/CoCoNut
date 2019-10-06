@@ -2,9 +2,9 @@
 #define yyHEADER_H 1
 #define yyIN_HEADER 1
 
-#line 5 "src/cocogen/ast.lexer.h"
+#line 5 "ast.lexer.h"
 
-#line 7 "src/cocogen/ast.lexer.h"
+#line 7 "ast.lexer.h"
 
 #define  YY_INT_ALIGNED short int
 
@@ -468,9 +468,9 @@ extern int yylex (void);
 #undef yyTABLES_NAME
 #endif
 
-#line 183 "src/cocogen/ast.l"
+#line 183 "ast.l"
 
 
-#line 474 "src/cocogen/ast.lexer.h"
+#line 474 "ast.lexer.h"
 #undef yyIN_HEADER
 #endif /* yyHEADER_H */

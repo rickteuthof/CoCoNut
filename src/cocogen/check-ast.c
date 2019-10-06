@@ -242,7 +242,7 @@ static Action *copy_action(Action *action) {
 }
 
 static Phase *copy_phase_shallow(Phase *phase) {
-    Phase *new = create_phase_header(strdup(phase->id), phase->start, phase->cycle);
+    Phase *new = create_phase_header(ccn_str_cpy(phase->id), phase->start, phase->cycle);
     array *actions = create_array();
     for (int i = 0; i < array_size(phase->actions); ++i) {
         array_append(actions, copy_action(array_get(phase->actions, i)));
@@ -1255,7 +1255,7 @@ static int check_lifetimes(struct Info *info) {
 }
 
 /* The user can leave range open in the lifetimes, here we fill them up,
- * this allows to process all lifetimes the same. We also populate the 
+ * this allows to process all lifetimes the same. We also populate the
  * type in string form, as this is required for code generation. The string
  * form corresponds to the enum value that is generated.
  */

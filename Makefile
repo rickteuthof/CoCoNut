@@ -73,3 +73,7 @@ clean:
 	rm -rf $(BUILD_DIR)
 	rm -rf $(BIN_DIR)
 	make -C $(COCONUT_LIB_DIR) clean
+
+
+doc:
+	$(MAKE) html -C doc/

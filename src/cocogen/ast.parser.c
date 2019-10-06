@@ -1,4 +1,4 @@
-/* A Bison parser, made by GNU Bison 3.3.2.  */
+/* A Bison parser, made by GNU Bison 3.4.  */
 
 /* Bison implementation for Yacc-like parsers in C
 
@@ -48,7 +48,7 @@
 #define YYBISON 1
 
 /* Bison version.  */
-#define YYBISON_VERSION "3.3.2"
+#define YYBISON_VERSION "3.4"
 
 /* Skeleton name.  */
 #define YYSKELETON_NAME "yacc.c"
@@ -66,7 +66,7 @@
 
 
 /* First part of user prologue.  */
-#line 1 "src/cocogen/ast.y" /* yacc.c:337  */
+#line 1 "ast.y"
 
 
 #include <stdio.h>
@@ -127,7 +127,8 @@ static void new_location(void *ptr, struct ParserLocation *loc);
     yy_parser_location = (Cur);
 
 
-#line 131 "src/cocogen/ast.parser.c" /* yacc.c:337  */
+#line 131 "ast.parser.c"
+
 # ifndef YY_NULLPTR
 #  if defined __cplusplus
 #   if 201103L <= __cplusplus
@@ -148,10 +149,10 @@ static void new_location(void *ptr, struct ParserLocation *loc);
 # define YYERROR_VERBOSE 1
 #endif
 
-/* In a future release of Bison, this section will be replaced
-   by #include "ast.parser.h".  */
-#ifndef YY_YY_SRC_COCOGEN_AST_PARSER_H_INCLUDED
-# define YY_YY_SRC_COCOGEN_AST_PARSER_H_INCLUDED
+/* Use api.header.include to #include this header
+   instead of duplicating it here.  */
+#ifndef YY_YY_AST_PARSER_H_INCLUDED
+# define YY_YY_AST_PARSER_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -221,10 +222,9 @@ extern int yydebug;
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-
 union YYSTYPE
 {
-#line 62 "src/cocogen/ast.y" /* yacc.c:352  */
+#line 62 "ast.y"
 
     int64_t intval;
     uint64_t uintval;
@@ -251,9 +251,9 @@ union YYSTYPE
     struct Attr *attr;
     struct AttrValue *attrval;
 
-#line 255 "src/cocogen/ast.parser.c" /* yacc.c:352  */
-};
+#line 255 "ast.parser.c"
 
+};
 typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
@@ -278,7 +278,7 @@ extern YYSTYPE yylval;
 extern YYLTYPE yylloc;
 int yyparse (void);
 
-#endif /* !YY_YY_SRC_COCOGEN_AST_PARSER_H_INCLUDED  */
+#endif /* !YY_YY_AST_PARSER_H_INCLUDED  */
 
 
 
@@ -381,6 +381,8 @@ typedef short yytype_int16;
 # define YY_INITIAL_VALUE(Value) /* Nothing. */
 #endif
 
+
+#define YY_ASSERT(E) ((void) (0 && (E)))
 
 #if ! defined yyoverflow || YYERROR_VERBOSE
 
@@ -1509,6 +1511,8 @@ yynewstate:
 | yynewstate -- set current state (the top of the stack) to yystate.  |
 `--------------------------------------------------------------------*/
 yysetstate:
+  YYDPRINTF ((stderr, "Entering state %d\n", yystate));
+  YY_ASSERT (0 <= yystate && yystate < YYNSTATES);
   *yyssp = (yytype_int16) yystate;
 
   if (yyss + yystacksize - 1 <= yyssp)
@@ -1575,8 +1579,6 @@ yysetstate:
         YYABORT;
     }
 #endif /* !defined yyoverflow && !defined YYSTACK_RELOCATE */
-
-  YYDPRINTF ((stderr, "Entering state %d\n", yystate));
 
   if (yystate == YYFINAL)
     YYACCEPT;
@@ -1682,8 +1684,8 @@ yyreduce:
   YY_REDUCE_PRINT (yyn);
   switch (yyn)
     {
-        case 2:
-#line 175 "src/cocogen/ast.y" /* yacc.c:1652  */
+  case 2:
+#line 175 "ast.y"
     { parse_result = create_config(config_phases,
                                  config_passes,
                                  config_traversals,
@@ -1691,237 +1693,237 @@ yyreduce:
                                  config_nodesets,
                                  config_nodes);
               }
-#line 1695 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1697 "ast.parser.c"
     break;
 
   case 6:
-#line 190 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 190 "ast.y"
     { array_append(config_phases, (yyvsp[0].phase)); }
-#line 1701 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1703 "ast.parser.c"
     break;
 
   case 7:
-#line 191 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 191 "ast.y"
     { array_append(config_passes, (yyvsp[0].pass)); }
-#line 1707 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1709 "ast.parser.c"
     break;
 
   case 8:
-#line 192 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 192 "ast.y"
     { array_append(config_traversals, (yyvsp[0].traversal)); }
-#line 1713 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1715 "ast.parser.c"
     break;
 
   case 9:
-#line 193 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 193 "ast.y"
     { array_append(config_enums, (yyvsp[0].attr_enum)); }
-#line 1719 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1721 "ast.parser.c"
     break;
 
   case 10:
-#line 194 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 194 "ast.y"
     { array_append(config_nodesets, (yyvsp[0].nodeset)); }
-#line 1725 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1727 "ast.parser.c"
     break;
 
   case 11:
-#line 195 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 195 "ast.y"
     { array_append(config_nodes, (yyvsp[0].node));  }
-#line 1731 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1733 "ast.parser.c"
     break;
 
   case 12:
-#line 199 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 199 "ast.y"
     {
           (yyval.string) = (yyvsp[0].string);
           new_location((yyval.string), &(yyloc));
       }
-#line 1740 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1742 "ast.parser.c"
     break;
 
   case 13:
-#line 205 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 205 "ast.y"
     {
          (yyval.phase) = create_phase((yyvsp[-7].phase), NULL, (yyvsp[-5].string), (yyvsp[-1].array), ccn_str_cat((yyvsp[-7].phase)->id, "_gate"));
      }
-#line 1748 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1750 "ast.parser.c"
     break;
 
   case 14:
-#line 209 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 209 "ast.y"
     {
          (yyval.phase) = create_phase((yyvsp[-9].phase), (yyvsp[-3].string), (yyvsp[-7].string), (yyvsp[-1].array), NULL);
          new_location((yyvsp[-3].string), &(yylsp[-3]));
      }
-#line 1757 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1759 "ast.parser.c"
     break;
 
   case 15:
-#line 214 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 214 "ast.y"
     {
          (yyval.phase) = create_phase((yyvsp[-5].phase), NULL, (yyvsp[-3].string), (yyvsp[-1].array), NULL);
      }
-#line 1765 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1767 "ast.parser.c"
     break;
 
   case 16:
-#line 218 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 218 "ast.y"
     {
          (yyval.phase) = create_phase((yyvsp[-11].phase), (yyvsp[-5].string), (yyvsp[-9].string), (yyvsp[-1].array), ccn_str_cat((yyvsp[-11].phase)->id, "_gate"));
          new_location((yyvsp[-5].string), &(yylsp[-5]));
      }
-#line 1774 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1776 "ast.parser.c"
     break;
 
   case 17:
-#line 223 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 223 "ast.y"
     {
          (yyval.phase) = create_phase((yyvsp[-13].phase), (yyvsp[-7].string), (yyvsp[-11].string), (yyvsp[-1].array), (yyvsp[-3].string));
          new_location((yyvsp[-3].string), &(yylsp[-3]));
          new_location((yyvsp[-7].string), &(yylsp[-7]));
      }
-#line 1784 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1786 "ast.parser.c"
     break;
 
   case 18:
-#line 229 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 229 "ast.y"
     {
          (yyval.phase) = create_phase((yyvsp[-9].phase), NULL, (yyvsp[-7].string), (yyvsp[-1].array), (yyvsp[-3].string));
          new_location((yyvsp[-3].string), &(yylsp[-3]));
      }
-#line 1793 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1795 "ast.parser.c"
     break;
 
   case 19:
-#line 234 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 234 "ast.y"
     {
          (yyval.phase) = create_phase((yyvsp[-7].phase), NULL, NULL, (yyvsp[-1].array), (yyvsp[-3].string));
          new_location((yyvsp[-3].string), &(yylsp[-3]));
      }
-#line 1802 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1804 "ast.parser.c"
     break;
 
   case 20:
-#line 239 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 239 "ast.y"
     {
          (yyval.phase) = create_phase((yyvsp[-5].phase), NULL, NULL, (yyvsp[-1].array), ccn_str_cat((yyvsp[-5].phase)->id, "_gate"));
      }
-#line 1810 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1812 "ast.parser.c"
     break;
 
   case 21:
-#line 248 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 248 "ast.y"
     {
          (yyval.array) = (yyvsp[-1].array);
      }
-#line 1818 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1820 "ast.parser.c"
     break;
 
   case 22:
-#line 254 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 254 "ast.y"
     {
            array_append((yyvsp[-2].array), (yyvsp[-1].action));
            (yyval.array) = (yyvsp[-2].array);
        }
-#line 1827 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1829 "ast.parser.c"
     break;
 
   case 23:
-#line 259 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 259 "ast.y"
     {
            array *tmp = create_array();
            array_append(tmp, (yyvsp[-1].action));
            (yyval.array) = tmp;
        }
-#line 1837 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1839 "ast.parser.c"
     break;
 
   case 24:
-#line 268 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 268 "ast.y"
     {
           (yyval.action) = create_action(ACTION_TRAVERSAL, (yyvsp[0].traversal), (yyvsp[0].traversal)->id);
       }
-#line 1845 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1847 "ast.parser.c"
     break;
 
   case 25:
-#line 272 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 272 "ast.y"
     {
           (yyval.action) = create_action(ACTION_PASS, (yyvsp[0].pass), (yyvsp[0].pass)->id);
       }
-#line 1853 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1855 "ast.parser.c"
     break;
 
   case 26:
-#line 276 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 276 "ast.y"
     {
           (yyval.action) = create_action(ACTION_PHASE, (yyvsp[0].phase), (yyvsp[0].phase)->id);
       }
-#line 1861 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1863 "ast.parser.c"
     break;
 
   case 27:
-#line 280 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 280 "ast.y"
     {
           (yyval.action) = create_action(ACTION_REFERENCE, (yyvsp[0].string), (yyvsp[0].string));
           new_location((yyvsp[0].string), &(yylsp[0]));
       }
-#line 1870 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1872 "ast.parser.c"
     break;
 
   case 28:
-#line 287 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 287 "ast.y"
     {
                (yyval.phase) = create_phase_header((yyvsp[0].string), false, false);
                new_location((yyval.phase), &(yyloc));
                new_location((yyvsp[0].string), &(yylsp[0]));
            }
-#line 1880 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1882 "ast.parser.c"
     break;
 
   case 29:
-#line 293 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 293 "ast.y"
     {
                (yyval.phase) = create_phase_header((yyvsp[0].string), false, true);
                new_location((yyval.phase), &(yyloc));
                new_location((yyvsp[0].string), &(yylsp[0]));
            }
-#line 1890 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1892 "ast.parser.c"
     break;
 
   case 30:
-#line 299 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 299 "ast.y"
     {
                (yyval.phase) = create_phase_header((yyvsp[0].string), true, false);
                new_location((yyval.phase), &(yyloc));
                new_location((yyvsp[0].string), &(yylsp[0]));
            }
-#line 1900 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1902 "ast.parser.c"
     break;
 
   case 31:
-#line 305 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 305 "ast.y"
     {
                (yyval.phase) = create_phase_header((yyvsp[0].string), true, true);
                new_location((yyval.phase), &(yyloc));
                new_location((yyvsp[0].string), &(yylsp[0]));
            }
-#line 1910 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1912 "ast.parser.c"
     break;
 
   case 32:
-#line 313 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 313 "ast.y"
     {
         (yyval.pass) = create_pass((yyvsp[-7].string), (yyvsp[-1].string), (yyvsp[-5].string));
         new_location((yyval.pass), &(yyloc));
         new_location((yyvsp[-7].string), &(yylsp[-7]));
         new_location((yyvsp[-1].string), &(yylsp[-1]));
     }
-#line 1921 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1923 "ast.parser.c"
     break;
 
   case 33:
-#line 320 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 320 "ast.y"
     {
         (yyval.pass) = create_pass((yyvsp[-9].string), (yyvsp[-1].string), (yyvsp[-5].string));
         (yyval.pass)->info = (yyvsp[-7].string);
@@ -1929,173 +1931,173 @@ yyreduce:
         new_location((yyvsp[-9].string), &(yylsp[-9]));
         new_location((yyvsp[-1].string), &(yylsp[-1]));
     }
-#line 1933 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1935 "ast.parser.c"
     break;
 
   case 34:
-#line 328 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 328 "ast.y"
     {
         (yyval.pass) = create_pass((yyvsp[-5].string), NULL, (yyvsp[-1].string));
         (yyval.pass)->info = (yyvsp[-3].string);
         new_location((yyval.pass), &(yyloc));
         new_location((yyvsp[-5].string), &(yylsp[-5]));
     }
-#line 1944 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1946 "ast.parser.c"
     break;
 
   case 35:
-#line 335 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 335 "ast.y"
     {
         (yyval.pass) = create_pass((yyvsp[0].string), NULL, NULL);
         new_location((yyval.pass), &(yyloc));
         new_location((yyvsp[0].string), &(yylsp[0]));
     }
-#line 1954 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1956 "ast.parser.c"
     break;
 
   case 36:
-#line 341 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 341 "ast.y"
     {
         (yyval.pass) = create_pass((yyvsp[-2].string), (yyvsp[0].string), NULL);
     }
-#line 1962 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1964 "ast.parser.c"
     break;
 
   case 37:
-#line 348 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 348 "ast.y"
     {
              (yyval.traversal) = create_traversal((yyvsp[0].string), NULL, NULL, NULL);
              new_location((yyval.traversal), &(yyloc));
              new_location((yyvsp[0].string), &(yylsp[0]));
          }
-#line 1972 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1974 "ast.parser.c"
     break;
 
   case 38:
-#line 354 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 354 "ast.y"
     {
              (yyval.traversal) = create_traversal((yyvsp[-5].string), (yyvsp[-1].string), (yyvsp[-3].string), NULL);
              new_location((yyval.traversal), &(yyloc));
              new_location((yyvsp[-5].string), &(yylsp[-5]));
          }
-#line 1982 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1984 "ast.parser.c"
     break;
 
   case 39:
-#line 360 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 360 "ast.y"
     {
              (yyval.traversal) = create_traversal((yyvsp[-7].string), (yyvsp[-3].string), (yyvsp[-5].string), (yyvsp[-1].setexpr));
              new_location((yyval.traversal), &(yyloc));
              new_location((yyvsp[-7].string), &(yylsp[-7]));
          }
-#line 1992 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 1994 "ast.parser.c"
     break;
 
   case 40:
-#line 366 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 366 "ast.y"
     {
              (yyval.traversal) = create_traversal((yyvsp[-5].string), NULL, (yyvsp[-3].string), (yyvsp[-1].setexpr));
              new_location((yyval.traversal), &(yyloc));
              new_location((yyvsp[-5].string), &(yylsp[-5]));
          }
-#line 2002 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2004 "ast.parser.c"
     break;
 
   case 41:
-#line 372 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 372 "ast.y"
     {
              (yyval.traversal) = create_traversal((yyvsp[-5].string), NULL, (yyvsp[-1].string), NULL);
              (yyval.traversal)->info = (yyvsp[-3].string);
              new_location((yyval.traversal), &(yyloc));
              new_location((yyvsp[-5].string), &(yylsp[-5]));
          }
-#line 2013 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2015 "ast.parser.c"
     break;
 
   case 42:
-#line 379 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 379 "ast.y"
     {
              (yyval.traversal) = create_traversal((yyvsp[-7].string), (yyvsp[-1].string), (yyvsp[-3].string), NULL);
              (yyval.traversal)->info = (yyvsp[-5].string);
              new_location((yyval.traversal), &(yyloc));
              new_location((yyvsp[-7].string), &(yylsp[-7]));
          }
-#line 2024 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2026 "ast.parser.c"
     break;
 
   case 43:
-#line 386 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 386 "ast.y"
     {
              (yyval.traversal) = create_traversal((yyvsp[-9].string), (yyvsp[-3].string), (yyvsp[-5].string), (yyvsp[-1].setexpr));
              (yyval.traversal)->info = (yyvsp[-7].string);
              new_location((yyval.traversal), &(yyloc));
              new_location((yyvsp[-9].string), &(yylsp[-9]));
          }
-#line 2035 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2037 "ast.parser.c"
     break;
 
   case 44:
-#line 393 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 393 "ast.y"
     {
              (yyval.traversal) = create_traversal((yyvsp[-7].string), NULL, (yyvsp[-3].string), (yyvsp[-1].setexpr));
              (yyval.traversal)->info = (yyvsp[-5].string);
              new_location((yyval.traversal), &(yyloc));
              new_location((yyvsp[-7].string), &(yylsp[-7]));
          }
-#line 2046 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2048 "ast.parser.c"
     break;
 
   case 45:
-#line 400 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 400 "ast.y"
     {
             (yyval.traversal) = create_traversal((yyvsp[-2].string), NULL, NULL, (yyvsp[0].setexpr));
             new_location((yyval.traversal), &(yyloc));
             new_location((yyvsp[-2].string), &(yylsp[-2]));
          }
-#line 2056 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2058 "ast.parser.c"
     break;
 
   case 46:
-#line 408 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 408 "ast.y"
     {
         (yyval.string) = (yyvsp[0].string);
         new_location((yyvsp[0].string), &(yylsp[0]));
     }
-#line 2065 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2067 "ast.parser.c"
     break;
 
   case 47:
-#line 415 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 415 "ast.y"
     {
                   (yyval.setexpr) = (yyvsp[0].setexpr);
               }
-#line 2073 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2075 "ast.parser.c"
     break;
 
   case 48:
-#line 421 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 421 "ast.y"
     {
         (yyval.attr_enum) = create_enum((yyvsp[-7].string), (yyvsp[-3].string), (yyvsp[-1].array));
         new_location((yyval.attr_enum), &(yyloc));
         new_location((yyvsp[-7].string), &(yylsp[-7]));
         new_location((yyvsp[-3].string), &(yylsp[-3]));
     }
-#line 2084 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2086 "ast.parser.c"
     break;
 
   case 49:
-#line 428 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 428 "ast.y"
     {
         (yyval.attr_enum) = create_enum((yyvsp[-7].string), (yyvsp[-1].string), (yyvsp[-5].array));
         new_location((yyval.attr_enum), &(yyloc));
         new_location((yyvsp[-7].string), &(yylsp[-7]));
         new_location((yyvsp[-1].string), &(yylsp[-3]));
     }
-#line 2095 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2097 "ast.parser.c"
     break;
 
   case 50:
-#line 435 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 435 "ast.y"
     {
         (yyval.attr_enum) = create_enum((yyvsp[-9].string), (yyvsp[-3].string), (yyvsp[-1].array));
         (yyval.attr_enum)->info = (yyvsp[-7].string);
@@ -2103,11 +2105,11 @@ yyreduce:
         new_location((yyvsp[-9].string), &(yylsp[-9]));
         new_location((yyvsp[-3].string), &(yylsp[-3]));
     }
-#line 2107 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2109 "ast.parser.c"
     break;
 
   case 51:
-#line 443 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 443 "ast.y"
     {
         (yyval.attr_enum) = create_enum((yyvsp[-9].string), (yyvsp[-1].string), (yyvsp[-5].array));
         (yyval.attr_enum)->info = (yyvsp[-7].string);
@@ -2115,680 +2117,680 @@ yyreduce:
         new_location((yyvsp[-9].string), &(yylsp[-9]));
         new_location((yyvsp[-1].string), &(yylsp[-1]));
     }
-#line 2119 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2121 "ast.parser.c"
     break;
 
   case 52:
-#line 454 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 454 "ast.y"
     {
             yy_lex_keywords = false;
         }
-#line 2127 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2129 "ast.parser.c"
     break;
 
   case 53:
-#line 458 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 458 "ast.y"
     {
             (yyval.array) = (yyvsp[-1].array);
             yy_lex_keywords = true;
         }
-#line 2136 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2138 "ast.parser.c"
     break;
 
   case 54:
-#line 465 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 465 "ast.y"
     {
             (yyval.nodeset) = create_nodeset((yyvsp[-5].string), (yyvsp[-1].setexpr));
             new_location((yyval.nodeset), &(yyloc));
             new_location((yyvsp[-5].string), &(yylsp[-5]));
         }
-#line 2146 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2148 "ast.parser.c"
     break;
 
   case 55:
-#line 471 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 471 "ast.y"
     {
            (yyval.nodeset) = create_nodeset((yyvsp[-7].string), (yyvsp[-1].setexpr));
            (yyval.nodeset)->info = (yyvsp[-5].string);
            new_location((yyval.nodeset), &(yyloc));
            new_location((yyvsp[-7].string), &(yylsp[-7]));
        }
-#line 2157 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2159 "ast.parser.c"
     break;
 
   case 56:
-#line 478 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 478 "ast.y"
     {
            (yyval.nodeset) = create_nodeset((yyvsp[-2].string), (yyvsp[0].setexpr));
            new_location((yyval.nodeset), &(yyloc));
            new_location((yyvsp[-2].string), &(yylsp[-2]));
        }
-#line 2167 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2169 "ast.parser.c"
     break;
 
   case 57:
-#line 486 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 486 "ast.y"
     {
            (yyval.setexpr) = create_set_expr(SET_OPERATION, (yyvsp[0].setoperation));
            new_location((yyval.setexpr), &(yyloc));
        }
-#line 2176 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2178 "ast.parser.c"
     break;
 
   case 58:
-#line 491 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 491 "ast.y"
     {
            (yyval.setexpr) = create_set_expr(SET_OPERATION, (yyvsp[-1].setoperation));
            new_location((yyval.setexpr), &(yyloc));
        }
-#line 2185 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2187 "ast.parser.c"
     break;
 
   case 59:
-#line 496 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 496 "ast.y"
     {
            (yyval.setexpr) = create_set_expr(SET_LITERAL, (yyvsp[-1].array));
            new_location((yyval.setexpr), &(yyloc));
        }
-#line 2194 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2196 "ast.parser.c"
     break;
 
   case 60:
-#line 501 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 501 "ast.y"
     {
            (yyval.setexpr) = create_set_expr(SET_REFERENCE, (yyvsp[0].string));
            new_location((yyval.setexpr), &(yyloc));
        }
-#line 2203 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2205 "ast.parser.c"
     break;
 
   case 61:
-#line 508 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 508 "ast.y"
     {
                 (yyval.setoperation) = create_set_operation(SET_UNION, (yyvsp[-2].setexpr), (yyvsp[0].setexpr));
             }
-#line 2211 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2213 "ast.parser.c"
     break;
 
   case 62:
-#line 512 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 512 "ast.y"
     {
                 (yyval.setoperation) = create_set_operation(SET_INTERSECT, (yyvsp[-2].setexpr), (yyvsp[0].setexpr));
             }
-#line 2219 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2221 "ast.parser.c"
     break;
 
   case 63:
-#line 516 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 516 "ast.y"
     {
                 (yyval.setoperation) = create_set_operation(SET_DIFFERENCE, (yyvsp[-2].setexpr), (yyvsp[0].setexpr));
             }
-#line 2227 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2229 "ast.parser.c"
     break;
 
   case 64:
-#line 522 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 522 "ast.y"
     {
         (yyval.node) = create_node((yyvsp[-3].string), (yyvsp[-1].node));
         new_location((yyval.node), &(yyloc));
         new_location((yyvsp[-3].string), &(yylsp[-3]));
     }
-#line 2237 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2239 "ast.parser.c"
     break;
 
   case 65:
-#line 528 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 528 "ast.y"
     {
         (yyval.node) = create_node((yyvsp[-3].string), (yyvsp[-1].node));
         (yyval.node)->root = true;
         new_location((yyval.node), &(yyloc));
         new_location((yyvsp[-3].string), &(yylsp[-3]));
     }
-#line 2248 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2250 "ast.parser.c"
     break;
 
   case 66:
-#line 535 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 535 "ast.y"
     {
         (yyval.node) = create_node((yyvsp[-7].string), (yyvsp[-5].node));
         (yyval.node)->lifetimes = (yyvsp[-2].array);
         new_location((yyval.node), &(yyloc));
         new_location((yyvsp[-7].string), &(yylsp[-7]));
     }
-#line 2259 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2261 "ast.parser.c"
     break;
 
   case 67:
-#line 546 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 546 "ast.y"
     {
             (yyval.node) = create_nodebody((yyvsp[-2].array), (yyvsp[0].array));
             new_location((yyval.node), &(yyloc));
         }
-#line 2268 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2270 "ast.parser.c"
     break;
 
   case 68:
-#line 551 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 551 "ast.y"
     {
             (yyval.node) = create_nodebody((yyvsp[0].array), NULL);
             new_location((yyval.node), &(yyloc));
         }
-#line 2277 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2279 "ast.parser.c"
     break;
 
   case 69:
-#line 556 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 556 "ast.y"
     {
             (yyval.node) = create_nodebody(NULL, (yyvsp[0].array));
             new_location((yyval.node), &(yyloc));
         }
-#line 2286 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2288 "ast.parser.c"
     break;
 
   case 70:
-#line 561 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 561 "ast.y"
     {
             (yyval.node) = create_nodebody((yyvsp[-2].array), (yyvsp[0].array));
             (yyval.node)->info = (yyvsp[-4].string);
             new_location((yyval.node), &(yyloc));
         }
-#line 2296 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2298 "ast.parser.c"
     break;
 
   case 71:
-#line 567 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 567 "ast.y"
     {
             (yyval.node) = create_nodebody((yyvsp[0].array), NULL);
             (yyval.node)->info = (yyvsp[-2].string);
             new_location((yyval.node), &(yyloc));
         }
-#line 2306 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2308 "ast.parser.c"
     break;
 
   case 72:
-#line 573 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 573 "ast.y"
     {
             (yyval.node) = create_nodebody(NULL, (yyvsp[0].array));
             (yyval.node)->info = (yyvsp[-2].string);
             new_location((yyval.node), &(yyloc));
         }
-#line 2316 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2318 "ast.parser.c"
     break;
 
   case 73:
-#line 582 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 582 "ast.y"
     {
             array_append((yyval.array), (yyvsp[0].lifetime));
         }
-#line 2324 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2326 "ast.parser.c"
     break;
 
   case 74:
-#line 586 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 586 "ast.y"
     {
             (yyval.array) = array_init(2);
             array_append((yyval.array), (yyvsp[0].lifetime));
         }
-#line 2333 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2335 "ast.parser.c"
     break;
 
   case 75:
-#line 593 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 593 "ast.y"
     {
             (yyval.lifetime) = create_lifetime((yyvsp[-6].range_spec), (yyvsp[-4].range_spec), LIFETIME_DISALLOWED, (yyvsp[-1].array));
             new_location((yyval.lifetime), &(yyloc));
         }
-#line 2342 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2344 "ast.parser.c"
     break;
 
   case 76:
-#line 598 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 598 "ast.y"
     {
             (yyval.lifetime) = (yyvsp[0].lifetime);
 
         }
-#line 2351 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2353 "ast.parser.c"
     break;
 
   case 77:
-#line 603 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 603 "ast.y"
     {
             (yyval.lifetime) = create_lifetime(NULL, NULL, LIFETIME_DISALLOWED, (yyvsp[-1].array));
             new_location((yyval.lifetime), &(yyloc));
         }
-#line 2360 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2362 "ast.parser.c"
     break;
 
   case 78:
-#line 610 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 610 "ast.y"
     {
                 array_append((yyval.array), (yyvsp[0].lifetime));
             }
-#line 2368 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2370 "ast.parser.c"
     break;
 
   case 79:
-#line 614 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 614 "ast.y"
     {
                 (yyval.array) = array_init(2);
                 array_append((yyval.array), (yyvsp[0].lifetime));
                 new_location((yyvsp[0].lifetime), &(yylsp[0]));
             }
-#line 2378 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2380 "ast.parser.c"
     break;
 
   case 80:
-#line 621 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 621 "ast.y"
     {
             (yyval.lifetime) = create_lifetime((yyvsp[-2].range_spec), (yyvsp[0].range_spec), LIFETIME_DISALLOWED, NULL);
             new_location((yyval.lifetime), &(yyloc));
         }
-#line 2387 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2389 "ast.parser.c"
     break;
 
   case 81:
-#line 626 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 626 "ast.y"
     {
             (yyval.lifetime) = create_lifetime(NULL, NULL, LIFETIME_DISALLOWED, NULL);
             new_location((yyval.lifetime), &(yyloc));
         }
-#line 2396 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2398 "ast.parser.c"
     break;
 
   case 82:
-#line 631 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 631 "ast.y"
     {
             (yyval.lifetime) = create_lifetime((yyvsp[-2].range_spec), (yyvsp[0].range_spec), LIFETIME_MANDATORY, NULL);
             new_location((yyval.lifetime), &(yyloc));
         }
-#line 2405 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2407 "ast.parser.c"
     break;
 
   case 83:
-#line 636 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 636 "ast.y"
     {
             (yyval.lifetime) = create_lifetime(NULL, NULL, LIFETIME_MANDATORY, NULL);
             new_location((yyval.lifetime), &(yyloc));
         }
-#line 2414 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2416 "ast.parser.c"
     break;
 
   case 84:
-#line 643 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 643 "ast.y"
     {
                 array_append((yyvsp[-2].array), (yyvsp[0].string));
                 new_location((yyvsp[0].string), &(yylsp[0]));
             }
-#line 2423 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2425 "ast.parser.c"
     break;
 
   case 85:
-#line 648 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 648 "ast.y"
     {
                 (yyval.array) = create_array();
                 array_append((yyval.array), (yyvsp[0].string));
                 new_location((yyvsp[0].string), &(yylsp[0]));
             }
-#line 2433 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2435 "ast.parser.c"
     break;
 
   case 86:
-#line 655 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 655 "ast.y"
     {
               (yyval.range_spec) = create_range_spec(false, (yyvsp[0].array));
               new_location((yyval.range_spec), &(yyloc));
           }
-#line 2442 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2444 "ast.parser.c"
     break;
 
   case 87:
-#line 660 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 660 "ast.y"
     {
               (yyval.range_spec) = NULL;
           }
-#line 2450 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2452 "ast.parser.c"
     break;
 
   case 88:
-#line 664 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 664 "ast.y"
     {
               (yyval.range_spec) = create_range_spec(true, (yyvsp[0].array));
               new_location((yyval.range_spec), &(yyloc));
           }
-#line 2459 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2461 "ast.parser.c"
     break;
 
   case 89:
-#line 671 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 671 "ast.y"
     {
               (yyval.range_spec) = create_range_spec(false, (yyvsp[-1].array));
               new_location((yyval.range_spec), &(yyloc));
           }
-#line 2468 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2470 "ast.parser.c"
     break;
 
   case 90:
-#line 676 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 676 "ast.y"
     {
               (yyval.range_spec) = NULL;
           }
-#line 2476 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2478 "ast.parser.c"
     break;
 
   case 91:
-#line 680 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 680 "ast.y"
     {
               (yyval.range_spec) = create_range_spec(true, (yyvsp[-1].array));
               new_location((yyval.range_spec), &(yyloc));
           }
-#line 2485 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2487 "ast.parser.c"
     break;
 
   case 92:
-#line 687 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 687 "ast.y"
     {
             (yyval.array) = (yyvsp[-1].array);
             new_location((yyval.array), &(yyloc));
         }
-#line 2494 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2496 "ast.parser.c"
     break;
 
   case 93:
-#line 694 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 694 "ast.y"
     {
              array_append((yyvsp[-2].array), (yyvsp[0].child));
              (yyval.array) = (yyvsp[-2].array);
              // $$ is an array and should not be in the locations list
          }
-#line 2504 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2506 "ast.parser.c"
     break;
 
   case 94:
-#line 700 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 700 "ast.y"
     {
              array *tmp = create_array();
              array_append(tmp, (yyvsp[0].child));
              (yyval.array) = tmp;
              // $$ is an array and should not be in the locations list
          }
-#line 2515 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2517 "ast.parser.c"
     break;
 
   case 95:
-#line 709 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 709 "ast.y"
     {
          (yyval.child) = create_child(0, NULL, (yyvsp[0].string), (yyvsp[-1].string));
          new_location((yyval.child), &(yyloc));
          new_location((yyvsp[-1].string), &(yylsp[-1]));
          new_location((yyvsp[0].string), &(yylsp[0]));
      }
-#line 2526 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2528 "ast.parser.c"
     break;
 
   case 96:
-#line 716 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 716 "ast.y"
     {
          (yyval.child) = create_child(1, (yyvsp[-1].array), (yyvsp[-5].string), (yyvsp[-6].string));
          new_location((yyval.child), &(yyloc));
          new_location((yyvsp[-6].string), &(yylsp[-6]));
          new_location((yyvsp[-5].string), &(yylsp[-5]));
      }
-#line 2537 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2539 "ast.parser.c"
     break;
 
   case 97:
-#line 723 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 723 "ast.y"
     {
          (yyval.child) = create_child(1, (yyvsp[-3].array), (yyvsp[-5].string), (yyvsp[-6].string));
          new_location((yyval.child), &(yyloc));
          new_location((yyvsp[-6].string), &(yylsp[-6]));
          new_location((yyvsp[-5].string), &(yylsp[-5]));
      }
-#line 2548 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2550 "ast.parser.c"
     break;
 
   case 98:
-#line 730 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 730 "ast.y"
     {
          (yyval.child) = create_child(1, NULL, (yyvsp[-3].string), (yyvsp[-4].string));
          new_location((yyval.child), &(yyloc));
          new_location((yyvsp[-4].string), &(yylsp[-4]));
          new_location((yyvsp[-3].string), &(yylsp[-3]));
      }
-#line 2559 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2561 "ast.parser.c"
     break;
 
   case 99:
-#line 737 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 737 "ast.y"
     {
          (yyval.child) = create_child(0, (yyvsp[-1].array), (yyvsp[-3].string), (yyvsp[-4].string));
          new_location((yyval.child), &(yyloc));
          new_location((yyvsp[-4].string), &(yylsp[-4]));
          new_location((yyvsp[-3].string), &(yylsp[-3]));
      }
-#line 2570 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2572 "ast.parser.c"
     break;
 
   case 100:
-#line 745 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 745 "ast.y"
     { (yyval.array) = (yyvsp[-1].array); }
-#line 2576 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2578 "ast.parser.c"
     break;
 
   case 101:
-#line 748 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 748 "ast.y"
     {
             array_append((yyvsp[-2].array), (yyvsp[0].attr));
             (yyval.array) = (yyvsp[-2].array);
             // $$ is an array and should not be in the locations list
         }
-#line 2586 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2588 "ast.parser.c"
     break;
 
   case 102:
-#line 754 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 754 "ast.y"
     {
             array *tmp = create_array();
             array_append(tmp, (yyvsp[0].attr));
             (yyval.array) = tmp;
             // $$ is an array and should not be in the locations list
         }
-#line 2597 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2599 "ast.parser.c"
     break;
 
   case 103:
-#line 762 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 762 "ast.y"
     {
         (yyval.attr) = create_attr((yyvsp[-5].attr), NULL, 1, (yyvsp[-1].array));
         new_location((yyval.attr), &(yyloc));
     }
-#line 2606 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2608 "ast.parser.c"
     break;
 
   case 104:
-#line 767 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 767 "ast.y"
     {
         (yyval.attr) = create_attr((yyvsp[-3].attr), NULL, 1, NULL);
         new_location((yyval.attr), &(yyloc));
     }
-#line 2615 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2617 "ast.parser.c"
     break;
 
   case 105:
-#line 772 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 772 "ast.y"
     {
         (yyval.attr) = create_attr((yyvsp[-2].attr), (yyvsp[0].attrval), 0, NULL);
         new_location((yyval.attr), &(yyloc));
     }
-#line 2624 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2626 "ast.parser.c"
     break;
 
   case 106:
-#line 779 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 779 "ast.y"
     {
             (yyval.attr) = create_attrhead_primitive((yyvsp[-1].attrtype), (yyvsp[0].string));
             new_location((yyval.attr), &(yyloc));
             new_location((yyvsp[0].string), &(yylsp[0]));
         }
-#line 2634 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2636 "ast.parser.c"
     break;
 
   case 107:
-#line 785 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 785 "ast.y"
     {
             (yyval.attr) = create_attrhead_idtype((yyvsp[-1].string), (yyvsp[0].string));
             new_location((yyval.attr), &(yyloc));
             new_location((yyvsp[-1].string), &(yylsp[-1]));
             new_location((yyvsp[0].string), &(yylsp[0]));
         }
-#line 2645 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2647 "ast.parser.c"
     break;
 
   case 108:
-#line 794 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 794 "ast.y"
     { (yyval.attrtype) = AT_int; }
-#line 2651 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2653 "ast.parser.c"
     break;
 
   case 109:
-#line 796 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 796 "ast.y"
     { (yyval.attrtype) = AT_int8; }
-#line 2657 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2659 "ast.parser.c"
     break;
 
   case 110:
-#line 798 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 798 "ast.y"
     { (yyval.attrtype) = AT_int16; }
-#line 2663 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2665 "ast.parser.c"
     break;
 
   case 111:
-#line 800 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 800 "ast.y"
     { (yyval.attrtype) = AT_int32; }
-#line 2669 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2671 "ast.parser.c"
     break;
 
   case 112:
-#line 802 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 802 "ast.y"
     { (yyval.attrtype) = AT_int64; }
-#line 2675 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2677 "ast.parser.c"
     break;
 
   case 113:
-#line 804 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 804 "ast.y"
     { (yyval.attrtype) = AT_uint; }
-#line 2681 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2683 "ast.parser.c"
     break;
 
   case 114:
-#line 806 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 806 "ast.y"
     { (yyval.attrtype) = AT_uint8; }
-#line 2687 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2689 "ast.parser.c"
     break;
 
   case 115:
-#line 808 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 808 "ast.y"
     { (yyval.attrtype) = AT_uint16; }
-#line 2693 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2695 "ast.parser.c"
     break;
 
   case 116:
-#line 810 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 810 "ast.y"
     { (yyval.attrtype) = AT_uint32; }
-#line 2699 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2701 "ast.parser.c"
     break;
 
   case 117:
-#line 812 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 812 "ast.y"
     { (yyval.attrtype) = AT_uint64; }
-#line 2705 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2707 "ast.parser.c"
     break;
 
   case 118:
-#line 814 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 814 "ast.y"
     { (yyval.attrtype) = AT_float; }
-#line 2711 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2713 "ast.parser.c"
     break;
 
   case 119:
-#line 816 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 816 "ast.y"
     { (yyval.attrtype) = AT_double; }
-#line 2717 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2719 "ast.parser.c"
     break;
 
   case 120:
-#line 818 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 818 "ast.y"
     { (yyval.attrtype) = AT_bool; }
-#line 2723 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2725 "ast.parser.c"
     break;
 
   case 121:
-#line 820 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 820 "ast.y"
     { (yyval.attrtype) = AT_string; }
-#line 2729 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2731 "ast.parser.c"
     break;
 
   case 122:
-#line 823 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 823 "ast.y"
     { (yyval.attrval) = create_attrval_string((yyvsp[0].string)); }
-#line 2735 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2737 "ast.parser.c"
     break;
 
   case 123:
-#line 825 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 825 "ast.y"
     { (yyval.attrval) = create_attrval_int((yyvsp[0].intval)); }
-#line 2741 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2743 "ast.parser.c"
     break;
 
   case 124:
-#line 827 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 827 "ast.y"
     { (yyval.attrval) = create_attrval_uint((yyvsp[0].uintval)); }
-#line 2747 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2749 "ast.parser.c"
     break;
 
   case 125:
-#line 829 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 829 "ast.y"
     { (yyval.attrval) = create_attrval_float((yyvsp[0].fval)); }
-#line 2753 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2755 "ast.parser.c"
     break;
 
   case 126:
-#line 831 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 831 "ast.y"
     { (yyval.attrval) = create_attrval_id((yyvsp[0].string)); }
-#line 2759 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2761 "ast.parser.c"
     break;
 
   case 127:
-#line 833 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 833 "ast.y"
     { (yyval.attrval) = create_attrval_bool(true); }
-#line 2765 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2767 "ast.parser.c"
     break;
 
   case 128:
-#line 835 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 835 "ast.y"
     { (yyval.attrval) = create_attrval_bool(false); }
-#line 2771 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2773 "ast.parser.c"
     break;
 
   case 129:
-#line 837 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 837 "ast.y"
     { (yyval.attrval) = NULL; }
-#line 2777 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2779 "ast.parser.c"
     break;
 
   case 130:
-#line 842 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 842 "ast.y"
     {
           array_append((yyvsp[-2].array), (yyvsp[0].string));
           (yyval.array) = (yyvsp[-2].array);
           // $$ is an array and should not be added to location list.
           new_location((yyvsp[0].string), &(yylsp[0]));
       }
-#line 2788 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2790 "ast.parser.c"
     break;
 
   case 131:
-#line 849 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 849 "ast.y"
     {
           array *tmp = create_array();
           array_append(tmp, (yyvsp[0].string));
@@ -2796,21 +2798,22 @@ yyreduce:
           // $$ is an array and should not be added to location list.
           new_location((yyvsp[0].string), &(yylsp[0]));
       }
-#line 2800 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2802 "ast.parser.c"
     break;
 
   case 132:
-#line 859 "src/cocogen/ast.y" /* yacc.c:1652  */
+#line 859 "ast.y"
     {
         (yyval.string) = (yyvsp[0].string);
         new_location((yyval.string), &(yyloc));
         new_location((yyvsp[0].string), &(yylsp[0]));
     }
-#line 2810 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2812 "ast.parser.c"
     break;
 
 
-#line 2814 "src/cocogen/ast.parser.c" /* yacc.c:1652  */
+#line 2816 "ast.parser.c"
+
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -3047,7 +3050,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 865 "src/cocogen/ast.y" /* yacc.c:1918  */
+#line 865 "ast.y"
 
 
 static void new_location(void *ptr, struct ParserLocation *loc) {

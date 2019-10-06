@@ -400,7 +400,7 @@ int main(int argc, char *argv[]) {
     }
 
     filegen_generate("action_handlers.c", gen_action_array_c);
-
+    // TODO: AUTO DOCUMENTATION GENERATION, gives a nice overview of everything.
 
 
     clean_all_tracked_directories();

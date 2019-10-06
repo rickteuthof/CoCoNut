@@ -7,16 +7,19 @@ Welcome to CoCoNut's documentation!
 ===================================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-   prefix
-   serialization_binary
+    :maxdepth: 2
+    :caption: Contents:
 
 
+    getting_started
+    calculator_example
+    dsl_syntax
+    prefix
+    serialization_binary
 
-Indices and tables
+
 ==================
-
+Indices and tables 
+==================
 * :ref:`genindex`
 * :ref:`search`

@@ -1,3 +1,10 @@
+/* Module that contains the hashing of the AST.
+ * We hash the AST to prevent recompilation of most files that require no change.
+ *
+ * TODO: Use compiler flags in the hashes as well.
+ */
+
+
 #include "cocogen/hash-ast.h"
 #include "cocogen/str-ast.h"
 
@@ -7,6 +14,7 @@
 
 #include <mhash.h>
 
+
 #define hash(a, b)                                                            \
     do {                                                                      \
         mhash(td, a, strlen(a) * sizeof(b));                                  \
@@ -15,6 +23,8 @@
     do {                                                                      \
         mhash(config_td, a, strlen(a) * sizeof(b));                           \
     } while (0)
+
+
 
 static MHASH td;
 static MHASH config_td;
@@ -142,7 +152,7 @@ static void hash_traversal(Traversal *trav) {
 
     hash(trav->id, char);
     if (trav->func)
-        hash(trav->func ? "y" : "n", char);
+        hash(trav->func, char);
 
     for (int i = 0; i < array_size(trav->nodes); ++i) {
         char *node = array_get(trav->nodes, i);

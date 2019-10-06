@@ -22,5 +22,5 @@ bool ccn_set_inspect_point(char *inspect) {
 }
 
 void ccn_phase_driver_start() {
-
+    _ccn_phase_driver_start();
 }

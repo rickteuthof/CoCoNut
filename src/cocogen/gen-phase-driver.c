@@ -9,7 +9,7 @@
 #include "cocogen/command_opts.h"
 
 // TODO: maybe allow to print to multiple files at once.
-// We no go over the phases two or three times, which can be changed.
+// We now go over the phases two or three times, which can be changed.
 
 // TODO call right traversal function when a root node is specified.
 // TODO handle passes when a certain root is specified, needs to accept that
@@ -61,9 +61,11 @@ void generate_phase_driver_definitions(Config *config, FILE *fp) {
     out("%s(root);\n", root_phase->id);
     out("end = clock();\n");
     out("pd->total_time = (end - start)/CLOCKS_PER_SEC;\n");
+
     if (global_options.profiling) {
         out(" _print_top_n_time();\n");
     }
+
     out("phase_driver_destroy();\n");
     out("}\n");
 }

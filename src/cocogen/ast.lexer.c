@@ -1,6 +1,6 @@
-#line 1 "src/cocogen/ast.lexer.c"
+#line 1 "ast.lexer.c"
 
-#line 3 "src/cocogen/ast.lexer.c"
+#line 3 "ast.lexer.c"
 
 #define  YY_INT_ALIGNED short int
 
@@ -620,8 +620,8 @@ int yy_flex_debug = 0;
 #define YY_MORE_ADJ 0
 #define YY_RESTORE_YY_MORE_OFFSET
 char *yytext;
-#line 1 "src/cocogen/ast.l"
-#line 2 "src/cocogen/ast.l"
+#line 1 "ast.l"
+#line 2 "ast.l"
 #include <stdio.h>
 #include <stdbool.h>
 #include <regex.h>
@@ -659,10 +659,10 @@ static inline void check_c_keyword(const char *);
 #define YY_USER_INIT lexer_init();
 #define YY_USER_ACTION token_action();
 
-#line 662 "src/cocogen/ast.lexer.c"
+#line 662 "ast.lexer.c"
 #define YY_NO_INPUT 1
 
-#line 665 "src/cocogen/ast.lexer.c"
+#line 665 "ast.lexer.c"
 
 #define INITIAL 0
 #define COMMENT 1
@@ -887,9 +887,9 @@ YY_DECL
 		}
 
 	{
-#line 51 "src/cocogen/ast.l"
+#line 51 "ast.l"
 
-#line 892 "src/cocogen/ast.lexer.c"
+#line 892 "ast.lexer.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -958,7 +958,7 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 54 "src/cocogen/ast.l"
+#line 54 "ast.l"
 {
         // Save the whole line
         strncpy(yy_linebuf, yytext, sizeof(yy_linebuf));
@@ -979,7 +979,7 @@ YY_RULE_SETUP
 case 2:
 /* rule 2 can match eol */
 YY_RULE_SETUP
-#line 70 "src/cocogen/ast.l"
+#line 70 "ast.l"
 {
         // Save the empty line
         strncpy(yy_linebuf, "", sizeof(yy_linebuf));
@@ -996,325 +996,325 @@ YY_RULE_SETUP
 
 case 3:
 YY_RULE_SETUP
-#line 84 "src/cocogen/ast.l"
+#line 84 "ast.l"
 {  }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 85 "src/cocogen/ast.l"
+#line 85 "ast.l"
 { yy_push_state(COMMENT); }
 	YY_BREAK
 
 case 5:
 YY_RULE_SETUP
-#line 87 "src/cocogen/ast.l"
+#line 87 "ast.l"
 { yy_push_state(INITIAL); }
 	YY_BREAK
 case 6:
 /* rule 6 can match eol */
 YY_RULE_SETUP
-#line 88 "src/cocogen/ast.l"
+#line 88 "ast.l"
 { yy_push_state(SAVELINE); }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 89 "src/cocogen/ast.l"
+#line 89 "ast.l"
 {  }
 	YY_BREAK
 
 case 8:
 YY_RULE_SETUP
-#line 91 "src/cocogen/ast.l"
+#line 91 "ast.l"
 {return '(';}
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 92 "src/cocogen/ast.l"
+#line 92 "ast.l"
 {return ')';}
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 93 "src/cocogen/ast.l"
+#line 93 "ast.l"
 {return '[';}
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 94 "src/cocogen/ast.l"
+#line 94 "ast.l"
 {return ']';}
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 95 "src/cocogen/ast.l"
+#line 95 "ast.l"
 {return '{';}
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 96 "src/cocogen/ast.l"
+#line 96 "ast.l"
 {return '}';}
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 97 "src/cocogen/ast.l"
+#line 97 "ast.l"
 {return ',';}
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 98 "src/cocogen/ast.l"
+#line 98 "ast.l"
 {return '=';}
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 99 "src/cocogen/ast.l"
+#line 99 "ast.l"
 {return ';';}
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 100 "src/cocogen/ast.l"
+#line 100 "ast.l"
 {return '!';}
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 101 "src/cocogen/ast.l"
+#line 101 "ast.l"
 {return '|';}
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 102 "src/cocogen/ast.l"
+#line 102 "ast.l"
 {return '&';}
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 103 "src/cocogen/ast.l"
+#line 103 "ast.l"
 {return '-';}
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 104 "src/cocogen/ast.l"
+#line 104 "ast.l"
 {return '.';}
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 106 "src/cocogen/ast.l"
+#line 106 "ast.l"
 { LEX_KEYWORD(T_ATTRIBUTES);}
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 107 "src/cocogen/ast.l"
+#line 107 "ast.l"
 { LEX_KEYWORD(T_CHILDREN);}
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 108 "src/cocogen/ast.l"
+#line 108 "ast.l"
 { LEX_KEYWORD(T_CONSTRUCTOR);}
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 109 "src/cocogen/ast.l"
+#line 109 "ast.l"
 { LEX_KEYWORD(T_CYCLE);}
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 110 "src/cocogen/ast.l"
+#line 110 "ast.l"
 { LEX_KEYWORD(T_ENUM);}
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 111 "src/cocogen/ast.l"
+#line 111 "ast.l"
 { LEX_KEYWORD(T_MANDATORY);}
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 112 "src/cocogen/ast.l"
+#line 112 "ast.l"
 { LEX_KEYWORD(T_NODE);}
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 113 "src/cocogen/ast.l"
+#line 113 "ast.l"
 { LEX_KEYWORD(T_NODESET);}
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 114 "src/cocogen/ast.l"
+#line 114 "ast.l"
 { LEX_KEYWORD(T_NODES);}
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 115 "src/cocogen/ast.l"
+#line 115 "ast.l"
 { LEX_KEYWORD(T_PASS);}
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 116 "src/cocogen/ast.l"
+#line 116 "ast.l"
 { LEX_KEYWORD(T_PASSES);}
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 117 "src/cocogen/ast.l"
+#line 117 "ast.l"
 { LEX_KEYWORD(T_PHASE);}
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 118 "src/cocogen/ast.l"
+#line 118 "ast.l"
 { LEX_KEYWORD(T_PHASES);}
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 119 "src/cocogen/ast.l"
+#line 119 "ast.l"
 { LEX_KEYWORD(T_ACTIONS);}
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 120 "src/cocogen/ast.l"
+#line 120 "ast.l"
 { LEX_KEYWORD(T_PREFIX);}
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 121 "src/cocogen/ast.l"
+#line 121 "ast.l"
 { LEX_KEYWORD(T_SUBPHASES);}
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 122 "src/cocogen/ast.l"
+#line 122 "ast.l"
 { LEX_KEYWORD(T_TO);}
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 123 "src/cocogen/ast.l"
+#line 123 "ast.l"
 { LEX_KEYWORD(T_TRAVERSAL);}
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 124 "src/cocogen/ast.l"
+#line 124 "ast.l"
 { LEX_KEYWORD(T_VALUES) ; }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 125 "src/cocogen/ast.l"
+#line 125 "ast.l"
 { LEX_KEYWORD(T_INFO) ; }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 126 "src/cocogen/ast.l"
+#line 126 "ast.l"
 { LEX_KEYWORD(T_FUNC) ; }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 127 "src/cocogen/ast.l"
+#line 127 "ast.l"
 { LEX_KEYWORD(T_ROOT) ; }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 128 "src/cocogen/ast.l"
+#line 128 "ast.l"
 { LEX_KEYWORD(T_START); }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 129 "src/cocogen/ast.l"
+#line 129 "ast.l"
 { LEX_KEYWORD(T_DOUBLE);}
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 130 "src/cocogen/ast.l"
+#line 130 "ast.l"
 { LEX_KEYWORD(T_FLOAT);}
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 131 "src/cocogen/ast.l"
+#line 131 "ast.l"
 { LEX_KEYWORD(T_INT);}
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 132 "src/cocogen/ast.l"
+#line 132 "ast.l"
 { LEX_KEYWORD(T_UINT);}
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 133 "src/cocogen/ast.l"
+#line 133 "ast.l"
 { LEX_KEYWORD(T_INT8);}
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 134 "src/cocogen/ast.l"
+#line 134 "ast.l"
 { LEX_KEYWORD(T_INT16);}
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 135 "src/cocogen/ast.l"
+#line 135 "ast.l"
 { LEX_KEYWORD(T_INT32);}
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 136 "src/cocogen/ast.l"
+#line 136 "ast.l"
 { LEX_KEYWORD(T_INT64);}
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 137 "src/cocogen/ast.l"
+#line 137 "ast.l"
 { LEX_KEYWORD(T_UINT8);}
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 138 "src/cocogen/ast.l"
+#line 138 "ast.l"
 { LEX_KEYWORD(T_UINT16);}
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 139 "src/cocogen/ast.l"
+#line 139 "ast.l"
 { LEX_KEYWORD(T_UINT32);}
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 140 "src/cocogen/ast.l"
+#line 140 "ast.l"
 { LEX_KEYWORD(T_UINT64);}
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 141 "src/cocogen/ast.l"
+#line 141 "ast.l"
 { LEX_KEYWORD(T_STRING);}
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 142 "src/cocogen/ast.l"
+#line 142 "ast.l"
 { LEX_KEYWORD(T_BOOL);}
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 143 "src/cocogen/ast.l"
+#line 143 "ast.l"
 { LEX_KEYWORD(T_LIFETIME);}
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 144 "src/cocogen/ast.l"
+#line 144 "ast.l"
 { LEX_KEYWORD(T_DISALLOWED);}
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 145 "src/cocogen/ast.l"
+#line 145 "ast.l"
 { LEX_KEYWORD(T_ARROW);}
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 146 "src/cocogen/ast.l"
+#line 146 "ast.l"
 { LEX_KEYWORD(T_FALSE);}
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 147 "src/cocogen/ast.l"
+#line 147 "ast.l"
 { LEX_KEYWORD(T_TRUE);}
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 148 "src/cocogen/ast.l"
+#line 148 "ast.l"
 { LEX_KEYWORD(T_GATE);}
 	YY_BREAK
 case 65:
 YY_RULE_SETUP
-#line 150 "src/cocogen/ast.l"
+#line 150 "ast.l"
 { return T_NULL;}
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 153 "src/cocogen/ast.l"
+#line 153 "ast.l"
 {
     // Identifier start with an letter and can have numbers and underscores.
     yylval.string = strdup(yytext);
@@ -1323,21 +1323,21 @@ YY_RULE_SETUP
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-#line 158 "src/cocogen/ast.l"
+#line 158 "ast.l"
 {
     // (negative) floating point numbers
     yylval.fval = strtold(yytext, NULL); return T_FLOATVAL;}
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
-#line 161 "src/cocogen/ast.l"
+#line 161 "ast.l"
 {
     // (negative) integer numbers
     yylval.intval = (int64_t)strtoll(yytext, NULL, 10); return T_INTVAL;}
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-#line 164 "src/cocogen/ast.l"
+#line 164 "ast.l"
 {
     // (positive) integer numbers
     yylval.uintval = (uint64_t)strtoull(yytext, NULL, 10); return T_UINTVAL;}
@@ -1345,20 +1345,20 @@ YY_RULE_SETUP
 case 70:
 /* rule 70 can match eol */
 YY_RULE_SETUP
-#line 168 "src/cocogen/ast.l"
+#line 168 "ast.l"
 {
     // Remove surrounding quotes
     yylval.string = strndup(yytext + 1, yyleng - 2); return T_STRINGVAL;}
 	YY_BREAK
 case 71:
 YY_RULE_SETUP
-#line 172 "src/cocogen/ast.l"
+#line 172 "ast.l"
 ; // ignore all whitespace
 	YY_BREAK
 case 72:
 /* rule 72 can match eol */
 YY_RULE_SETUP
-#line 174 "src/cocogen/ast.l"
+#line 174 "ast.l"
 {
     // Switch to the SAVELINE state to read the whole line first
     yy_push_state(SAVELINE);
@@ -1366,7 +1366,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 73:
 YY_RULE_SETUP
-#line 178 "src/cocogen/ast.l"
+#line 178 "ast.l"
 {
     print_error_at(yylineno, yycolumn - 1, yy_linebuf,
         "Unexpected token found, quit parsing", yytext);
@@ -1375,10 +1375,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 74:
 YY_RULE_SETUP
-#line 183 "src/cocogen/ast.l"
+#line 183 "ast.l"
 ECHO;
 	YY_BREAK
-#line 1381 "src/cocogen/ast.lexer.c"
+#line 1381 "ast.lexer.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(COMMENT):
 case YY_STATE_EOF(SAVELINE):
@@ -2397,7 +2397,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 183 "src/cocogen/ast.l"
+#line 183 "ast.l"
 
 
 static inline void lexer_init(void) {

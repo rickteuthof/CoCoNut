@@ -135,6 +135,7 @@ void _initialize_phase_driver() {
     phase_driver.total_freed = 0;
     phase_driver.print_n = 0;
 
+    ccn_init_action_array();
 }
 
 cycle_mark_t *_ccn_new_mark(void *item) {
@@ -453,7 +454,7 @@ void phase_driver_destroy() {
 #ifdef CCN_ENABLE_POINTS
     array_cleanup(phase_driver.inspection_points, _ccn_destroy_points);
 #endif
-    ccn_destroy_action_array(); 
+    ccn_destroy_action_array();
     reset_allocators();
 
 }
@@ -470,6 +471,6 @@ void ccn_set_print_n(size_t n) {
 }
 
 void _ccn_phase_driver_start() {
-    ccn_action_t *action = get_ccn_action_from_id(CCN_ROOT_ACTION); 
+    ccn_action_t *action = get_ccn_action_from_id(CCN_ROOT_ACTION);
     ccn_dispatch_action(action, CCN_ROOT_TYPE, NULL);
 }

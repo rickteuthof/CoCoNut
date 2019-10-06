@@ -1,4 +1,4 @@
-/* A Bison parser, made by GNU Bison 3.3.2.  */
+/* A Bison parser, made by GNU Bison 3.4.  */
 
 /* Bison interface for Yacc-like parsers in C
 
@@ -34,8 +34,8 @@
 /* Undocumented macros, especially those whose name start with YY_,
    are private implementation details.  Do not rely on them.  */
 
-#ifndef YY_YY_SRC_COCOGEN_AST_PARSER_H_INCLUDED
-# define YY_YY_SRC_COCOGEN_AST_PARSER_H_INCLUDED
+#ifndef YY_YY_AST_PARSER_H_INCLUDED
+# define YY_YY_AST_PARSER_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -105,10 +105,9 @@ extern int yydebug;
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-
 union YYSTYPE
 {
-#line 62 "src/cocogen/ast.y" /* yacc.c:1921  */
+#line 62 "ast.y"
 
     int64_t intval;
     uint64_t uintval;
@@ -135,9 +134,9 @@ union YYSTYPE
     struct Attr *attr;
     struct AttrValue *attrval;
 
-#line 139 "src/cocogen/ast.parser.h" /* yacc.c:1921  */
-};
+#line 138 "ast.parser.h"
 
+};
 typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
@@ -162,4 +161,4 @@ extern YYSTYPE yylval;
 extern YYLTYPE yylloc;
 int yyparse (void);
 
-#endif /* !YY_YY_SRC_COCOGEN_AST_PARSER_H_INCLUDED  */
+#endif /* !YY_YY_AST_PARSER_H_INCLUDED  */

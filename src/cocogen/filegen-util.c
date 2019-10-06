@@ -43,6 +43,7 @@ void generate_node_header_includes(Config *config, FILE *fp, Node *node) {
         default:
             break;
         }
+
         if (smap_retrieve(map, attr->id) == NULL) {
             switch (attr->type) {
             case AT_link:

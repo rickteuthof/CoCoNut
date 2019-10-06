@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 
+// TODO: maybe add a bit more information?
 static inline void error_fatal() {
     exit(1);
 }
