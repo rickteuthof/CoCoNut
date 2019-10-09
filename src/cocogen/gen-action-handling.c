@@ -223,6 +223,7 @@ void gen_action_array_c(Config *c, FILE *fp) {
     }
     out_end_func();
 
+    // TODO: can probably be in a lookup table instead.
     out_start_func("void dispatch_traversals(NodeType type, void *node, TraversalType trav_type)");
     {
         out_begin_switch("type");

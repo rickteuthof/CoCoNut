@@ -7,9 +7,7 @@ in the getting started documentation.
 
 This tutorial assumes you use the default locations.
 
-The calculator supports five simple arithmetic operations and uses a repl to communicate with the user.
-The REPL accepts
-an expression and will evaluate that expression and print the result to the terminal.
+The calculator supports five simple arithmetic operations and uses a simple line to parse and evaluate.
 We will use *bison* and *flex* to parse the commands. This seems overkill but is just to
 demonstrate how to integrate *bison* and *flex* with *CoCoNut*.
 
@@ -47,7 +45,7 @@ Place the following code to create an enum in the dsl file
 
     enum BinOpEnum {
         prefix = BO,
-        values = {
+        values {
             mul, add, sub, div, rem
         }
     };
@@ -181,6 +179,8 @@ Create a C file and place the following code in it:
     #include "generated/ast.h"
     #include "core/phase_driver.h"
 
+    char *line_to_parse = "4 + (3 + 2)";
+
     int main() {
         ccn_phase_driver_init();
         ccn_phase_driver_start();
@@ -217,4 +217,62 @@ We also need to define the traversal, create a file for the traversal and place 
 
 
 .. code-block:: C
+
+    #include "generated/traversal-printAST.h"
+
+    #include <stddef.h>
+    #include <stdio.h>
+
+    #include "lib/memory.h"
+
+    typedef struct Info {
+        int indent;
+
+    } Info;
+
+    Info *printAST_createinfo(void) {
+        Info *info = mem_alloc(sizeof(Info));
+        info->indent = 0;
+        return info;
+    }
+
+    void printAST_freeinfo(Info *info) {
+        mem_free(info);
+        putchar('\n');
+    }
+
+    void printAST_BinOp(BinOp *node, Info *info) {
+        putchar('(');
+        trav_BinOp_left(node, info);
+        putchar(' ');
+        switch(node->op) {
+        case BO_add:
+            putchar('+');
+            break;
+        case BO_sub:
+            putchar('-');
+            break;
+        case BO_mul:
+            putchar('*');
+            break;
+        default:
+            break;
+        }
+        putchar(' ');
+        trav_BinOp_right(node, info);
+        putchar(')');
+    }
+
+    void printAST_Num(Num *node, Info *info) {
+        printf("%d", node->value);
+    }
+
+
+This prints our AST. It shows the basic of writing your own traversal. Every traversal requires a
+*create* and *free* info function. It is also required to define the Info struct in the source file of the traversal.
+The example also shows how to traverse the children, this is done by using the trav\_TYPE\_CHILDNAME function and then pass
+the node and info struct to that function.
+
+Now it is possible to compile everything together and run the program, which should print the [CCN] information
+about your structure and the original expression.
 

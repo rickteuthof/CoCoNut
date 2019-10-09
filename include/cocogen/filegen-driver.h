@@ -12,6 +12,7 @@ bool clean_current_tracked_directory();
 bool clean_all_tracked_directories();
 void set_current_directory_to_be_tracked(const char *dirname);
 void init_tracking_data(size_t num_of_dirs);
+void cleanup_tracking_data();
 bool add_directory_to_tracked_dirs(const char *dir);
 
 void filegen_init(Config *config, bool list_gen_files_flag);

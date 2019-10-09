@@ -53,7 +53,7 @@ static inline void check_c_keyword(const char *);
 
     .* {
         // Save the whole line
-        strncpy(yy_linebuf, yytext, sizeof(yy_linebuf));
+        strncpy(yy_linebuf, yytext, sizeof(yy_linebuf) - 1);
 
         array_append(yy_lines, strdup(yy_linebuf));
 
@@ -69,7 +69,7 @@ static inline void check_c_keyword(const char *);
     }
     \n {
         // Save the empty line
-        strncpy(yy_linebuf, "", sizeof(yy_linebuf));
+        strncpy(yy_linebuf, "", sizeof(yy_linebuf) - 1);
 
         array_append(yy_lines, strdup(yy_linebuf));
 

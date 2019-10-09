@@ -13,13 +13,14 @@ Welcome to CoCoNut's documentation!
 
     getting_started
     calculator_example
+    consistency_checks
     dsl_syntax
     prefix
     serialization_binary
 
 
 ==================
-Indices and tables 
+Indices and tables
 ==================
 * :ref:`genindex`
 * :ref:`search`

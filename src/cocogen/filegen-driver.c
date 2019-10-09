@@ -163,6 +163,12 @@ void init_tracking_data(size_t num_of_dirs) {
     directories_being_tracked = smap_init(num_of_dirs);
 }
 
+void cleanup_tracking_data()
+{
+    smap_free_values(directories_being_tracked, mem_free);
+    mem_free(current_directory);
+}
+
 FILE *get_fp(char *full_path, char *mode) {
     FILE *fp = fopen(full_path, mode);
     if (!fp) {

@@ -67,3 +67,6 @@ Reserved prefixes which are used in functions and enums are:
 
   Prefix of phasedriver functions.
 
+* `ccn_`
+
+  All exported functions related to *CoCoNut*.

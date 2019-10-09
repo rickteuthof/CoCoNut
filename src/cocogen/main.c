@@ -79,6 +79,9 @@ static void usage(char *program) {
            "<directory>.\n");
     printf("                               Prints the AST after parsing the "
            "input file\n");
+    printf("  --consistency-checks         Do consistency checks on the AST during runtime.\n");
+    printf("  --profiling                  Generate the requirements for a time and memory profile in your compiler.\n")
+    printf("  --breakpoints                Enable setting breakpoints in your compiler, generates an API for this.\n");
 }
 
 static void version(void) {
@@ -268,6 +271,7 @@ int main(int argc, char *argv[]) {
     filegen_init(parse_result, list_gen_files_flag);
 
     if (dot_dir) {
+        set_current_directory_to_be_tracked(dot_dir);
         filegen_dir(dot_dir);
         filegen_generate("ast.dot", generate_dot_definition);
         return 0;
@@ -401,9 +405,12 @@ int main(int argc, char *argv[]) {
 
     filegen_generate("action_handlers.c", gen_action_array_c);
     // TODO: AUTO DOCUMENTATION GENERATION, gives a nice overview of everything.
+    // TODO: Maybe do this with Doxygen and generate it above functions declarations?
+    //      Doxygen also allows to disable indexing of certain functions, which works on CoCoNut internal functions.
 
 
     clean_all_tracked_directories();
+    cleanup_tracking_data();
     free_config(parse_result);
 
     return ret;
