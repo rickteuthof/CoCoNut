@@ -97,3 +97,4 @@ the static library when your DSL file has been updated.
         ./lib/CoCoNut/bin/cocogen --header-dir $(COCONUT_HEADER_DIR) --source-dir $(COCONUT_SOURCE_DIR) $<
         make "CFLAGS=$(CFLAGS)" -C $(COCONUT_DIR) 
 
+        

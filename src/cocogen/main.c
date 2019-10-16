@@ -80,7 +80,7 @@ static void usage(char *program) {
     printf("                               Prints the AST after parsing the "
            "input file\n");
     printf("  --consistency-checks         Do consistency checks on the AST during runtime.\n");
-    printf("  --profiling                  Generate the requirements for a time and memory profile in your compiler.\n")
+    printf("  --profiling                  Generate the requirements for a time and memory profile in your compiler.\n");
     printf("  --breakpoints                Enable setting breakpoints in your compiler, generates an API for this.\n");
 }
 
@@ -147,8 +147,10 @@ int main(int argc, char *argv[]) {
     int c = 0;
     char *header_dir = NULL;
     char *source_dir = NULL;
-    char *dot_dir = NULL;
+    char *dot_dir = NULL; // TODO: should we merge dot and doc dir in one? Probably.
+    char *doc_dir = NULL;
 
+    // TODO: add option for a doc dir in the artifacts dir.
     struct option long_options[] = {
         {"verbose", no_argument, &verbose_flag, 1},
         {"header-dir", required_argument, 0, 21},
@@ -271,6 +273,8 @@ int main(int argc, char *argv[]) {
     filegen_init(parse_result, list_gen_files_flag);
 
     if (dot_dir) {
+        // TODO: this is dangerous. If we ever call cleanup on this dir, we might delete user files that should not be deleted.
+        // So always return after this function or rewrite this such that is just outputs the dot file in a dir.
         set_current_directory_to_be_tracked(dot_dir);
         filegen_dir(dot_dir);
         filegen_generate("ast.dot", generate_dot_definition);

@@ -961,7 +961,7 @@ YY_RULE_SETUP
 #line 54 "ast.l"
 {
         // Save the whole line
-        strncpy(yy_linebuf, yytext, sizeof(yy_linebuf));
+        strncpy(yy_linebuf, yytext, sizeof(yy_linebuf) - 1);
 
         array_append(yy_lines, strdup(yy_linebuf));
 
@@ -982,7 +982,7 @@ YY_RULE_SETUP
 #line 70 "ast.l"
 {
         // Save the empty line
-        strncpy(yy_linebuf, "", sizeof(yy_linebuf));
+        strncpy(yy_linebuf, "", sizeof(yy_linebuf) - 1);
 
         array_append(yy_lines, strdup(yy_linebuf));
 

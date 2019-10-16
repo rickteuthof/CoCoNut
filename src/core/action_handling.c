@@ -38,7 +38,7 @@ array *generate_sub_roots_using_offset(void *main, size_t offset) {
 void *collapse_sub_root_array(array *values, size_t offset) {
     void *curr = array_get(values, 0);
     void *first = curr;
-    if (array_size(values) == 1) 
+    if (array_size(values) == 1)
         return curr;
 
     size_t index = 1;
@@ -68,7 +68,7 @@ void ccn_cycle_mark_array(ccn_phase_t *phase, array *marks, NodeType root, char 
             if (!mark->notified) {
                 continue;
             }
-            all_notified = false; 
+            all_notified = false;
             mark->notified = false;
             _ccn_set_curr_mark(mark);
             ccn_run_phase_actions(phase, name, root, mark->node);
@@ -76,7 +76,7 @@ void ccn_cycle_mark_array(ccn_phase_t *phase, array *marks, NodeType root, char 
 #ifdef CCN_ENABLE_POINTS
         _ccn_check_points(phase->action_id, name);
 #endif
-    } 
+    }
 }
 
 void *ccn_run_phase_actions(ccn_phase_t *phase, char *name, NodeType root, void *node) {
@@ -96,8 +96,8 @@ void *ccn_run_phase_actions(ccn_phase_t *phase, char *name, NodeType root, void 
     return node;
 }
 
-void *handle_sub_root(ccn_phase_t *phase, void* node, NodeType root_type, char *name) {
-    NodeType new_root = phase->root_type; 
+static void *handle_sub_root(ccn_phase_t *phase, void* node, NodeType root_type, char *name) {
+    NodeType new_root = phase->root_type;
     void *temp = NULL;
 
     TraversalType trav = get_sub_root_find_traversals(root_type, phase->root_type);
@@ -108,6 +108,7 @@ void *handle_sub_root(ccn_phase_t *phase, void* node, NodeType root_type, char *
     dispatch_traversals(root_type, node, trav);
     temp = node;
     phase_driver_t *pd = _get_phase_driver();
+
     if (pd->curr_sub_root != NULL) {
         if (pd->curr_sub_root->nodetype != new_root) {
             return node;
@@ -116,6 +117,7 @@ void *handle_sub_root(ccn_phase_t *phase, void* node, NodeType root_type, char *
     } else {
         return node;
     }
+
     size_t offset = get_offset_next(new_root);
     array *vals = generate_sub_roots_using_offset(node, offset);
 
@@ -141,10 +143,10 @@ void *handle_sub_root(ccn_phase_t *phase, void* node, NodeType root_type, char *
 }
 
 void *ccn_dispatch_phase(ccn_phase_t *phase, NodeType root_type, void *node, char *name) {
-    
+
     _ccn_start_phase(name, root_type);
     if (phase->root_type != CCN_ROOT_TYPE) {
-        node = handle_sub_root(phase, node, root_type, name); 
+        node = handle_sub_root(phase, node, root_type, name);
     }  else {
         if (phase->is_cycle) {
             array *marks = array_init(1);

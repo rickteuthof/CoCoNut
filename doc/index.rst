@@ -13,7 +13,7 @@ Welcome to CoCoNut's documentation!
 
     getting_started
     calculator_example
-    consistency_checks
+    plugins
     dsl_syntax
     prefix
     serialization_binary

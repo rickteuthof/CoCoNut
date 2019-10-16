@@ -21,6 +21,7 @@ bool _ccn_set_breakpoint(char *breakpoint) {
 #endif
 }
 
+
 bool _ccn_set_inspect_point(char *inspect) {
 #ifndef CCN_ENABLE_POINTS
     return false;

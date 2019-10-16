@@ -46,7 +46,12 @@ static smap_t *directories_being_tracked = NULL;
 
 static bool only_list_files = false;
 
-
+/* Last step of generation is deleting all left over files in the tracked directories.
+ * Because of flag change or nodes were deleted, we do not want to keep these files around
+ * So we loop over all directories that are tracked and delete the files
+ * not in the smap. Therefore users should not combine generated data with
+ * their own files, because it might delete them.
+ */
 bool add_filename_to_tracked_specify_dir(const char *dir, const char *filename) {
     directory_tracking_data_t *data = smap_retrieve(directories_being_tracked, dir);
     if (data == NULL) {

@@ -70,3 +70,6 @@ Reserved prefixes which are used in functions and enums are:
 * `ccn_`
 
   All exported functions related to *CoCoNut*.
+
+* `phase_`
+  Functions and data related to per-phase information.

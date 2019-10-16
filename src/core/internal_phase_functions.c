@@ -17,12 +17,11 @@
 #include "lib/memory.h"
 #include "lib/str.h"
 #include "lib/print.h"
+#include "lib/color.h"
 #include "generated/trav-ast.h"
 #include "generated/enum.h"
 #include "generated/action_handlers.h"
 
-#define COLOR_GREEN "\033[1m\033[32m"
-#define COLOR_RESET "\033[0m"
 
 static phase_driver_t phase_driver;
 
@@ -176,14 +175,19 @@ bool _ccn_mark_remove(void *item) {
     return false;
 }
 
-// TODO: Nice way to print?
-void _ccn_start_phase(char *id, NodeType root_type) {
-    printf(COLOR_GREEN "[CCN] " COLOR_RESET);
+static void print_phase_header(const char *message, const char *id) {
+    PRINT_COLOR(COLOR_GREEN);
+    printf("[CCN] ");
+    PRINT_COLOR(COLOR_RESET);
     for(int i = 0; i < phase_driver.level; i++) {
         printf("*");
     }
+    printf("%s %s\n", message, id);
+}
+
+void _ccn_start_phase(char *id, NodeType root_type) {
+    print_phase_header("start", id);
     phase_driver.level++;
-    printf("%s\n", id);
     _push_frame(id, root_type);
 }
 
@@ -191,11 +195,7 @@ void _ccn_end_phase(char *id) {
     _exit_on_phase_error();
 
     phase_driver.level--;
-    printf(COLOR_GREEN "[CCN] " COLOR_RESET);
-    for(int i = 0; i < phase_driver.level; i++) {
-        printf("*");
-    }
-    printf("%s ended\n", id);
+    print_phase_header("end", id);
     _pop_frame();
 }
 
@@ -219,14 +219,17 @@ void _ccn_new_pass_time_frame(char *id, double time_sec) {
 int compare_time_frame_inverse(const void *a, const void *b) {
     const time_frame_t *pass_a = *((time_frame_t**)a);
     const time_frame_t *pass_b = *((time_frame_t**)b);
+
     if (pass_a->time_sec > pass_b->time_sec) {
         return -1;
     } else if (pass_a->time_sec < pass_b->time_sec) {
         return 1;
     }
+
     return 0;
 }
 
+// TODO: check total_time != 0.0 safe?;
 void _ccn_print_time_frame(time_frame_t *time_frame) {
     printf("Name: %s\n", time_frame->id);
     printf("Path: %s\n", time_frame->path);
@@ -253,6 +256,8 @@ void _print_top_n_time() {
     printf("-------------------------------------------------\n");
     printf("Time statistic:\n\n");
 
+    // TODO: make int i -> size_t i;
+    // TODO: also check if traversals should be includes or not.
     printf("Passes:\n");
     for (int i = 0; i < n; ++i) {
         time_frame_t *time_frame = array_get(passes_times, i);
@@ -262,6 +267,9 @@ void _print_top_n_time() {
     printf("-----------------------------------------------\n");
     if (n > array_size(cycles_times))
         n = array_size(cycles_times);
+
+    // TODO: Special style for cycles?
+    // Maybe for cycles, add an iteration time or so?
     printf("Phases:\n");
     for (int i = 0; i < n; ++i) {
         time_frame_t *time_frame = array_get(cycles_times, i);
@@ -295,6 +303,7 @@ point_frame_t *_ccn_create_point_frame_from_string(char *target) {
     array *cycle_counts = ccn_str_split(array_get(actions, 0), ':');
     if (array_size(cycle_counts) > 1) {
         char *ptr = NULL;
+        // TODO: check errno of strtol?
         cycle_count = strtol(array_get(cycle_counts, 1), &ptr, 10);
         printf("Cycle count: %li\n", cycle_count);
     }
@@ -330,6 +339,7 @@ bool _ccn_is_final_point(enum ACTION_IDS id, phase_frame_t *frame, point_frame_t
 
     return false;
 }
+
 // TODO: implement function lookup.
 void _ccn_check_inspect_point(enum ACTION_IDS id, char *curr_action) {
     if (phase_driver.inspection_points == NULL)
@@ -445,6 +455,7 @@ void _ccn_destroy_time_frame(void *item) {
     mem_free(frame);
 }
 
+// TODO: make sure statistics and stuff are printed.
 void phase_driver_destroy() {
     array_cleanup(phase_driver.passes_time_frames, _ccn_destroy_time_frame);
     array_cleanup(phase_driver.cycles_time_frames, _ccn_destroy_time_frame);

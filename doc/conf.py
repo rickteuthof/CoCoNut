@@ -22,7 +22,7 @@ import sys
 sys.path.insert(0, os.path.abspath('../src'))
 
 
-import sphinx_rtd_theme 
+import sphinx_rtd_theme
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -49,7 +49,7 @@ master_doc = 'index'
 # General information about the project.
 project = 'CoCoNut'
 author = 'Maico Timmerman, Lorian Coltof, Robin Wolferink & Damian Frolich'
-copyright = '2019, ' + author
+#copyright = '2019, ' + author
 
 breathe_projects = {project: "./doxygen-out/xml/"}
 
