@@ -176,9 +176,9 @@ bool _ccn_mark_remove(void *item) {
 }
 
 static void print_phase_header(const char *message, const char *id) {
-    PRINT_COLOR(COLOR_GREEN);
+    PRINT_COLOR(GREEN);
     printf("[CCN] ");
-    PRINT_COLOR(COLOR_RESET);
+    PRINT_COLOR(RESET_COLOR);
     for(int i = 0; i < phase_driver.level; i++) {
         printf("*");
     }
