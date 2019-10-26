@@ -10,7 +10,7 @@ void gen_action_array_h(Config *c, FILE *fp) {
 
     out("#include \"generated/enum.h\"\n");
     out("#include <stddef.h>\n");
-    out_statement("void init_action_array()");
+    out_statement("void ccn_init_action_array()");
     out_statement("void dispatch_traversals(NodeType type, void *node, TraversalType trav_type)");
     out_statement("TraversalType get_sub_root_find_traversals(NodeType from, NodeType to)");
     out_statement("size_t get_offset_next(NodeType type)");
