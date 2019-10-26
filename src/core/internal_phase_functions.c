@@ -241,50 +241,49 @@ void _ccn_print_time_frame(time_frame_t *time_frame) {
     printf("%% Time: %f\n\n" , (time_frame->time_sec / phase_driver.total_time) * 100);
 }
 
-void _print_top_n_time() {
-    size_t n = phase_driver.print_n;
-    if (n <= 0)
-        return;
+void _ccn_print_top_n_time(int n) {
+    int local_n = n;
+
     array *passes_times = phase_driver.passes_time_frames;
     array *cycles_times = phase_driver.cycles_time_frames;
     array_sort(passes_times, compare_time_frame_inverse);
     array_sort(cycles_times, compare_time_frame_inverse);
-    if (n > array_size(passes_times))
-        n = array_size(passes_times);
 
-    printf("\n");
-    printf("-------------------------------------------------\n");
+    if (n > array_size(passes_times) || n < 0)
+        local_n = array_size(passes_times);
+
+    putchar('\n');
+    print_char_n_times('-', 80);
+    putchar('\n');
+
     printf("Time statistic:\n\n");
 
-    // TODO: make int i -> size_t i;
-    // TODO: also check if traversals should be includes or not.
-    printf("Passes:\n");
-    for (int i = 0; i < n; ++i) {
+    printf("Passes & Traversals:\n");
+    for (int i = 0; i < local_n; ++i) {
         time_frame_t *time_frame = array_get(passes_times, i);
         _ccn_print_time_frame(time_frame);
     }
-    printf("\n");
-    printf("-----------------------------------------------\n");
-    if (n > array_size(cycles_times))
-        n = array_size(cycles_times);
+
+    putchar('\n');
+    print_char_n_times('-', 80);
+    putchar('\n');
+
+    if (n > array_size(cycles_times) || n < 0)
+        local_n = array_size(cycles_times);
 
     // TODO: Special style for cycles?
     // Maybe for cycles, add an iteration time or so?
     printf("Phases:\n");
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < local_n; ++i) {
         time_frame_t *time_frame = array_get(cycles_times, i);
         _ccn_print_time_frame(time_frame);
     }
-    printf("-------------------------------------------\n");
-    printf("Total time: %f seconds\n", phase_driver.total_time);
-    printf("---------------------------------------------------------------------------------\n\n");
 
-    /*
-    printf("\nMemory:\n");
-    printf("---------------------------\n");
-    printf("Total allocated: %lu bytes\n", phase_driver.total_allocated);
-    printf("Total freed: %lu bytes\n", phase_driver.total_freed);
-    */
+    print_char_n_times('-', 80);
+    putchar('\n');
+    printf("Total time: %f seconds\n", phase_driver.total_time);
+    print_char_n_times('-', 80);
+    putchar('\n');
 }
 
 #ifdef CCN_ENABLE_POINTS
