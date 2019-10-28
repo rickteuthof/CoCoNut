@@ -54,6 +54,8 @@ to your specification. If the AST is incosistent an error will be displayed with
 is meant for debugging your compiler. Consistency checking has no API in the phase driver as everything is constructed
 from the definition in your DSL file.
 
+
+
 =========
 Profiling
 =========
@@ -79,11 +81,31 @@ Break points
 Using the *--breakpoints** flag with *cocogen*, your compiler will contain the code for setting breakpoints during compilation.
 A breakpoint will stop the compiler when reached, print the AST at that stage, and exit the compilation.
 Breakpoints still need to be extracted by your own compiler parameters and given to the phase driver using
-the: *ccn\_set\_breakpoint(char *)* function. The string given to this function has the following signature:
-*
+the following function:
+
+.. code-block:: C
+
+        ccn_set_breakpoint(char *)
+
+The string given to this function has the following signature: \
+    *[<phase>.]*<action>[:<cycle count>][=<print\_action>]*
+
+where the action denotes an action defined in the DSL, which can be
+namespaced using its parent(s) phases. If the action is a cycle, the cycle count can be set as well.
+The <print\_action> is the name of the one the actions defined in the DSL file with the '@print' compiler directive.
+The action with the '@defaultPrint' directive will be chosen when no action is specified.
 
 =================
 Inspection points
 =================
-Inspection points do the same as breakpoints except they do not stop the compilation. Inspection points can
-be enabled using the *--inspectpoints* flag with *cocogen*.
+Inspection points do the same as breakpoints except they do not stop the compilation and do the printing to a file. Inspection points can
+be enabled using the *--inspectpoints* flag with *cocogen*. Inspection points can be set with the following function
+
+.. code-block:: C
+
+    ccn_set_inspectpoint(char *)
+    ccn_set_inspectpoint_prefix(char *)
+
+The string given to this function has the same signature as the breakpoint.
+The prefix function can be used to set a prefix for the files the inspections points are written to. This can be usefull if you
+want to compare multiple runs and store the values in different files.
