@@ -46,4 +46,4 @@ typedef struct ccn_action {
 
 ccn_action_t *get_ccn_action_from_id(enum ACTION_IDS);
 void *ccn_dispatch_phase(ccn_phase_t *phase, NodeType root_type, void * node, char *name);
-void *ccn_dispatch_action(ccn_action_t *action, NodeType root_type, void *node);
+void *ccn_dispatch_action(ccn_action_t *action, NodeType root_type, void *node, bool is_root);
