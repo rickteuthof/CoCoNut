@@ -164,19 +164,29 @@ void *ccn_dispatch_phase(ccn_phase_t *phase, NodeType root_type, void *node, cha
 }
 
 void *ccn_dispatch_action(ccn_action_t *action, NodeType root_type, void *node) {
+    double start, end;
     phase_driver_t *pd = _get_phase_driver();
 #ifdef CCN_ENABLE_CHECKS
     dispatch_traversals(root_type, node, TRAV__CCN_CHK);
 #endif
     switch (action->type) {
     case action_pass:
+        start = clock();
         node = action->pass->func(node, root_type); // TODO: This might be unsafe, require a type check?
+        end = clock();
+        _ccn_new_pass_time_frame(action->name, (end - start)/CLOCKS_PER_SEC)
         break;
     case action_traversal:
+        start = clock();
         dispatch_traversals(root_type, node, action->traversal->trav_type); // TODO: call syntax is not consistent.
+        end = clock();
+        _ccn_new_pass_time_frame(action->name, (end - start)/CLOCKS_PER_SEC)
         break;
     case action_phase:
+        start = clock();
         node = ccn_dispatch_phase(action->phase, root_type, node, action->name);
+        end = clock();
+        _ccn_new_phase_time_frame(action->name, (end - start)/CLOCKS_PER_SEC)
         break;
     }
 
