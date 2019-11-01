@@ -88,7 +88,7 @@ void *ccn_run_phase_actions(ccn_phase_t *phase, char *name, NodeType root, void 
         enum ACTION_IDS action_id = phase->action_types[index];
         ccn_action_t *action = get_ccn_action_from_id(action_id);
         pd->current_action = action->name;
-        node = ccn_dispatch_action(action, root, node);
+        node = ccn_dispatch_action(action, root, node, false);
 #ifdef CCN_ENABLE_POINTS
         _ccn_check_points(action_id, action->name);
 #endif
@@ -165,7 +165,7 @@ void *ccn_dispatch_phase(ccn_phase_t *phase, NodeType root_type, void *node, cha
     return node;
 }
 
-void *ccn_dispatch_action(ccn_action_t *action, NodeType root_type, void *node) {
+void *ccn_dispatch_action(ccn_action_t *action, NodeType root_type, void *node, bool is_root) {
     double start, end;
     phase_driver_t *pd = _get_phase_driver();
 #ifdef CCN_ENABLE_CHECKS
@@ -188,7 +188,9 @@ void *ccn_dispatch_action(ccn_action_t *action, NodeType root_type, void *node) 
         start = clock();
         node = ccn_dispatch_phase(action->phase, root_type, node, action->name);
         end = clock();
-        _ccn_new_phase_time_frame(action->name, (end - start)/CLOCKS_PER_SEC);
+        if (!is_root) {
+            _ccn_new_phase_time_frame(action->name, (end - start)/CLOCKS_PER_SEC);
+        }
         break;
     }
 

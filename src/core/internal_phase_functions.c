@@ -481,7 +481,7 @@ void ccn_set_print_n(size_t n) {
 void _ccn_phase_driver_start() {
     ccn_action_t *action = get_ccn_action_from_id(CCN_ROOT_ACTION);
     double start = clock();
-    ccn_dispatch_action(action, CCN_ROOT_TYPE, NULL);
+    ccn_dispatch_action(action, CCN_ROOT_TYPE, NULL, true);
     double end = clock();
     phase_driver.total_time = (end - start) / CLOCKS_PER_SEC;
 }
