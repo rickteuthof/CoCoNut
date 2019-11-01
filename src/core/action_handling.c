@@ -1,4 +1,6 @@
 #include <string.h>
+#include <time.h>
+
 #include "generated/ccn_enables.h"
 #include "core/action_handling.h"
 #include "core/internal_phase_functions.h"
