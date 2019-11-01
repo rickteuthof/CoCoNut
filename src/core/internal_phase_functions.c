@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <malloc.h>
+#include <time.h>
 #include "core/error.h"
 #include "core/internal_phase_functions.h"
 #include "core/action_handling.h"
@@ -227,7 +228,6 @@ int compare_time_frame_inverse(const void *a, const void *b) {
     return 0;
 }
 
-// TODO: check total_time != 0.0 safe?;
 void _ccn_print_time_frame(time_frame_t *time_frame) {
     printf("Name: %s\n", time_frame->id);
     printf("Path: %s\n", time_frame->path);
@@ -480,5 +480,8 @@ void ccn_set_print_n(size_t n) {
 
 void _ccn_phase_driver_start() {
     ccn_action_t *action = get_ccn_action_from_id(CCN_ROOT_ACTION);
+    double start = clock();
     ccn_dispatch_action(action, CCN_ROOT_TYPE, NULL);
+    double end = clock();
+    phase_driver.total_time = (end - start) / CLOCKS_PER_SEC;
 }
