@@ -10,11 +10,11 @@ Welcome to CoCoNut's documentation!
     :maxdepth: 2
     :caption: Contents:
 
-
+    getting_coconut
     getting_started
     calculator_example
-    plugins
-    dsl_syntax
+    manual
+    attribute_types
     prefix
     serialization_binary
 

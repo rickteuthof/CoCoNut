@@ -1,20 +1,18 @@
-Getting Started
+Quickstart
 ===============
 
-The first step is integrating CoCoNut in to your project. This integration
-can be achieved in two steps.
+A script in the CoCoNut directory called *setup.sh* will build cocogen and setup an artifacts directory.
+The artifacts directory will contain all the stuff for the coconut static libary. By placing this in a separate
+directory it can be easily removed and ignored.
 
-Using git in your project
-When using git in your project the easier method is to add CoCoNut as a submodule to your project.
-CoCoNut itself also has submodules as a dependency so do not forget to recursivel intialise submodules.
-Adding CoCoNut and recursively intialising can be done with the following commands:
+So, execute the following command:
 
 .. code-block:: bash
 
-    $ git submodule add -b master https://github.com/leegbestand/CoCoNut.git lib/CoCoNut
-    $ git submodule update --init --recursive
+    $ ./lib/CoCoNut/setup.sh
 
-Executing the _$ tree -L 2 command in your shell should, excluding your own files, show the following structure:
+
+Now, executing the $ tree -L 2 command in your shell should, excluding your own files, show the following structure:
 
 .. code-block:: text
 
@@ -28,28 +26,19 @@ Executing the _$ tree -L 2 command in your shell should, excluding your own file
         └── CoCoNut
 
 
-The only step left is building *cocogen* and creating a directory for the artifacts of *CoCoNut*.
-A script in the CoCoNut directory called *setup.sh* will perform these operations for you, which is achieved by executing the following command:
-
-.. code-block:: bash
-
-    $ ./lib/CoCoNut/setup.sh
-
-
-
-The next step is creating your DSL file.
+The next step is creating your DSL file, it is now a good idea to read the tutorial.
 
 After you have created the DSL file you need to generate the common structure in C code.
-This is done by executing *cocogen*, the metacompiler of *CoCoNut*. The metacompiler
-can be found in the *bin* directory of your *CoCoNut* install. If you followed the examples
-this is under lib/CoCoNut. An example of executing the metacompiler with your DSL file named *main.coconut* is as follows:
+This is done by executing *cocogen*, the meta compiler of *CoCoNut*. The meta compiler
+can be found in the *bin* directory of your the artifacts directory. If you followed the examples
+this is under lib/CoCoNut. An example of executing the meta compiler with your DSL file named *main.coconut* is as follows:
 
 .. code-block:: bash
 
-    $ ./lib/CoCoNut/bin/cocogen --header-dir CoCoNut-artifacts/include --source-dir CoCoNut-artifacts/src src/dsl/main.coconut
+    $ ./CoCoNut-artifact/bin/cocogen --header-dir CoCoNut-artifacts/include --source-dir CoCoNut-artifacts/src src/dsl/main.coconut
 
-The metacompiler will automatically create a generated directory in your header and source directory and place all generated file there.
-If the metacompiler did not signal any errors the *CoCoNut* library needs to be compiled.
+The meta compiler will automatically create a generated directory in your header and source directory and place all generated files there.
+If the meta compiler did not signal any errors the *CoCoNut* library needs to be compiled.
 Run the following command:
 
 .. code-block:: bash
@@ -57,14 +46,13 @@ Run the following command:
     $ make -C ./CoCoNut-artifacts
 
 This will build the static library *coconutlib*, found in the *bin* directory of the artifacts directory.
-In order to build your own compiler it is required to link with the *coconutlib* library.
-
+To build your compiler it is required to link with the *coconutlib* library.
 
 It is easiest to integrate these commands within your build system. We assume you use a simple Makefile in the following example. It can be ported
 to other build systems.
 
 Inside the artifacts directory a makefile is present with the required flags to link the *coconutlib* library. The makefile
-is called *coconut_flags.mk*. The coconut_flags makefile add the required parameters to the LDFLAGS and LDLIBS variables to link
+is called *coconut_flags.mk*. The coconut_flags makefile adds the required parameters to the LDFLAGS and LDLIBS variables to link
 with the library. It also defines some useful variables to use in your own makefile, which are displayed in the following table:
 
 +----------------------+----------------------------------------------------------------------------------+
@@ -94,7 +82,5 @@ the static library when your DSL file updates.
     MAIN_DSL := src/dsl/main.coconut
 
     $(COCONUT_LIB): $(MAIN_DSL)
-        ./lib/CoCoNut/bin/cocogen --header-dir $(COCONUT_HEADER_DIR) --source-dir $(COCONUT_SOURCE_DIR) $<
+        ./$(COCONUT_DIR)/bin/cocogen --header-dir $(COCONUT_HEADER_DIR) --source-dir $(COCONUT_SOURCE_DIR) $<
         make "CFLAGS=$(CFLAGS)" -C $(COCONUT_DIR)
-
-
