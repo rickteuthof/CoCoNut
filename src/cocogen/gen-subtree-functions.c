@@ -66,6 +66,7 @@ void subtree_generate_set_handler(char *root, ccn_set_t *funcs, Config *config) 
         out("void _ccn_subroot_set_%s(%s *sub_root) {\n", root, root);
         out("phase_driver_t *phase_driver = _get_phase_driver();\n");
         out("if (phase_driver->curr_sub_root == NULL) {\n");
+        //out("phase_driver->curr_sub_root = ast_alloc(sizeof(struct ccn_subroot), ast_node);\n}\n");
         out("phase_driver->curr_sub_root = mem_alloc(sizeof(struct ccn_subroot));\n}\n");
         out("phase_driver->curr_sub_root->value = sub_root;\n");
         out("phase_driver->curr_sub_root->nodetype = NT_%s;\n", root);
@@ -95,6 +96,7 @@ void subtree_generate_find_traversal_body(char *trav_name, char *target, Config 
         generate_include("generated/_sub_root_handlers.h", fp);
         out("#include <stddef.h>\n");
         out("#include <stdio.h>\n");
+        out("#include \"core/ast_memory.h\"\n");
         out("struct Info {void *empty;};\n");
         out("Info *%s_createinfo(void) { return NULL;}\n", trav_name);
         out("void %s_freeinfo(Info *info) {}\n", trav_name);
@@ -186,6 +188,7 @@ void subtree_generate_handlers(const char *header_dir, const char *source_dir) {
     fp = get_fp(source, "w");
     {
         out("#include \"generated/enum.h\"\n");
+        out("#include \"core/ast_memory.h\"\n");
         generate_include("core/internal_phase_functions.h", fp);
         generate_include("generated/_sub_root_handlers.h", fp);
         print_file_gen(source);

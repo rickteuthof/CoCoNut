@@ -1,10 +1,10 @@
 Terminals unused in grammar
 
-    "char value"
-    "passes"
-    "phases"
-    "subphases"
-    "to"
+   "char value"
+   "passes"
+   "phases"
+   "subphases"
+   "to"
 
 
 Grammar
@@ -184,194 +184,163 @@ Grammar
 
 Terminals, with rules where they appear
 
-    "End-of-file (EOF)" (0) 0
-    '&' (38) 61
-    '(' (40) 57 85 86
-    ')' (41) 57 88 89
-    ',' (44) 12 13 14 15 16 17 18 19 31 32 33 37 38 39 40 41 42 43 47 48 49 50 54 66 69 70 71 72 77 92 95 96 100 102 129
-    '-' (45) 62
-    '.' (46) 83
-    ';' (59) 2 21 22
-    '=' (61) 11 13 15 16 17 18 31 32 35 44 45 46 47 48 49 50 52 53 54 55 74 76 104 131
-    '[' (91) 87
-    ']' (93) 90
-    '{' (123) 12 13 14 15 16 17 18 19 20 31 32 33 37 38 39 40 41 42 43 47 48 49 50 52 53 54 58 63 64 65 74 76 91 95 96 97 98 99 102 103
-    '|' (124) 60
-    '}' (125) 12 13 14 15 16 17 18 19 20 31 32 33 37 38 39 40 41 42 43 47 48 49 50 52 53 54 58 63 64 65 74 76 91 95 96 97 98 99 102 103
-    error (256)
-    "integer value" <intval> (258) 122
-    "unsigned integer value" <uintval> (259) 123
-    "float value" <fval> (260) 124
-    "char value" <string> (261)
-    "string value" <string> (262) 16 17 18 121 131
-    "identifier" <string> (263) 11 13 15 16 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 47 48 49 50 53 54 55 59 63 64 65 83 84 94 95 96 97 98 105 106 125 129 130
-    "int" (264) 107
-    "uint" (265) 112
-    "int8" (266) 108
-    "int16" (267) 109
-    "int32" (268) 110
-    "int64" (269) 111
-    "uint8" (270) 113
-    "uint16" (271) 114
-    "uint32" (272) 115
-    "uint64" (273) 116
-    "bool" (274) 119
-    "true" (275) 126
-    "false" (276) 127
-    "attributes" (277) 99
-    "children" (278) 91
-    "construct" (279) 95 96 97 102 103
-    "cycle" (280) 28 30
-    "enum" (281) 47 48 49 50
-    "mandatory" (282) 81 82
-    "node" (283) 63 64 65
-    "nodes" (284) 46 53 54
-    "nodeset" (285) 53 54 55
-    "pass" (286) 31 32 33 34 35
-    "passes" (287)
-    "phase" (288) 27 29
-    "phases" (289)
-    "actions" (290) 20
-    "prefix" (291) 11 47 48 49 50
-    "info" (292) 131
-    "func" (293) 31 32 45
-    "root" (294) 13 15 16 64
-    "start" (295) 29 30
-    "subphases" (296)
-    "to" (297)
-    "traversal" (298) 36 37 38 39 40 41 42 43 44
-    "float" (299) 117
-    "double" (300) 118
-    "string" (301) 120
-    "values" (302) 52
-    "NULL" (303) 128
-    "lifetime" (304) 65
-    "disallowed" (305) 74 76 79 80
-    "gate" (306) 12 15 16 17 18 19
-    "->" (307) 74 79 81
+"End-of-file (EOF)" (0) 0
+'&' (38) 61
+'(' (40) 57 85 86
+')' (41) 57 88 89
+',' (44) 12 13 14 15 16 17 18 19 31 32 33 37 38 39 40 41 42 43 47 48
+    49 50 54 66 69 70 71 72 77 92 95 96 100 102 129
+'-' (45) 62
+'.' (46) 83
+';' (59) 2 21 22
+'=' (61) 11 13 15 16 17 18 31 32 35 44 45 46 47 48 49 50 52 53 54 55
+    74 76 104 131
+'[' (91) 87
+']' (93) 90
+'{' (123) 12 13 14 15 16 17 18 19 20 31 32 33 37 38 39 40 41 42 43
+    47 48 49 50 52 53 54 58 63 64 65 74 76 91 95 96 97 98 99 102 103
+'|' (124) 60
+'}' (125) 12 13 14 15 16 17 18 19 20 31 32 33 37 38 39 40 41 42 43
+    47 48 49 50 52 53 54 58 63 64 65 74 76 91 95 96 97 98 99 102 103
+error (256)
+"integer value" (258) 122
+"unsigned integer value" (259) 123
+"float value" (260) 124
+"char value" (261)
+"string value" (262) 16 17 18 121 131
+"identifier" (263) 11 13 15 16 26 27 28 29 30 31 32 33 34 35 36 37
+    38 39 40 41 42 43 44 45 47 48 49 50 53 54 55 59 63 64 65 83 84
+    94 95 96 97 98 105 106 125 129 130
+"int" (264) 107
+"uint" (265) 112
+"int8" (266) 108
+"int16" (267) 109
+"int32" (268) 110
+"int64" (269) 111
+"uint8" (270) 113
+"uint16" (271) 114
+"uint32" (272) 115
+"uint64" (273) 116
+"bool" (274) 119
+"true" (275) 126
+"false" (276) 127
+"attributes" (277) 99
+"children" (278) 91
+"construct" (279) 95 96 97 102 103
+"cycle" (280) 28 30
+"enum" (281) 47 48 49 50
+"mandatory" (282) 81 82
+"node" (283) 63 64 65
+"nodes" (284) 46 53 54
+"nodeset" (285) 53 54 55
+"pass" (286) 31 32 33 34 35
+"passes" (287)
+"phase" (288) 27 29
+"phases" (289)
+"actions" (290) 20
+"prefix" (291) 11 47 48 49 50
+"info" (292) 131
+"func" (293) 31 32 45
+"root" (294) 13 15 16 64
+"start" (295) 29 30
+"subphases" (296)
+"to" (297)
+"traversal" (298) 36 37 38 39 40 41 42 43 44
+"float" (299) 117
+"double" (300) 118
+"string" (301) 120
+"values" (302) 52
+"NULL" (303) 128
+"lifetime" (304) 65
+"disallowed" (305) 74 76 79 80
+"gate" (306) 12 15 16 17 18 19
+"->" (307) 74 79 81
 
 
 Nonterminals, with rules where they appear
 
-    $accept (66)
-        on left: 0
-    root <config> (67)
-        on left: 1
-        on right: 0
-    entries (68)
-        on left: 2 3 4
-        on right: 1 2
-    entry (69)
-        on left: 5 6 7 8 9 10
-        on right: 2 3
-    prefix <string> (70)
-        on left: 11
-        on right: 12 13 14 15 16 17 31 32 33 37 38 39 40 41 42 43
-    phase <phase> (71)
-        on left: 12 13 14 15 16 17 18 19
-        on right: 5 25
-    actionsbody <array> (72)
-        on left: 20
-        on right: 12 13 14 15 16 17 18 19
-    actions <array> (73)
-        on left: 21 22
-        on right: 20 21
-    action <action> (74)
-        on left: 23 24 25 26
-        on right: 21 22
-    phaseheader <phase> (75)
-        on left: 27 28 29 30
-        on right: 12 13 14 15 16 17 18 19
-    pass <pass> (76)
-        on left: 31 32 33 34 35
-        on right: 6 24
-    traversal <traversal> (77)
-        on left: 36 37 38 39 40 41 42 43 44
-        on right: 7 23
-    func <string> (78)
-        on left: 45
-        on right: 37 38 41 42
-    traversalnodes <setexpr> (79)
-        on left: 46
-        on right: 38 39 42 43
-    enum <attr_enum> (80)
-        on left: 47 48 49 50
-        on right: 8
-    enumvalues <array> (81)
-        on left: 52
-        on right: 47 48 49 50
-    $@1 (82)
-        on left: 51
-        on right: 52
-    nodeset <nodeset> (83)
-        on left: 53 54 55
-        on right: 9
-    setexpr <setexpr> (84)
-        on left: 56 57 58 59
-        on right: 44 46 53 54 55 60 61 62
-    setoperation <setoperation> (85)
-        on left: 60 61 62
-        on right: 56 57
-    node <node> (86)
-        on left: 63 64 65
-        on right: 10
-    nodebody <node> (87)
-        on left: 66 67 68 69 70 71
-        on right: 63 64 65
-    lifetimelistwithvalues <array> (88)
-        on left: 72 73
-        on right: 72 102
-    lifetimewithvalues <lifetime> (89)
-        on left: 74 75 76
-        on right: 72 73
-    lifetimelist <array> (90)
-        on left: 77 78
-        on right: 65 77 95 96 98
-    lifetime <lifetime> (91)
-        on left: 79 80 81 82
-        on right: 75 77 78
-    namespacelist <array> (92)
-        on left: 83 84
-        on right: 83 85 87 88 90
-    rangespec_start <range_spec> (93)
-        on left: 85 86 87
-        on right: 74 79 81
-    rangespec_end <range_spec> (94)
-        on left: 88 89 90
-        on right: 74 79 81
-    children <array> (95)
-        on left: 91
-        on right: 66 67 69 70
-    childlist <array> (96)
-        on left: 92 93
-        on right: 91 92
-    child <child> (97)
-        on left: 94 95 96 97 98
-        on right: 92 93
-    attrs <array> (98)
-        on left: 99
-        on right: 66 68 69 71
-    attrlist <array> (99)
-        on left: 100 101
-        on right: 99 100
-    attr <attr> (100)
-        on left: 102 103 104
-        on right: 100 101
-    attrhead <attr> (101)
-        on left: 105 106
-        on right: 102 103 104
-    attrprimitivetype <attrtype> (102)
-        on left: 107 108 109 110 111 112 113 114 115 116 117 118 119 120
-        on right: 105
-    attrval <attrval> (103)
-        on left: 121 122 123 124 125 126 127 128
-        on right: 104
-    idlist <array> (104)
-        on left: 129 130
-        on right: 52 58 74 76 129
-    info <string> (105)
-        on left: 131
-        on right: 32 33 40 41 42 43 49 50 54 69 70 71
+$accept (66)
+    on left: 0
+root (67)
+    on left: 1, on right: 0
+entries (68)
+    on left: 2 3 4, on right: 1 2
+entry (69)
+    on left: 5 6 7 8 9 10, on right: 2 3
+prefix (70)
+    on left: 11, on right: 12 13 14 15 16 17 31 32 33 37 38 39 40 41
+    42 43
+phase (71)
+    on left: 12 13 14 15 16 17 18 19, on right: 5 25
+actionsbody (72)
+    on left: 20, on right: 12 13 14 15 16 17 18 19
+actions (73)
+    on left: 21 22, on right: 20 21
+action (74)
+    on left: 23 24 25 26, on right: 21 22
+phaseheader (75)
+    on left: 27 28 29 30, on right: 12 13 14 15 16 17 18 19
+pass (76)
+    on left: 31 32 33 34 35, on right: 6 24
+traversal (77)
+    on left: 36 37 38 39 40 41 42 43 44, on right: 7 23
+func (78)
+    on left: 45, on right: 37 38 41 42
+traversalnodes (79)
+    on left: 46, on right: 38 39 42 43
+enum (80)
+    on left: 47 48 49 50, on right: 8
+enumvalues (81)
+    on left: 52, on right: 47 48 49 50
+$@1 (82)
+    on left: 51, on right: 52
+nodeset (83)
+    on left: 53 54 55, on right: 9
+setexpr (84)
+    on left: 56 57 58 59, on right: 44 46 53 54 55 60 61 62
+setoperation (85)
+    on left: 60 61 62, on right: 56 57
+node (86)
+    on left: 63 64 65, on right: 10
+nodebody (87)
+    on left: 66 67 68 69 70 71, on right: 63 64 65
+lifetimelistwithvalues (88)
+    on left: 72 73, on right: 72 102
+lifetimewithvalues (89)
+    on left: 74 75 76, on right: 72 73
+lifetimelist (90)
+    on left: 77 78, on right: 65 77 95 96 98
+lifetime (91)
+    on left: 79 80 81 82, on right: 75 77 78
+namespacelist (92)
+    on left: 83 84, on right: 83 85 87 88 90
+rangespec_start (93)
+    on left: 85 86 87, on right: 74 79 81
+rangespec_end (94)
+    on left: 88 89 90, on right: 74 79 81
+children (95)
+    on left: 91, on right: 66 67 69 70
+childlist (96)
+    on left: 92 93, on right: 91 92
+child (97)
+    on left: 94 95 96 97 98, on right: 92 93
+attrs (98)
+    on left: 99, on right: 66 68 69 71
+attrlist (99)
+    on left: 100 101, on right: 99 100
+attr (100)
+    on left: 102 103 104, on right: 100 101
+attrhead (101)
+    on left: 105 106, on right: 102 103 104
+attrprimitivetype (102)
+    on left: 107 108 109 110 111 112 113 114 115 116 117 118 119 120,
+    on right: 105
+attrval (103)
+    on left: 121 122 123 124 125 126 127 128, on right: 104
+idlist (104)
+    on left: 129 130, on right: 52 58 74 76 129
+info (105)
+    on left: 131, on right: 32 33 40 41 42 43 49 50 54 69 70 71
 
 
 State 0

@@ -3,6 +3,7 @@
 
 #include "generated/ccn_enables.h"
 #include "core/action_handling.h"
+#include "core/ast_memory.h"
 #include "core/internal_phase_functions.h"
 #include "generated/action_handlers.h"
 #include "generated/trav-ast.h"
@@ -168,31 +169,68 @@ void *ccn_dispatch_phase(ccn_phase_t *phase, NodeType root_type, void *node, cha
 void *ccn_dispatch_action(ccn_action_t *action, NodeType root_type, void *node, bool is_root) {
     double start, end;
     phase_driver_t *pd = _get_phase_driver();
+    void *node_root_holder;
+    int switchstate = 0;
+
+    node_root_holder = node;
 #ifdef CCN_ENABLE_CHECKS
     dispatch_traversals(root_type, node, TRAV__CCN_CHK);
 #endif
     switch (action->type) {
     case action_pass:
+    #ifdef CCN_ENABLE_MEM_MANAGER
+        switchstate = 1;
+        start_pass();
+    #endif 
         start = clock();
         node = action->pass->func(node, root_type); // TODO: This might be unsafe, require a type check?
         end = clock();
-        _ccn_new_pass_time_frame(action->name, (end - start)/CLOCKS_PER_SEC);
+        _ccn_new_pass_time_frame(action->name, (end - start)/CLOCKS_PER_SEC);  
         break;
     case action_traversal:
+    #ifdef CCN_ENABLE_MEM_MANAGER
+        switchstate = 1;
+        start_pass();
+    #endif 
         start = clock();
         dispatch_traversals(root_type, node, action->traversal->trav_type); // TODO: call syntax is not consistent.
         end = clock();
         _ccn_new_pass_time_frame(action->name, (end - start)/CLOCKS_PER_SEC);
         break;
     case action_phase:
+    #ifdef CCN_ENABLE_MEM_MANAGER
+        switchstate = 2;
+        start_phase();
+    #endif 
         start = clock();
         node = ccn_dispatch_phase(action->phase, root_type, node, action->name);
         end = clock();
         if (!is_root) {
+            //_cnn_new_phase_mem_frame(action->name, stop_size_alloc_phase(), stop_size_dealloc_phase(), stop_num_alloc_phase(), stop_num_dealloc_phase());
             _ccn_new_phase_time_frame(action->name, (end - start)/CLOCKS_PER_SEC);
         }
         break;
     }
+
+    if(switchstate == 2){
+#ifdef CCN_ENABLE_MEM_MANAGER
+        //printf("starting traversal\n");
+        dispatch_traversals(root_type, node_root_holder, TRAV__CCN_MRK);
+        //printf("ending traversal\n");
+#endif
+#ifdef CCN_ENABLE_GARBAGE
+        garbage_collection_sweep();
+#endif    
+#ifdef CCN_ENABLE_MEM_RPT
+        reset_ast_memory_manager_entries(action->name);
+#endif      
+        //printf("I am out of it\n");
+#ifdef CCN_ENABLE_MEM_MANAGER
+        _cnn_new_pass_mem_frame(action->name, stop_size_alloc_pass(), stop_size_dealloc_pass(), stop_num_alloc_pass(), stop_num_dealloc_pass(), stop_num_marked_phase());
+#endif
+    }
+
+
 
     pd->action_id++;
     return node;

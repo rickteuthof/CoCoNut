@@ -24,10 +24,15 @@
 #include "cocogen/gen-ast-definition.h"
 #include "cocogen/gen-binary-serialization.h"
 #include "cocogen/gen-consistency-functions.h"
+#include "cocogen/gen-marking-functions.h"
+#include "cocogen/gen-reporting-functions.h"
 #include "cocogen/gen-copy-functions.h"
 #include "cocogen/gen-create-functions.h"
 #include "cocogen/gen-dot-definition.h"
 #include "cocogen/gen-free-functions.h"
+#include "cocogen/gen-ast-copy-functions.h"
+#include "cocogen/gen-ast-create-functions.h"
+#include "cocogen/gen-ast-free-functions.h"
 #include "cocogen/gen-pass-header.h"
 #include "cocogen/gen-phase-driver.h"
 #include "cocogen/gen-serialization-headers.h"
@@ -54,6 +59,9 @@ static void set_global_options() {
     global_options.consistcheck = false;
     global_options.profiling = false;
     global_options.serialise = false;
+    global_options.ast_memory_manager = false;
+    global_options.memory_reporter = false;
+    global_options.garbage_collection = false;
 }
 
 static void usage(char *program) {
@@ -82,7 +90,10 @@ static void usage(char *program) {
     printf("  --consistency-checks         Do consistency checks on the AST during runtime.\n");
     printf("  --profiling                  Generate the requirements for a time and memory profile in your compiler.\n");
     printf("  --breakpoints                Enable setting breakpoints in your compiler, generates an API for this.\n");
+    printf("  --memory-leak-reporter       Enable setting memory-leak-reporter in your compiler, generates an API for this.\n");
+    printf("  --automatic-garbage-collector       Enable setting automatic-garbage-collector in your compiler, generates an API for this.\n");
 }
+
 
 static void version(void) {
     printf("cocogen 0.1\nCoCoNut Metacompiler\n");
@@ -134,6 +145,24 @@ void generate_enables(Config *c, FILE *fp) {
         out("#undef CCN_ENANLE_CHECKS\n");
     }
 
+    if(global_options.ast_memory_manager){
+        out("#define CCN_ENABLE_MEM_MANAGER 1\n");
+    } else {
+        out("#undef CCN_ENABLE_MEM_MANAGER\n");
+    }
+
+    if(global_options.memory_reporter){
+        out("#define CCN_ENABLE_MEM_RPT 1\n");
+    } else {
+        out("#undef CCN_ENANLE_MEM_RPT\n");
+    }
+
+    if(global_options.garbage_collection){
+        out("#define CCN_ENABLE_GARBAGE 1\n");
+    } else {
+        out("#undef CCN_ENANLE_GARBAGE\n");
+    }
+
     out("\n");
 }
 
@@ -164,6 +193,8 @@ int main(int argc, char *argv[]) {
         {"consistency-checks", no_argument, 0, 26},
         {"serialise", no_argument, 0, 27},
         {"inspectpoints", no_argument, 0, 28},
+        {"memory-leak-reporter", no_argument, 0, 29},
+        {"automatic-garbage-collector", no_argument, 0, 30},
         {0, 0, 0, 0}};
 
     while (1) {
@@ -203,6 +234,14 @@ int main(int argc, char *argv[]) {
             break;
         case 28:
             global_options.break_inspect_points = true;
+            break;
+        case 29:
+            global_options.ast_memory_manager = true;
+            global_options.memory_reporter = true;
+            break;
+        case 30:
+            global_options.ast_memory_manager = true;
+            global_options.garbage_collection = true;
             break;
         case 'h':
             usage(argv[0]);
@@ -261,6 +300,16 @@ int main(int argc, char *argv[]) {
         array_append(parse_result->traversals, consistency_check);
     }
 
+    if (global_options.ast_memory_manager){
+        Traversal *marking = create_traversal(strdup("_CCN_MRK"), NULL, strdup("_MRK"), NULL);
+        array_append(parse_result->traversals, marking);
+    }
+
+    if (global_options.memory_reporter){
+        Traversal *reporting = create_traversal(strdup("_CCN_RPT"), NULL, strdup("_RPT"), NULL);
+        array_append(parse_result->traversals, reporting);
+    }
+
     // Sort to prevent changes in order of attributes trigger regeneration of
     // code.
     sort_config(parse_result);
@@ -292,22 +341,46 @@ int main(int argc, char *argv[]) {
     filegen_all_nodesets("ast-%s.h", generate_ast_nodeset_header);
 
     // Free nodes.
-    filegen_generate("free-ast.h", generate_free_header);
-    filegen_all_nodes("free-%s.h", generate_free_node_header);
-    filegen_all_nodesets("free-%s.h", generate_free_nodeset_header);
+    if(global_options.ast_memory_manager){
+        filegen_generate("free-ast.h", ast_generate_free_header);
+        filegen_all_nodes("free-%s.h", ast_generate_free_node_header);
+        filegen_all_nodesets("free-%s.h", ast_generate_free_nodeset_header);
 
-    filegen_generate("create-ast.h", generate_create_header);
-    filegen_all_nodes("create-%s.h", generate_create_node_header);
-    filegen_all_nodesets("create-%s.h", generate_create_nodeset_header);
+        filegen_generate("create-ast.h", ast_generate_create_header);
+        filegen_all_nodes("create-%s.h", ast_generate_create_node_header);
+        filegen_all_nodesets("create-%s.h", ast_generate_create_nodeset_header);
 
-    filegen_generate("copy-ast.h", generate_copy_header);
-    filegen_all_nodes("copy-%s.h", generate_copy_node_header);
-    filegen_all_nodesets("copy-%s.h", generate_copy_nodeset_header);
+        filegen_generate("copy-ast.h", ast_generate_copy_header);
+        filegen_all_nodes("copy-%s.h", ast_generate_copy_node_header);
+        filegen_all_nodesets("copy-%s.h", ast_generate_copy_nodeset_header);
+    } else {
+        filegen_generate("free-ast.h", generate_free_header);
+        filegen_all_nodes("free-%s.h", generate_free_node_header);
+        filegen_all_nodesets("free-%s.h", generate_free_nodeset_header);
+
+        filegen_generate("create-ast.h", generate_create_header);
+        filegen_all_nodes("create-%s.h", generate_create_node_header);
+        filegen_all_nodesets("create-%s.h", generate_create_nodeset_header);
+
+        filegen_generate("copy-ast.h", generate_copy_header);
+        filegen_all_nodes("copy-%s.h", generate_copy_node_header);
+        filegen_all_nodesets("copy-%s.h", generate_copy_nodeset_header);
+    }
+    
 
 
     filegen_generate("trav-ast.h", generate_trav_header);
     filegen_generate("trav-core.h", generate_trav_core_header);
     filegen_all_nodes("trav-%s.h", generate_trav_node_header);
+
+    if (global_options.ast_memory_manager) {
+       filegen_generate("ccn_marking.h", generate_marking_headers);
+    }
+
+    if (global_options.memory_reporter) {
+        filegen_generate("ccn_reporting.h", generate_reporting_headers);
+    }
+ 
 
     if (global_options.consistcheck) {
         filegen_generate("ccn_consistency_check.h", generate_consistency_headers);
@@ -347,18 +420,38 @@ int main(int argc, char *argv[]) {
     // Genereate all the source files.
     filegen_dir(parse_result->source_dir);
 
-    filegen_all_nodes("free-%s.c", generate_free_node_definitions);
-    filegen_all_nodesets("free-%s.c", generate_free_nodeset_definitions);
+    if(global_options.ast_memory_manager){
+        filegen_all_nodes("free-%s.c", ast_generate_free_node_definitions);
+        filegen_all_nodesets("free-%s.c", ast_generate_free_nodeset_definitions);
 
-    filegen_all_nodes("create-%s.c", generate_create_node_definitions);
-    filegen_all_nodesets("create-%s.c", generate_create_nodeset_definitions);
+        filegen_all_nodes("create-%s.c", ast_generate_create_node_definitions);
+        filegen_all_nodesets("create-%s.c", ast_generate_create_nodeset_definitions);
 
-    filegen_all_nodes("copy-%s.c", generate_copy_node_definitions);
-    filegen_all_nodesets("copy-%s.c", generate_copy_nodeset_definitions);
+        filegen_all_nodes("copy-%s.c", ast_generate_copy_node_definitions);
+        filegen_all_nodesets("copy-%s.c", ast_generate_copy_nodeset_definitions);
+    } else {
+        filegen_all_nodes("free-%s.c", generate_free_node_definitions);
+        filegen_all_nodesets("free-%s.c", generate_free_nodeset_definitions);
+
+        filegen_all_nodes("create-%s.c", generate_create_node_definitions);
+        filegen_all_nodesets("create-%s.c", generate_create_nodeset_definitions);
+
+        filegen_all_nodes("copy-%s.c", generate_copy_node_definitions);
+        filegen_all_nodesets("copy-%s.c", generate_copy_nodeset_definitions);
+    }
 
     //filegen_generate("trav-ast.c", generate_trav_definitions);
     filegen_generate("trav-core.c", generate_trav_core_definitions);
     filegen_all_nodes("trav-%s.c", generate_trav_node_definitions);
+    
+    if (global_options.ast_memory_manager) {
+       filegen_generate("ccn_marking.c", generate_marking_definitions);
+    }
+
+    if (global_options.memory_reporter) {
+        filegen_generate("ccn_reporting.c", generate_reporting_definitions);
+    }
+
     if (global_options.consistcheck) {
         filegen_generate("ccn_consistency_check.c", generate_consistency_definitions);
     }
@@ -366,6 +459,17 @@ int main(int argc, char *argv[]) {
     //filegen_generate("phase-driver.c", generate_phase_driver_definitions);
     //filegen_all_phases("phase-%s.c", generate_phase_function_definitions);
     filegen_phase_subtree(parse_result, subtree_generate_phase_functions);
+
+    if (global_options.ast_memory_manager) {
+        filegen_generate("traversal-ccn_marking.c", generate_marking_traversal);
+    }
+
+    if (global_options.memory_reporter) {
+        filegen_generate("traversal-ccn_reporting.c", generate_reporting_traversal);
+    }
+
+    //filegen_generate("traversal-ccn_marking.c", generate_marking_traversal);
+    // filegen_generate("traversal-ccn_reporting.c", generate_reporting_traversal);
 
     if (global_options.consistcheck) {
         filegen_generate("traversal-ccn_consistency_check.c", generate_check_traversal);

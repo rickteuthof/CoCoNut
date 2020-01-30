@@ -242,7 +242,7 @@ void generate_phase_body(Phase *phase, FILE *fp, char *root, bool is_top_root) {
             out_statement("_ccn_check_points(ACTION_ID_%s, \"%s\")", phase->id, phase->id);
         }
         out_end_while();
-        out_statement("array_cleanup(marks, mem_free)");
+        out_statement("array_cleanup(marks, ast_free)");
     } else if (phase->cycle && phase->root == NULL) {
         out("do {\n");
         indent++;

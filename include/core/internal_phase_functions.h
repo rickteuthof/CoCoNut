@@ -37,7 +37,10 @@ typedef struct mem_frame {
     char *id;
     char *path;
     size_t allocated;
+    int num_alloc;
     size_t freed;
+    int num_free;
+    int num_marked;
 } mem_frame_t;
 
 typedef struct time_frame {
@@ -50,7 +53,6 @@ typedef struct cycle_mark {
     bool notified;
     void *node;
 } cycle_mark_t;
-
 
 typedef struct phase_frame {
     char *phase_id;
@@ -80,6 +82,8 @@ typedef struct phase_driver {
     array *passes_time_frames;
     array *cycles_time_frames;
     array *action_mem_frames;
+    array *phase_mem_frames;
+    array *traversal_mem_frames;
     ccn_subroot *curr_sub_root;
     smap_t *consistency_map;
     smap_t *id_to_enum_map;
@@ -93,8 +97,14 @@ typedef struct phase_driver {
     char *current_action;
     void *ast;
     double total_time;
+    int total_num_alloc;
     size_t total_allocated;
+    int total_num_freed;
     size_t total_freed;
+    int pre_num_alloc;
+    size_t pre_allocated;
+    int pre_num_freed;
+    size_t pre_freed;
 } phase_driver_t;
 
 
@@ -111,9 +121,13 @@ void _exit_on_phase_error();
 bool _is_cycle_notified();
 void _reset_cycle();
 void _initialize_phase_driver();
+void _cnn_pre_phase_memory();
 void _ccn_set_curr_mark(cycle_mark_t *mark);
 void _ccn_new_pass_time_frame(char *id, double time);
 void _ccn_new_phase_time_frame(char *id, double time);
+void _cnn_new_phase_mem_frame(char *id, size_t allocated_size, size_t freed_size, int num_alloc, int num_free);
+void _cnn_new_pass_mem_frame(char *id, size_t allocated_size, size_t freed_size, int num_alloc, int num_free, int num_mark);
+void _ccn_print_top_n_memory(int n);
 void _ccn_print_top_n_time(int n);
 void _print_path();
 char *_ccn_get_path();

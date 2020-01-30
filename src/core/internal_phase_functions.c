@@ -14,6 +14,7 @@
 #include "core/error.h"
 #include "core/internal_phase_functions.h"
 #include "core/action_handling.h"
+#include "core/ast_memory.h"
 #include "lib/array.h"
 #include "lib/memory.h"
 #include "lib/str.h"
@@ -120,6 +121,8 @@ void _initialize_phase_driver() {
     phase_driver.passes_time_frames = array_init(20);
     phase_driver.cycles_time_frames = array_init(20);
     phase_driver.action_mem_frames = array_init(20);
+    phase_driver.phase_mem_frames = array_init(20);
+    phase_driver.traversal_mem_frames = array_init(20);
     phase_driver.consistency_map = smap_init(20);
     phase_driver.curr_sub_root = NULL;
     phase_driver.level = 0;
@@ -131,8 +134,16 @@ void _initialize_phase_driver() {
     phase_driver.ast = NULL;
     phase_driver.current_action = NULL;
     phase_driver.total_time = 0;
+#ifdef CCN_ENABLE_MEM_MANAGER
+    phase_driver.pre_allocated = 0;
+    phase_driver.pre_num_alloc = 0;
+    phase_driver.pre_freed = 0;
+    phase_driver.pre_num_freed = 0;
     phase_driver.total_allocated = 0;
+    phase_driver.total_num_alloc = 0;
     phase_driver.total_freed = 0;
+    phase_driver.total_num_freed = 0;
+#endif
     phase_driver.print_n = 0;
 
     ccn_init_action_array();
@@ -204,7 +215,6 @@ void _ccn_new_phase_time_frame(char *id, double time_sec) {
     time_frame->time_sec = time_sec;
     time_frame->path = _ccn_get_path();
     array_append(phase_driver.cycles_time_frames, time_frame);
-
 }
 
 void _ccn_new_pass_time_frame(char *id, double time_sec) {
@@ -214,6 +224,118 @@ void _ccn_new_pass_time_frame(char *id, double time_sec) {
     time_frame->path = _ccn_get_path();
     array_append(phase_driver.passes_time_frames, time_frame);
 }
+
+/* START - Added for the memory management part 
+ *
+ * 
+ * 
+ */ 
+
+void _cnn_new_phase_mem_frame(char *id, size_t allocated_size, size_t freed_size, int num_alloc, int num_free) {
+    mem_frame_t *mem_frame = mem_alloc(sizeof(mem_frame_t));
+    mem_frame->id = id;
+    mem_frame->allocated = allocated_size;
+    mem_frame->freed = freed_size;
+    mem_frame->num_alloc = num_alloc;
+    mem_frame->num_free = num_free;
+    mem_frame->path = _ccn_get_path();
+    mem_frame->num_marked = 0;
+    array_append(phase_driver.phase_mem_frames, mem_frame);
+}
+
+void _cnn_new_pass_mem_frame(char *id, size_t allocated_size, size_t freed_size, int num_alloc, int num_free, int num_mark) {
+    mem_frame_t *mem_frame = mem_alloc(sizeof(mem_frame_t));
+    mem_frame->id = id;
+    mem_frame->allocated = allocated_size;
+    mem_frame->freed = freed_size;
+    mem_frame->num_alloc = num_alloc;
+    mem_frame->num_free = num_free;
+    mem_frame->path = _ccn_get_path();
+    mem_frame->num_marked = num_mark;
+    array_append(phase_driver.traversal_mem_frames, mem_frame);
+}
+
+void _ccn_print_mem_frame(mem_frame_t *mem_frame) {
+    printf("Name          : %s\n", mem_frame->id);
+    printf("Path          : %s\n", mem_frame->path);
+    printf("Allocated num : %d\n", mem_frame->num_alloc);
+    printf("Free num      : %d\n", mem_frame->num_free);
+    printf("Allocated size: %zu\n", mem_frame->allocated);
+    printf("Free size     : %zu\n", mem_frame->freed);
+    printf("Total marked  : %d\n\n", mem_frame->num_marked);
+}
+
+void _cnn_pre_phase_memory() {
+    phase_driver.pre_allocated = stop_size_alloc_total();
+    phase_driver.pre_num_alloc = stop_num_alloc_total();
+    phase_driver.pre_freed = stop_size_dealloc_total();
+    phase_driver.pre_num_freed = stop_num_dealloc_total();
+}
+
+void _ccn_print_top_n_memory(int n){
+    int local_n = n;
+
+    array *memory_phase = phase_driver.phase_mem_frames;
+    array *memory_pass = phase_driver.traversal_mem_frames;
+
+    if (n > array_size(memory_pass) || n < 0)
+        local_n = array_size(memory_pass);
+
+    putchar('\n');
+    print_char_n_times('-', 80);
+    putchar('\n');
+
+    printf("Memory statistic:\n\n");
+
+    printf("Pre Traversal \n\n");
+    printf("Total allocated: %u \n", phase_driver.pre_num_alloc);
+    printf("Total allocated: %lu bytes\n", phase_driver.pre_allocated);
+    printf("Total freed    : %u \n", phase_driver.pre_num_freed);
+    printf("Total freed    : %lu bytes\n", phase_driver.pre_freed);
+    
+    putchar('\n');
+    print_char_n_times('-', 80);
+    putchar('\n');
+
+    printf("Passes & Traversals:\n");
+    for (int i = 0; i < local_n; ++i) {
+        mem_frame_t *mem_frame = array_get(memory_pass, i);
+        _ccn_print_mem_frame(mem_frame);
+    }
+
+    putchar('\n');
+    print_char_n_times('-', 80);
+    putchar('\n');
+
+    if (n > array_size(memory_phase) || n < 0)
+        local_n = array_size(memory_phase);
+
+    // TODO: Special style for cycles?
+    // Maybe for cycles, add an iteration time or so?
+    printf("Phases:\n");
+    for (int i = 0; i < local_n; ++i) {
+        mem_frame_t *mem_frame = array_get(memory_phase, i);
+        _ccn_print_mem_frame(mem_frame);
+    }
+
+    print_char_n_times('-', 80);
+    putchar('\n');
+    printf("Total allocated: %u \n", phase_driver.total_num_alloc);
+    printf("Total allocated: %lu bytes\n", phase_driver.total_allocated);
+    printf("Total freed    : %u \n", phase_driver.total_num_freed);
+    printf("Total freed    : %lu bytes\n", phase_driver.total_freed);
+
+    print_char_n_times('-', 80);
+    putchar('\n');
+
+
+}
+
+/* END - memory management
+ *
+ * 
+ * 
+ */ 
 
 int compare_time_frame_inverse(const void *a, const void *b) {
     const time_frame_t *pass_a = *((time_frame_t**)a);
@@ -279,7 +401,7 @@ void _ccn_print_top_n_time(int n) {
 
     print_char_n_times('-', 80);
     putchar('\n');
-    printf("Total time: %f seconds\n", phase_driver.total_time);
+    printf("Total time     : %f seconds\n", phase_driver.total_time);
     print_char_n_times('-', 80);
     putchar('\n');
 }
@@ -452,10 +574,18 @@ void _ccn_destroy_time_frame(void *item) {
     mem_free(frame);
 }
 
+void _ccn_destroy_mem_frame(void *item) {
+    mem_frame_t *frame = (mem_frame_t*)item;
+    mem_free(frame->path);
+    mem_free(frame);
+}
+
 // TODO: make sure statistics and stuff are printed.
 void phase_driver_destroy() {
     array_cleanup(phase_driver.passes_time_frames, _ccn_destroy_time_frame);
     array_cleanup(phase_driver.cycles_time_frames, _ccn_destroy_time_frame);
+    array_cleanup(phase_driver.phase_mem_frames, _ccn_destroy_mem_frame);
+    array_cleanup(phase_driver.traversal_mem_frames, _ccn_destroy_mem_frame);
     array_cleanup(phase_driver.phase_stack, NULL);
     array_cleanup(phase_driver.action_mem_frames, NULL);
     smap_free(phase_driver.consistency_map);
@@ -484,4 +614,14 @@ void _ccn_phase_driver_start() {
     ccn_dispatch_action(action, CCN_ROOT_TYPE, NULL, true);
     double end = clock();
     phase_driver.total_time = (end - start) / CLOCKS_PER_SEC;
+#ifdef CCN_ENABLE_MEM_MANAGER
+    printf("I am reaching\n");
+    phase_driver.total_allocated = stop_size_alloc_total();
+    phase_driver.total_num_alloc = stop_num_alloc_total();
+    phase_driver.total_freed = stop_size_dealloc_total();
+    phase_driver.total_num_freed = stop_num_dealloc_total();
+#endif
+#ifdef CCN_ENABLE_MEM_RPT
+    report_all_leaks();
+#endif
 }
